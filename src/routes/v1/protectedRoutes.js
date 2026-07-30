@@ -1,0 +1,65 @@
+const express = require('express');
+const router = express.Router();
+const { authenticate } = require('../../middleware/auth');
+const { extractTenant } = require('../../middleware/tenantAuth');
+const { requirePermission } = require('../../middleware/rbac');
+const { enforceSubscriptionForWrite } = require('../../middleware/validateSubscription');
+
+const {
+  getDailyManifest,
+  updateReservationStatus,
+} = require('../../controllers/host/reservationController');
+const {
+  getTables,
+  createTable,
+  updateTable,
+} = require('../../controllers/admin/tableController');
+const { createCafe } = require('../../controllers/admin/cafeController');
+
+// Global Auth required for all protected routes
+router.use(authenticate);
+
+// Create Cafe & Organization
+router.post('/cafes', createCafe);
+
+// Host Stand Manifest (view_reservations permission required)
+router.get(
+  '/cafes/:cafeId/reservations',
+  extractTenant,
+  requirePermission('view_reservations'),
+  getDailyManifest
+);
+
+// Update Reservation Status (edit_reservations permission required)
+router.put(
+  '/cafes/:cafeId/reservations/:resId/status',
+  extractTenant,
+  requirePermission('edit_reservations'),
+  updateReservationStatus
+);
+
+// Table Inventory Management (edit_tables permission required)
+router.get(
+  '/cafes/:cafeId/tables',
+  extractTenant,
+  requirePermission('edit_tables'),
+  getTables
+);
+
+router.post(
+  '/cafes/:cafeId/tables',
+  extractTenant,
+  enforceSubscriptionForWrite,
+  requirePermission('edit_tables'),
+  createTable
+);
+
+router.put(
+  '/cafes/:cafeId/tables/:tableId',
+  extractTenant,
+  enforceSubscriptionForWrite,
+  requirePermission('edit_tables'),
+  updateTable
+);
+
+module.exports = router;

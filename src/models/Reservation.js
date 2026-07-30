@@ -1,0 +1,125 @@
+const mongoose = require('mongoose');
+
+const statusHistorySchema = new mongoose.Schema(
+  {
+    status: {
+      type: String,
+      required: true,
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now,
+    },
+    updated_by: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+  },
+  { _id: false }
+);
+
+const paymentDataSchema = new mongoose.Schema(
+  {
+    order_id: { type: String, default: null },
+    payment_id: { type: String, default: null },
+    amount: { type: Number, default: 0 },
+    currency: { type: String, default: 'INR' },
+    status: { type: String, default: 'CREATED' },
+    webhook_processed: { type: Boolean, default: false },
+    requires_manual_refund: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
+const reservationSchema = new mongoose.Schema(
+  {
+    cafe_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Cafe',
+      required: true,
+      immutable: true,
+      index: true,
+    },
+    user_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      immutable: true,
+    },
+    table_ids: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Table',
+        required: true,
+      },
+    ],
+    start_time: {
+      type: Date,
+      required: true,
+      immutable: true,
+    },
+    end_time: {
+      type: Date,
+      required: true,
+      immutable: true,
+      validate: {
+        validator: function (value) {
+          return value > this.start_time;
+        },
+        message: 'end_time must be strictly after start_time',
+      },
+    },
+    party_size: {
+      type: Number,
+      required: true,
+      min: [1, 'party_size must be greater than 0'],
+      immutable: true,
+    },
+    reservation_timezone: {
+      type: String,
+      required: true,
+    },
+    hold_expires_at: {
+      type: Date,
+      default: null,
+    },
+    status: {
+      type: String,
+      enum: [
+        'HOLD',
+        'PENDING_PAYMENT',
+        'CONFIRMED',
+        'CHECKED_IN',
+        'SEATED',
+        'COMPLETED',
+        'NO_SHOW',
+        'CANCELLED',
+        'EXPIRED',
+        'LEFT_BEFORE_SEATING',
+      ],
+      default: 'HOLD',
+    },
+    confirmed_at: { type: Date, default: null },
+    checked_in_at: { type: Date, default: null },
+    seated_at: { type: Date, default: null },
+    completed_at: { type: Date, default: null },
+    cancelled_at: { type: Date, default: null },
+
+    status_history: [statusHistorySchema],
+    payment_data: {
+      type: paymentDataSchema,
+      default: () => ({}),
+    },
+  },
+  {
+    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
+    versionKey: '__v',
+  }
+);
+
+// Availability Optimization Compound Index
+reservationSchema.index({ cafe_id: 1, status: 1, start_time: 1, end_time: 1 });
+reservationSchema.index({ 'payment_data.order_id': 1 });
+
+module.exports = mongoose.model('Reservation', reservationSchema);

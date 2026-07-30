@@ -1,0 +1,109 @@
+const crypto = require('crypto');
+const config = require('../config/env');
+const Reservation = require('../models/Reservation');
+const { transitionState } = require('../services/stateMachine');
+
+const handleRazorpayWebhook = async (req, res, next) => {
+  try {
+    const signature = req.headers['x-razorpay-signature'];
+    const secret = config.RAZORPAY_WEBHOOK_SECRET;
+
+    if (!signature) {
+      return res.status(400).json({ status: 'fail', message: 'Missing Razorpay signature' });
+    }
+
+    // Verify HMAC-SHA256 signature
+    const shasum = crypto.createHmac('sha256', secret);
+    shasum.update(JSON.stringify(req.body));
+    const expectedSignature = shasum.digest('hex');
+
+    if (signature !== expectedSignature) {
+      console.warn('[WEBHOOK BAD SIG] Webhook signature verification failed');
+      return res.status(400).json({ status: 'fail', message: 'Invalid webhook signature' });
+    }
+
+    const event = req.body.event;
+    const payload = req.body.payload;
+
+    if (!payload || !payload.payment || !payload.payment.entity) {
+      return res.status(200).json({ status: 'ok', message: 'Ignored irrelevant payload format' });
+    }
+
+    const paymentEntity = payload.payment.entity;
+    const orderId = paymentEntity.order_id;
+    const paymentId = paymentEntity.id;
+
+    const reservation = await Reservation.findOne({ 'payment_data.order_id': orderId });
+    if (!reservation) {
+      console.warn(`[WEBHOOK NO RES] No reservation found matching orderId: ${orderId}`);
+      return res.status(200).json({ status: 'ok', message: 'Order not associated with reservation' });
+    }
+
+    // Idempotency check
+    if (reservation.payment_data && reservation.payment_data.webhook_processed) {
+      console.log(`[WEBHOOK IDEMPOTENT] Webhook for orderId ${orderId} already processed.`);
+      return res.status(200).json({ status: 'ok', message: 'Webhook already processed' });
+    }
+
+    const currentStatus = reservation.status;
+
+    if (event === 'payment.captured' || event === 'order.paid') {
+      if (currentStatus === 'PENDING_PAYMENT') {
+        // Transition PENDING_PAYMENT -> CONFIRMED
+        await transitionState({
+          reservationId: reservation._id,
+          tenantId: reservation.cafe_id,
+          targetStatus: 'CONFIRMED',
+          expectedVersion: reservation.__v,
+          paymentDataUpdates: {
+            payment_id: paymentId,
+            status: 'SUCCESS',
+            webhook_processed: true,
+          },
+        });
+        console.log(`✅ [WEBHOOK SUCCESS] Reservation ${reservation._id} CONFIRMED.`);
+      } else if (['CANCELLED', 'EXPIRED', 'COMPLETED'].includes(currentStatus)) {
+        // Terminal state race condition mitigation: Flag for manual refund
+        await Reservation.updateOne(
+          { _id: reservation._id },
+          {
+            $set: {
+              'payment_data.webhook_processed': true,
+              'payment_data.requires_manual_refund': true,
+              'payment_data.payment_id': paymentId,
+              'payment_data.status': 'SUCCESS_LATE',
+            },
+          }
+        );
+        console.warn(
+          `⚠️ [WEBHOOK LATE REFUND ALERT] Payment succeeded for reservation ${reservation._id} currently in ${currentStatus} state. Flagged for manual refund.`
+        );
+      }
+    } else if (event === 'payment.failed') {
+      if (currentStatus === 'PENDING_PAYMENT' || currentStatus === 'HOLD') {
+        // Transition to CANCELLED to release table inventory
+        await transitionState({
+          reservationId: reservation._id,
+          tenantId: reservation.cafe_id,
+          targetStatus: 'CANCELLED',
+          expectedVersion: reservation.__v,
+          paymentDataUpdates: {
+            payment_id: paymentId,
+            status: 'FAILED',
+            webhook_processed: true,
+          },
+        });
+        console.log(`ℹ️ [WEBHOOK FAILED] Reservation ${reservation._id} CANCELLED due to payment failure.`);
+      }
+    }
+
+    return res.status(200).json({ status: 'ok' });
+  } catch (error) {
+    console.error('[WEBHOOK ERROR]', error);
+    next(error);
+  }
+};
+
+module.exports = {
+  handleRazorpayWebhook,
+};

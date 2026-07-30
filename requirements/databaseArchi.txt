@@ -1,0 +1,203 @@
+SaaS Cafe Reservation System: Database Architecture
+
+This document outlines the complete MongoDB database schema, incorporating optimistic locking, audit trails, and strict validation.
+
+1. The Business & Billing Layer
+
+Organizations
+
+_id: ObjectId
+
+name: String
+
+stripe_customer_id: String
+
+created_at: ISODate
+
+Cafes (The Tenant Profile)
+
+_id: ObjectId
+
+org_id: ObjectId (Ref: Organizations)
+
+name: String
+
+slug: String (Unique index)
+
+timezone: String
+
+reservation_rules: Object (e.g., default_turn_time_minutes: 90, max_party_size: 12, booking_lead_time_hours: 24)
+
+subscription_status: String (Enum: "active", "inactive", "trial", "past_due")
+
+is_deleted: Boolean (Soft delete flag. Default: false)
+
+Subscriptions
+
+_id: ObjectId
+
+org_id: ObjectId
+
+cafe_id: ObjectId (1:1 mapping to active locations)
+
+plan_tier: String
+
+status: String
+
+current_period_end: ISODate
+
+2. The Identity Layer
+
+Users
+
+_id: ObjectId
+
+phone: String (Unique index)
+
+email: String (Unique index)
+
+password_hash: String
+
+name: String
+
+staff_memberships: Array of Objects (Strictly one object per cafe scope)
+
+cafe_id: ObjectId
+
+role: String
+
+permissions: Array of Strings (RBAC Matrix source of truth)
+
+CafeCustomers (The Junction Collection)
+
+_id: ObjectId
+
+cafe_id: ObjectId
+
+user_id: ObjectId
+
+total_visits: Number
+
+total_no_shows: Number
+
+private_notes: String
+
+3. The Operations Layer
+
+Tables
+
+_id: ObjectId
+
+cafe_id: ObjectId (Indexed)
+
+table_number: String
+
+capacity: Number
+
+can_merge_with: Array of ObjectIds (Strict invariant: Must be symmetric. A->B requires B->A)
+
+status: String (Enum: "active", "out_of_service")
+
+is_deleted: Boolean (Soft delete flag. Default: false)
+
+__v: Number (Optimistic Concurrency Control version)
+
+Reservations
+
+Protected by strict MongoDB JSON Schema Validation (e.g., party_size > 0, end_time > start_time).
+
+_id: ObjectId
+
+cafe_id: ObjectId (Required. Immutable)
+
+user_id: ObjectId (Required. Immutable)
+
+table_ids: Array of ObjectIds (Required, non-empty. Immutable)
+
+start_time: ISODate (UTC. Immutable)
+
+end_time: ISODate (UTC. Immutable)
+
+party_size: Number (Required > 0. Immutable)
+
+reservation_timezone: String (The cafe's timezone at the time of booking)
+
+hold_expires_at: ISODate (Used for time-based exclusion during queries)
+
+status: String (Enum: "HOLD", "PENDING_PAYMENT", "CONFIRMED", "CHECKED_IN", "SEATED", "COMPLETED", "NO_SHOW", "CANCELLED", "EXPIRED", "LEFT_BEFORE_SEATING")
+
+__v: Number (Optimistic Concurrency Control version)
+
+Lifecycle Timestamps:
+
+confirmed_at: ISODate
+
+checked_in_at: ISODate
+
+seated_at: ISODate
+
+completed_at: ISODate
+
+cancelled_at: ISODate
+
+status_history: Array of Objects (Append-only lifecycle ledger)
+
+status: String
+
+timestamp: ISODate
+
+updated_by: ObjectId (User or System)
+
+payment_data: Object (Strict schema)
+
+order_id: String
+
+payment_id: String
+
+amount: Number
+
+currency: String
+
+status: String
+
+webhook_processed: Boolean
+
+requires_manual_refund: Boolean (Flagged during late webhooks)
+
+created_at: ISODate
+
+updated_at: ISODate
+
+AuditLogs
+
+A general-purpose, append-only ledger for non-lifecycle operational changes (e.g., editing rules, deleting tables).
+
+_id: ObjectId
+
+cafe_id: ObjectId
+
+entity_type: String (e.g., "Table", "CafeSettings", "CafeCustomer")
+
+entity_id: ObjectId
+
+action: String (e.g., "UPDATE_NOTES", "SOFT_DELETE")
+
+before_state: Object
+
+after_state: Object
+
+performed_by: ObjectId
+
+timestamp: ISODate
+
+4. Critical Database Indexes
+
+Routing Performance: { slug: 1 } on Cafes (Unique).
+
+Global Identity Enforcer: { phone: 1 } and { email: 1 } on Users (Unique).
+
+Local Rolodex Enforcer: { cafe_id: 1, user_id: 1 } on CafeCustomers (Unique).
+
+Availability Optimization: { cafe_id: 1, status: 1, start_time: 1, end_time: 1 } on Reservations.
+
+Garbage Collection / Retention: TTL Index on Reservations where status == 'EXPIRED'. Configured to automatically drop expired hold documents after 90 days.

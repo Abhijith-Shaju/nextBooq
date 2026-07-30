@@ -1,0 +1,111 @@
+Architecture Decision Records (ADR)
+
+SaaS Cafe Reservation Platform
+
+Date: July 30, 2026
+
+This document records the key architectural decisions made during the design phase of the SaaS Cafe Reservation Platform, providing context and rationale for future technical teams.
+
+ADR-001: Choice of Primary Database
+
+Context:
+The platform requires multi-tenant data isolation, flexible schema design for varying cafe configurations, and the ability to handle concurrent booking requests safely.
+
+Decision:
+We chose MongoDB (MongoDB Atlas) over a relational database like PostgreSQL.
+
+Rationale:
+
+Schema Flexibility: Cafes often have unique operational needs (e.g., specific table attributes or temporary floor plan changes). MongoDB's document model handles this schema variance more gracefully than strict relational tables.
+
+Multi-Tenancy: We enforce isolation by injecting a cafe_id into every document and querying against it. This pattern is easily supported in MongoDB.
+
+ACID Transactions: While NoSQL traditionally lacked transaction support, modern MongoDB supports multi-document ACID transactions, allowing us to build the critical Read-Check-Write flow required to prevent double-bookings safely.
+
+Consequences:
+
+We must rigorously enforce JSON Schema validation at the database level to prevent corrupt data (e.g., negative party sizes), as MongoDB will not enforce schema structure by default.
+
+We cannot rely on simple unique indexes for interval overlap detection; we must rely on transactional logic.
+
+ADR-002: Architectural Pattern
+
+Context:
+The system needs to serve multiple frontend applications (Customer Web App, Manager Tablet App) while maintaining strict data isolation between tenants.
+
+Decision:
+We adopted a Modular Monolith architecture rather than Microservices.
+
+Rationale:
+
+Operational Simplicity: For an MVP SaaS, managing a single deployable unit (Node.js/Express) is significantly easier than orchestrating a fleet of microservices.
+
+Resource Efficiency: It minimizes infrastructure costs and deployment overhead during the initial growth phase.
+
+Clear Boundaries: By keeping modules (Auth, Availability, Reservations, Payments) strictly separated within the codebase, we maintain the option to split them into microservices later if scaling demands it.
+
+Consequences:
+
+A single point of failure; if the monolith crashes, the entire platform goes down. (Mitigated by load balancing and multiple instances).
+
+Deployment requires updating the entire application.
+
+ADR-003: Concurrency Control Strategy
+
+Context:
+Multiple managers or hosts might attempt to update the same reservation simultaneously (e.g., Host A checks the customer in while Host B accidentally clicks "cancel").
+
+Decision:
+We implemented Optimistic Concurrency Control (OCC) for all state updates outside the initial booking transaction.
+
+Rationale:
+
+Performance: Pessimistic locking (locking the row until the transaction finishes) can create bottlenecks, especially in a web application where user think-time is involved.
+
+Data Integrity: OCC prevents the "Lost Update" problem. By passing a version token, the database only executes the update if the document hasn't changed since the client read it.
+
+Consequences:
+
+The frontend must handle 409 Conflict errors gracefully by prompting the user to refresh their view and try again.
+
+Every API payload modifying a reservation must include the version token.
+
+ADR-004: Reservation Data Mutability
+
+Context:
+Changes to existing reservations (e.g., modifying the time or party size) can create silent conflicts with other bookings.
+
+Decision:
+We treat key occupancy fields (start_time, end_time, party_size, table_ids) as Immutable after creation.
+
+Rationale:
+
+Safety: Modifying a time or table without running the full Availability Engine check risks creating overlapping reservations.
+
+Auditability: Forcing a "cancel and recreate" workflow preserves the historical record of what was originally requested and what was ultimately fulfilled.
+
+Consequences:
+
+The UI must guide users through a cancellation and re-booking flow rather than a simple "edit" form for major changes.
+
+We must maintain a separate AuditLog collection to track non-lifecycle changes (like editing notes).
+
+ADR-005: Bounding the Table Allocation Search
+
+Context:
+When a party size exceeds any single table's capacity, the system must evaluate combinations of tables using can_merge_with arrays.
+
+Decision:
+We established a strict Maximum Merge Depth of 3 tables for the Best-Fit allocation algorithm.
+
+Rationale:
+
+Computational Limits: Evaluating all possible combinations of tables in a large restaurant is an exponential search problem (bin-packing). Left unbounded, this could cause severe CPU spikes and timeout errors.
+
+Real-World Constraints: It is operationally rare for a cafe to push more than three physical tables together.
+
+Consequences:
+
+Extremely large parties may receive a "No Availability" response even if enough loose tables exist, requiring manual intervention by the cafe manager.
+
+We accept that the deterministic sorting (Lowest excess capacity -> Fewest tables -> Lowest table number) may not always result in the optimal global floor plan layout (e.g., preserving contiguous space), but it guarantees a fast, predictable response.

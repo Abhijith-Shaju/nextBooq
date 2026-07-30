@@ -1,0 +1,229 @@
+SaaS Cafe Reservation System: Operational Workflows & Logic
+
+This document defines the strict business rules, allocation algorithms, and concurrency strategies required to prevent data corruption and ensure reliable system behavior.
+
+1. Concurrency, Atomicity, & The Booking Flow
+
+To prevent double-bookings and race conditions, the entire availability-to-hold workflow must execute within a MongoDB Multi-Document Transaction.
+
+The Transactional Booking Flow (Explicit Steps):
+
+Start Session & Transaction.
+
+The Overlap Query (Time-Based Exclusion): Query Reservations for active statuses (HOLD, PENDING_PAYMENT, CONFIRMED, CHECKED_IN, SEATED) where existing.start_time < requested.end_time AND existing.end_time > requested.start_time.
+
+Crucial Invariant: For HOLD records, append AND hold_expires_at > NOW(). If a hold is expired, it is ignored by the engine immediately, regardless of background garbage collection.
+
+Extract Blocked Inventory: Extract all table_ids from the overlapping reservations.
+
+Filter Available Tables: Query Tables, explicitly demanding status == 'active' AND is_deleted == false, while excluding the blocked table_ids.
+
+Run Allocation Algorithm: Pass available tables and party_size to the Best Fit Algorithm. If no tables fit, abort transaction and return 409 Conflict.
+
+Invariant Validation (Safety Net): Ensure Σ(allocated_tables.capacity) >= requested.party_size. Abort if this fails.
+
+Write: Insert the new Reservation document with status HOLD and set hold_expires_at (e.g., NOW + 10 mins).
+
+Commit Transaction: If a Write Conflict occurs (due to MVCC), automatically retry up to 3 times with exponential backoff. If it still fails, abort and return HTTP 409.
+
+Generate Payment Intent (Post-Commit): Call Razorpay API.
+
+Success: Update reservation status -> PENDING_PAYMENT.
+
+Failure (Timeout/Network Error): Update reservation status -> EXPIRED (or CANCELLED) immediately to release the table. Return 500 to client.
+
+Return Checkout Details.
+
+2. Table Allocation Algorithm (Deterministic Best Fit)
+
+To maximize capacity utilization and ensure consistent results across all application instances, the engine must use a deterministic ranking algorithm.
+
+Filter by Capacity: Keep available tables where capacity >= party_size.
+
+Sort Single Tables: Sort ascending by capacity, then by table_number (tie-breaker for determinism).
+
+Select Single Best Fit: Take the first table.
+
+Fallback (Deterministic Merging): If no single table is large enough:
+
+Find valid combinations using the can_merge_with adjacency arrays.
+
+Complexity Cap: Maximum merge depth is 3 tables. Do not calculate combinations requiring 4 or more tables to prevent exponential search costs.
+
+Filter combinations where Σ(capacity) >= party_size.
+
+Deterministic Sort:
+
+Lowest excess capacity (Σ(capacity) - party_size).
+
+Fewest number of tables required.
+
+Lowest starting table_number (string/numeric sort).
+
+Select the top-ranked valid combination.
+
+If no combinations exist, return "No Availability".
+
+3. Reservation State Machine & Optimistic Locking
+
+A reservation transitions through a strict lifecycle via a centralized ReservationStateMachine service. Controllers must never update the status string directly.
+
+Furthermore, all state transitions outside of the initial booking transaction must utilize Optimistic Concurrency Control (OCC). Every update query must include the document's current version (__v), and increment it upon success. If the version does not match, the update is rejected (Last-Write-Wins prevention).
+
+Strict State Transitions
+
+HOLD: Created during the allocation transaction. Locks the table temporarily.
+
+Transitions: -> PENDING_PAYMENT (Checkout API), -> EXPIRED (Time-based decay).
+
+PENDING_PAYMENT: Customer is in the Razorpay flow.
+
+Transitions: -> CONFIRMED (Webhook success), -> CANCELLED (Webhook failure/user timeout).
+
+CONFIRMED: The baseline booked state.
+
+Transitions: -> CHECKED_IN (Host), -> SEATED (Host), -> CANCELLED (User/Host), -> NO_SHOW (Host).
+
+CHECKED_IN: Customer is physically at the host stand.
+
+Transitions: -> SEATED (Host), -> LEFT_BEFORE_SEATING (Host).
+
+SEATED: Customer is at the table.
+
+Transitions: -> COMPLETED (Host).
+
+Terminal States: COMPLETED, CANCELLED, EXPIRED, NO_SHOW, LEFT_BEFORE_SEATING. No further transitions allowed.
+
+4. Payment Idempotency & Race Conditions
+
+To safely handle delayed, duplicate, or failed webhooks without corrupting state:
+
+Receive Webhook. Verify signature.
+
+Find Reservation by payment_data.order_id.
+
+Check Idempotency Key: If payment_data.webhook_processed == true, return 200 OK immediately and exit.
+
+If payment_status == 'success' AND reservation.status == 'PENDING_PAYMENT':
+
+Update status -> CONFIRMED.
+
+Update payment_data.webhook_processed -> true.
+
+Append to status_history.
+
+If payment_status == 'success' AND reservation.status is in Terminal States (e.g., CANCELLED, EXPIRED):
+
+Do not reactivate reservation.
+
+Mark payment record for manual review / trigger REQUIRES_REFUND alert.
+
+Update payment_data.webhook_processed -> true.
+
+If payment_status == 'failed':
+
+Update status -> CANCELLED (releasing the table).
+
+Update payment_data.webhook_processed -> true.
+
+5. Subscription Enforcement Middleware Rules
+
+If a cafe's subscription_status changes to inactive or past_due:
+
+Public API (Customer Booking): Blocked (402 Payment Required). Tables appear offline.
+
+Create New Reservations (Internal): Blocked (402 Payment Required).
+
+Manager Dashboard Login: Allowed.
+
+View Historical Reservations: Allowed.
+
+Modify Existing Active Reservations (Cancel/Complete): Allowed.
+
+Billing Portal Access: Allowed.
+
+6. Formal RBAC Matrix
+
+Authorization logic checks permissions via the user's staff_memberships.permissions array.
+
+Permission Key
+
+Owner (Default)
+
+Manager (Default)
+
+Host (Default)
+
+manage_staff
+
+✅
+
+❌
+
+❌
+
+edit_tables
+
+✅
+
+✅
+
+❌
+
+edit_settings
+
+✅
+
+✅
+
+❌
+
+view_reservations
+
+✅
+
+✅
+
+✅
+
+edit_reservations
+
+✅
+
+✅
+
+✅
+
+cancel_reservations
+
+✅
+
+✅
+
+✅
+
+manage_billing
+
+✅
+
+❌
+
+❌
+
+7. Data Immutability & Invariants
+
+To protect audit history and prevent silent allocation conflicts, any change affecting occupancy scheduling requires the current reservation to be CANCELLED and a new reservation created through the standard transaction flow.
+
+The following fields are strictly immutable after creation:
+
+user_id
+
+cafe_id
+
+start_time
+
+end_time
+
+party_size
+
+table_ids
