@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
-package-lock.json
+backend/node_modules/
+frontend/node_modules/
 
 # Environment variables
 .env
@@ -8,26 +9,21 @@ package-lock.json
 .env.development.local
 .env.test.local
 .env.production.local
+backend/.env
+frontend/.env.local
 
-# Logs
+# Next.js Build
+frontend/.next/
+frontend/out/
+
+# Debug logs
 logs
 *.log
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
 
-# Diagnostic / Coverage
-coverage/
-.nyc_output/
-
-# OS / Editor junk
+# OS / IDE
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
