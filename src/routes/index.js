@@ -7,8 +7,8 @@ const protectedRoutes = require('./v1/protectedRoutes');
 const webhookRoutes = require('./v1/webhookRoutes');
 
 router.use('/v1/auth', authRoutes);
+router.use('/v1/webhooks', webhookRoutes);
 router.use('/v1', publicRoutes);
 router.use('/v1', protectedRoutes);
-router.use('/v1', webhookRoutes);
 
 module.exports = router;

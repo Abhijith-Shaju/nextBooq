@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Reservation = require('../models/Reservation');
 const Cafe = require('../models/Cafe');
+const Table = require('../models/Table');
 const { allocateTables } = require('./allocationEngine');
 const { ConflictError, NotFoundError, UnprocessableEntityError } = require('../utils/errors');
 
@@ -68,6 +69,13 @@ const createHoldReservation = async ({
           },
         ],
       });
+
+      // Touch allocated tables inside transaction to trigger WiredTiger MVCC WriteConflict lock for concurrent requests
+      await Table.updateMany(
+        { _id: { $in: allocation.tableIds }, cafe_id: cafeId },
+        { $inc: { __v: 1 } },
+        { session }
+      );
 
       await reservation.save({ session });
 
