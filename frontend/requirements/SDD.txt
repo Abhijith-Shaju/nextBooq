@@ -1,0 +1,181 @@
+Frontend Software Design Document (SDD)
+
+1. System Overview & Tech Stack
+
+The nextBooq frontend is a unified Next.js application that serves two distinct experiences: the public-facing Customer Booking App and the authenticated Manager Dashboard.
+
+Framework: Next.js (App Router)
+
+Hosting: Vercel
+
+Styling: Tailwind CSS + shadcn/ui
+
+State Management (Server Data): TanStack Query (React Query)
+
+State Management (Local/Client): Zustand
+
+Payment SDK: Razorpay Web JS
+
+Date/Time Handling: date-fns and date-fns-tz
+
+Real-time Engine: Socket.io-client (Manager Dashboard only)
+
+2. Rendering Strategy (Next.js App Router)
+
+To optimize for SEO, perceived performance, and interactivity, we strictly partition the application into Server Components (RSC) and Client Components.
+
+Server Components (Default):
+
+(public)/page.tsx (The marketplace landing page).
+
+[tenant]/page.tsx (The cafe's public booking page - crucial for SEO).
+
+Data Fetching: These components fetch initial data directly from the Express API during SSR, injecting tenant branding and basic availability before shipping HTML to the client.
+
+Client Components ("use client"):
+
+The Booking Wizard: Needs Zustand for multi-step form state and React Query for live availability filtering.
+
+The Manager Dashboard: Highly interactive, relies on WebSockets, Canvas/SVG floorplans, and frequent optimistic UI updates.
+
+Auth Modals & Razorpay Checkout.
+
+3. Multi-Tenant Routing & Resolution
+
+Tenant resolution occurs at the edge, utilizing Next.js Middleware to ensure the client never has to manually fetch the tenant ID on page load.
+
+User visits: centralperk.nextbooq.com/book
+
+Middleware intercepts: Reads the centralperk hostname.
+
+URL Rewrite & Header Injection: The middleware rewrites the route to /cafes/centralperk/book and injects an x-tenant-slug header.
+
+Server Component Layout: The root layout reads the header, fetches the tenant branding data once from the backend, and wraps the application in a TenantThemeProvider (injecting CSS variables for primary/secondary colors and logos).
+
+4. Directory Structure (Feature-Based)
+
+src/
+├── app/                  
+│   ├── (dashboard)/      # Dashboard Routes
+│   ├── (public)/         # Consumer Marketplace
+│   ├── [tenant]/         # Subdomain injected routes
+│   └── layout.tsx        # Injects TenantThemeProvider
+├── components/
+│   ├── ui/               # Pure, dumb components (Buttons, Inputs - shadcn)
+│   ├── booking/          # Client Components (Wizard, Time Slots)
+│   ├── dashboard/        # Client Components (Floorplan, Manifest)
+│   └── providers/        # TenantThemeProvider, QueryClientProvider
+├── hooks/                # useAuth, useWebSocket, useFloorplan
+├── lib/                  # api-client.ts, razorpay.ts, timezone.ts
+└── store/                # Zustand stores (bookingWizardStore)
+
+
+5. State Management & Authentication Strategy
+
+5.1 Server State (React Query)
+
+React Query owns all asynchronous server data. We utilize a strict query key factory to ensure predictable cache invalidation:
+
+['tenant', slug]
+
+['cafe', cafeId]
+
+['availability', cafeId, date, partySize]
+
+['reservations', cafeId, date]
+
+['me'] (The current authenticated user profile).
+
+5.2 Authentication Flow
+
+Authentication state is strictly managed by the server via HttpOnly Cookies.
+
+The frontend never stores JWTs or attempts to decode them.
+
+A useAuth() custom hook wraps a React Query call to GET /api/v1/auth/me.
+
+This query caches the user profile and RBAC permissions. If it returns 401 Unauthorized, the user is treated as logged out.
+
+5.3 Local UI State (Zustand)
+
+Zustand manages transient UI state.
+
+The bookingWizardStore: Holds selectedDate, selectedTime, partySize.
+
+Reset Rule: This store is explicitly reset to its initial state upon a successful booking, when the Razorpay modal closes, when the component unmounts, or if the tenant slug changes.
+
+6. Real-Time Architecture (WebSockets vs Polling)
+
+The system utilizes different real-time strategies based on the user context:
+
+Customer Booking Flow: Uses React Query exclusively. It fetches availability when dates change. If a conflict occurs during checkout, it relies on HTTP 409 Conflict responses to trigger a cache invalidation and UI refresh.
+
+Manager Dashboard: Uses WebSockets + React Query.
+
+The dashboard establishes a persistent Socket.io connection.
+
+The socket listens for reservation_created, reservation_updated, and table_status_changed events.
+
+Action: When an event fires, the socket listener calls queryClient.invalidateQueries(['reservations', cafeId, today]), triggering a silent, targeted background refetch to keep the manifest and floorplan synced.
+
+7. Optimistic UI Updates
+
+To ensure the Manager Dashboard feels instantaneous, specific mutations utilize optimistic updates.
+
+Optimistic Actions (Immediate UI update, rollback on failure):
+
+Host clicks "Check In" or "Seat Guest" (Status changes).
+
+Host drags and drops a table on the floorplan.
+
+Pessimistic Actions (Wait for server confirmation):
+
+Customer creating a HOLD reservation.
+
+Payment processing.
+
+Logging in / OTP submission.
+
+Frontend Workflow & User Journeys
+
+Journey A: The Customer Booking Flow (Subdomain)
+
+Landing & Initialization: User navigates to coffeecove.nextbooq.com. The Server Component Layout fetches the tenant data and injects the TenantThemeProvider.
+
+Step 1: Party Size & Date: User selects parameters. React Query fetches ['availability', cafeId, date, partySize].
+
+Step 2: Time Selection: User clicks "7:00 PM". Zustand stores this selection.
+
+Step 3: Identity & OTP:
+
+User enters Phone Number.
+
+UI displays a 60-second resend timer.
+
+OTP is verified. queryClient.invalidateQueries(['me']) is called to authenticate the session.
+
+Step 4: The Hold & Checkout:
+
+Frontend POSTs to create a HOLD.
+
+Backend returns Razorpay order_id.
+
+Frontend opens Razorpay modal.
+
+Step 5: Confirmation: Razorpay webhook processes. Frontend polls a GET /reservations/status endpoint until status is CONFIRMED, then routes to success page.
+
+Journey B: The Host Dashboard (Friday Night Rush)
+
+Dashboard Initialization: Manager navigates to dashboard. useAuth() verifies permissions. WebSocket connection is established.
+
+Checking In a Guest:
+
+Host taps "Seat Guest".
+
+Optimistic Update: The table turns Red on the local UI immediately.
+
+API Call: PUT /reservations/123/status { status: "SEATED", version: 2 }.
+
+Success: Version increments in cache.
+
+Failure (Network Drop): UI rolls back to Green table. A global OfflineBanner component activates listening to navigator.onLine.
