@@ -9,7 +9,12 @@ const app = express();
 
 // Security and Logging Middlewares
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: function (origin, callback) {
+    callback(null, origin || true);
+  },
+  credentials: true,
+}));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
