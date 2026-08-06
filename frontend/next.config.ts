@@ -13,7 +13,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Disable strict mode in dev if Razorpay SDK has issues with double-invoke
   reactStrictMode: true,
 };
 

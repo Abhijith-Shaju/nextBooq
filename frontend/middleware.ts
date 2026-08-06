@@ -9,7 +9,6 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Match operator dashboard routes: /[tenant]/dashboard, /[tenant]/settings, etc.
-  // These are under [tenant]/(dashboard) route group.
   const isDashboardRoute =
     /^\/[^/]+\/(reservations|settings|tables|staff)/.test(pathname);
 

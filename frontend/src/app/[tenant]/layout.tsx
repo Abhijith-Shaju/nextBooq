@@ -10,7 +10,7 @@ export default async function TenantLayout({
   params: Promise<{ tenant: string }>;
 }) {
   const { tenant } = await params;
-  
+
   // Try to get cafe details from our backend
   let cafe: Cafe | null = null;
   try {
@@ -44,7 +44,7 @@ export default async function TenantLayout({
 
   return (
     <TenantProvider cafe={cafe}>
-      <div 
+      <div
         className="min-h-screen bg-background"
         style={{
           '--brand-primary': cafe.brandPrimaryColor || '220 89% 53%',
