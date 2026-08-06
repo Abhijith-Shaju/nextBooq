@@ -1,5 +1,8 @@
 import axios from 'axios';
 import { toast } from 'sonner';
+import { QueryClient } from '@tanstack/react-query';
+
+export const queryClient = new QueryClient();
 
 export const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
@@ -13,12 +16,37 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response) {
-      if (error.response.status === 401) {
-        // Handled by AuthProvider/hooks, but we could broadcast an event to clear auth state
-      } else if (error.response.status >= 500) {
-        toast.error('A server error occurred. Please try again later.');
-      } else {
-        toast.error(error.response.data?.error?.message || 'An error occurred.');
+      const status = error.response.status;
+
+      switch (status) {
+        case 401:
+          queryClient.setQueryData(['me'], null);
+          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth/')) {
+            window.location.href = '/auth/login';
+          }
+          break;
+
+        case 403:
+          toast.error('You do not have permission to perform this action.');
+          break;
+
+        case 409:
+          toast.error('This table state has changed. Please refresh to see the latest updates.');
+          break;
+
+        case 422:
+          const validationMsg = error.response.data?.error?.message || 'Invalid input data.';
+          toast.error(validationMsg);
+          break;
+
+        case 500:
+        default:
+          if (status >= 500) {
+            toast.error('Something went wrong on our end. Please try again.');
+          } else {
+            toast.error(error.response.data?.error?.message || 'An error occurred.');
+          }
+          break;
       }
     } else {
       toast.error('Network error. Please check your connection.');
@@ -26,3 +54,4 @@ axiosInstance.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+

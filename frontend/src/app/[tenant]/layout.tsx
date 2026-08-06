@@ -33,9 +33,15 @@ export default async function TenantLayout({
         slug: tenant,
         name: `${tenant.charAt(0).toUpperCase() + tenant.slice(1)} Cafe`,
         description: 'A beautifully crafted mock cafe for local frontend development.',
-        timezone: 'UTC',
-        brandPrimaryColor: '220 89% 53%',
-        brandAccentColor: '24 98% 50%',
+        timezone: 'Asia/Kolkata',
+        brand_primary: '220 89% 53%',
+        brand_accent: '24 98% 50%',
+        reservation_rules: {
+          default_turn_time_minutes: 90,
+          max_party_size: 12,
+          booking_lead_time_hours: 24,
+          hold_duration_minutes: 10,
+        },
       };
     } else {
       notFound();
@@ -47,8 +53,8 @@ export default async function TenantLayout({
       <div
         className="min-h-screen bg-background"
         style={{
-          '--brand-primary': cafe.brandPrimaryColor || '220 89% 53%',
-          '--brand-accent': cafe.brandAccentColor || '24 98% 50%',
+          '--brand-primary': cafe.brand_primary || '220 89% 53%',
+          '--brand-accent': cafe.brand_accent || '24 98% 50%',
         } as React.CSSProperties}
       >
         {children}
@@ -56,3 +62,4 @@ export default async function TenantLayout({
     </TenantProvider>
   );
 }
+

@@ -1,1 +1,3 @@
-export default function Dummy() { return null; }
+import ReservationsHistoryPage from '../../(dashboard)/reservations/page';
+
+export default ReservationsHistoryPage;

@@ -6,14 +6,30 @@ import { useBookingStore } from '@/store/use-booking-store';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
+export interface BookTablePayload {
+  start_time: string; // ISO 8601 UTC String
+  party_size: number;
+  duration_minutes?: number;
+  deposit_amount?: number;
+}
+
+export interface HoldReservationResponse {
+  reservation_id: string;
+  status: string;
+  razorpay_order_id: string;
+  amount: number;
+  currency: string;
+  hold_expires_at: string;
+}
+
 export const useBookTable = (cafeId: string | undefined, slug: string | undefined) => {
   const queryClient = useQueryClient();
   const setReservation = useBookingStore((state) => state.setReservation);
   const router = useRouter();
 
   return useMutation({
-    mutationFn: async (payload: { date: string; time: string; partySize: number }) => {
-      const { data } = await axiosInstance.post<ApiResponse<Reservation>>(
+    mutationFn: async (payload: BookTablePayload) => {
+      const { data } = await axiosInstance.post<ApiResponse<HoldReservationResponse>>(
         `/api/v1/cafes/${cafeId}/reservations`,
         payload
       );
@@ -21,9 +37,11 @@ export const useBookTable = (cafeId: string | undefined, slug: string | undefine
     },
     onSuccess: (data) => {
       if (data) {
-        setReservation(data);
-        toast.success('Table reserved successfully! Redirecting to checkout...');
-        router.push(`/${slug}/checkout`);
+        queryClient.invalidateQueries({ queryKey: ['availability'] });
+        toast.success('Hold created! Redirecting to checkout...');
+        if (slug) {
+          router.push(`/${slug}/checkout?reservation_id=${data.reservation_id}`);
+        }
       }
     },
     onError: (error: any) => {
@@ -31,3 +49,4 @@ export const useBookTable = (cafeId: string | undefined, slug: string | undefine
     },
   });
 };
+

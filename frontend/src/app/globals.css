@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@config "../../tailwind.config.ts";
 
 @plugin "tailwindcss-animate";
 
@@ -36,6 +37,21 @@
   --color-brandPrimary: hsl(var(--brand-primary));
   --color-brandPrimary-foreground: hsl(0 0% 100%);
   --color-brandAccent: hsl(var(--brand-accent));
+
+  /* Brand Palette Utilities for Tailwind v4 */
+  --color-brand-red: #C8102E;
+  --color-brand-redDark: #9B0D21;
+  --color-brand-redLight: #E8415A;
+  --color-brand-cream: #FDFBF7;
+  --color-brand-tan: #F5ECD7;
+  --color-brand-blush: #F2C4C4;
+  --color-brand-brown: #2C1810;
+  --color-brand-mocha: #7A5C3E;
+
+  --shadow-brand-sm: 0 2px 8px rgba(200, 16, 46, 0.15);
+  --shadow-brand-md: 0 4px 20px rgba(200, 16, 46, 0.25);
+  --shadow-brand-lg: 0 8px 40px rgba(200, 16, 46, 0.30);
+  --shadow-brand-xl: 0 16px 60px rgba(155, 13, 33, 0.35);
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -110,21 +126,7 @@
   --ring: 212.7 26.8% 83.9%;
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
 
-  body {
-    @apply bg-background text-foreground font-sans;
-    @tailwind base;
-    @tailwind components;
-    @tailwind utilities;
-
-    /* ─── CSS Custom Properties (shadcn/ui semantic tokens) ──────────────────────
-   These map to Tailwind's `background`, `foreground`, `primary`, etc. classes.
-   Brand-specific values also live here for CSS-var access outside Tailwind.
-─────────────────────────────────────────────────────────────────────────── */
     @layer base {
       :root {
         /* Brand raw values for direct CSS var usage */

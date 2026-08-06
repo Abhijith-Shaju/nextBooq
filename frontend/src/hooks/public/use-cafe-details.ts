@@ -10,8 +10,9 @@ export const useCafeDetails = (slug: string) => {
       const { data } = await axiosInstance.get<ApiResponse<Cafe>>(`/api/v1/cafes/slug/${slug}`);
       return data.data;
     },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 1000 * 60 * 60, // 1 hour per standards
+    gcTime: 1000 * 60 * 60 * 2,
     enabled: !!slug,
   });
 };
+

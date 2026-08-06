@@ -1,18 +1,45 @@
-import React from 'react'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Coffee } from 'lucide-react'
+'use client';
 
-/**
- * Register page stub — placeholder for the real auth registration flow.
- * The marketing carousel CTA ("Get Started") routes here.
- * Replace with your actual auth form when building the authentication system.
- */
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { Coffee, ArrowRight, Loader2, Lock, Mail, User as UserIcon, Phone } from 'lucide-react';
+import { useRegister } from '@/hooks/auth/use-register';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+
 export default function RegisterPage() {
+  const router = useRouter();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+
+  const registerMutation = useRegister();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !email || !phone || !password) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    if (password.length < 8) {
+      toast.error('Password must be at least 8 characters long');
+      return;
+    }
+
+    registerMutation.mutate(
+      { name, email, phone, password },
+      {
+        onSuccess: () => {
+          router.push('/onboarding');
+        },
+      }
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-brand-cream flex items-center justify-center px-4">
-      <div className="max-w-md w-full text-center space-y-8">
-        {/* Logo */}
+    <div className="min-h-screen bg-brand-cream flex items-center justify-center px-4 py-12">
+      <div className="max-w-md w-full space-y-8">
         <div className="flex items-center justify-center gap-2">
           <div className="w-10 h-10 bg-brand-red rounded-xl flex items-center justify-center shadow-brand-md">
             <Coffee className="w-5 h-5 text-white" />
@@ -22,32 +49,115 @@ export default function RegisterPage() {
           </span>
         </div>
 
-        {/* Content */}
-        <div className="glass rounded-3xl p-8 space-y-6">
-          <h1 className="font-display text-3xl font-bold text-brand-brown">
-            Get Started
-          </h1>
-          <p className="font-sans text-brand-mocha text-base">
-            Create your nextBooq account and start accepting reservations in minutes.
-          </p>
-
-          {/* TODO: Replace with real registration form */}
-          <div className="border-2 border-dashed border-brand-tan rounded-2xl p-6 text-brand-mochaMid text-sm font-sans">
-            Registration form coming soon.
+        <div className="glass rounded-3xl p-8 space-y-6 shadow-brand-md border border-brand-brown/10">
+          <div className="text-center">
+            <h1 className="font-display text-3xl font-bold text-brand-brown">Create Account</h1>
+            <p className="font-sans text-brand-mocha text-sm mt-1">
+              Start your 14-day free trial for nextBooq
+            </p>
           </div>
 
-          <p className="font-sans text-brand-mocha text-sm">
-            Already have an account?{' '}
+          <form onSubmit={handleSubmit} className="space-y-4 text-left">
+            <div>
+              <label className="block text-sm font-semibold text-brand-brown mb-1.5">
+                Full Name <span className="text-brand-red">*</span>
+              </label>
+              <div className="relative">
+                <UserIcon className="w-5 h-5 text-brand-mocha absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  required
+                  placeholder="John Doe"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-brand-brown/20 bg-white/80 focus:bg-white focus:ring-2 focus:ring-brand-red focus:outline-none transition-all text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-brand-brown mb-1.5">
+                Email Address <span className="text-brand-red">*</span>
+              </label>
+              <div className="relative">
+                <Mail className="w-5 h-5 text-brand-mocha absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="email"
+                  required
+                  placeholder="name@cafe.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-brand-brown/20 bg-white/80 focus:bg-white focus:ring-2 focus:ring-brand-red focus:outline-none transition-all text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-brand-brown mb-1.5">
+                Phone Number <span className="text-brand-red">*</span>
+              </label>
+              <div className="relative">
+                <Phone className="w-5 h-5 text-brand-mocha absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="tel"
+                  required
+                  placeholder="+91 98765 43210"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-brand-brown/20 bg-white/80 focus:bg-white focus:ring-2 focus:ring-brand-red focus:outline-none transition-all text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-brand-brown mb-1.5">
+                Password <span className="text-brand-red">*</span>
+              </label>
+              <div className="relative">
+                <Lock className="w-5 h-5 text-brand-mocha absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  placeholder="At least 8 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-brand-brown/20 bg-white/80 focus:bg-white focus:ring-2 focus:ring-brand-red focus:outline-none transition-all text-sm"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={registerMutation.isPending}
+              className="w-full cta-hero py-3.5 justify-center mt-2 text-base font-semibold shadow-brand-md"
+            >
+              {registerMutation.isPending ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Creating Account...
+                </>
+              ) : (
+                <>
+                  Continue to Onboarding <ArrowRight className="w-4 h-4 ml-1" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <p className="font-sans text-brand-mocha text-sm text-center">
+            Already registered?{' '}
             <Link href="/auth/login" className="text-brand-red font-semibold hover:underline">
               Log in
             </Link>
           </p>
         </div>
 
-        <Link href="/" className="inline-block text-brand-mochaMid hover:text-brand-mocha text-sm transition-colors">
-          ← Back to home
-        </Link>
+        <div className="text-center">
+          <Link href="/" className="inline-block text-brand-mocha hover:text-brand-brown text-sm transition-colors">
+            ← Back to home
+          </Link>
+        </div>
       </div>
     </div>
-  )
+  );
 }

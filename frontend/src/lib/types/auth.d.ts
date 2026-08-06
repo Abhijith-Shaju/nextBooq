@@ -1,14 +1,14 @@
-import { User } from './models';
+import { User, StaffMembership } from './models';
 
 export interface LoginPayload {
   email: string;
-  password?: string; // Optional if using magic link or OTP
+  password?: string;
 }
 
 export interface RegisterPayload {
-  email: string;
   name: string;
-  phone?: string;
+  email: string;
+  phone: string;
   password?: string;
 }
 
@@ -19,3 +19,6 @@ export interface AuthState {
   user: AuthUser | null;
   loading: boolean;
 }
+
+export type { StaffMembership };
+

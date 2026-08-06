@@ -1,1 +1,3 @@
-export default function Dummy() { return null; }
+import CafeSettingsPage from '../../(dashboard)/settings/page';
+
+export default CafeSettingsPage;

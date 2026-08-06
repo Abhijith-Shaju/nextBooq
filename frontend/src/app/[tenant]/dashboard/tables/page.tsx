@@ -1,1 +1,3 @@
-export default function Dummy() { return null; }
+import TablesInventoryPage from '../../(dashboard)/tables/page';
+
+export default TablesInventoryPage;
