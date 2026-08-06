@@ -21,7 +21,7 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Link href="/signup">
+          <Link href="/signin">
             <Button variant="ghost" size="sm">Sign In</Button>
           </Link>
           <Link href="/signup">

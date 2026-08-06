@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useOnboardingStore } from '@/store/useOnboardingStore';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -98,6 +99,13 @@ export function SignupView() {
             <Button type="submit" variant="secondary" className="w-full font-semibold mt-2" isLoading={isLoading}>
               Continue to Cafe Details <ArrowRight className="w-4 h-4" />
             </Button>
+            
+            <div className="text-center text-sm text-stone-400 mt-4">
+              Already have an account?{' '}
+              <Link href="/signin" className="text-amber-400 hover:text-amber-300 font-medium transition-colors">
+                Sign In
+              </Link>
+            </div>
           </form>
         </CardContent>
       </Card>
