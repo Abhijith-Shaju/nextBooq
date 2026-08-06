@@ -3,6 +3,7 @@ const Reservation = require('../models/Reservation');
 const Cafe = require('../models/Cafe');
 const Table = require('../models/Table');
 const { allocateTables } = require('./allocationEngine');
+const { validateOperatingHours } = require('../utils/operatingHours');
 const { ConflictError, NotFoundError, UnprocessableEntityError } = require('../utils/errors');
 
 /**
@@ -30,6 +31,9 @@ const createHoldReservation = async ({
       if (!cafe) {
         throw new NotFoundError('Cafe not found');
       }
+
+      // Validate operating hours against requested reservation time
+      validateOperatingHours(cafe, startTime, endTime);
 
       const holdDuration = cafe.reservation_rules?.hold_duration_minutes || 10;
       const holdExpiresAt = new Date(Date.now() + holdDuration * 60 * 1000);

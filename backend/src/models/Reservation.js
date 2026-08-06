@@ -121,5 +121,7 @@ const reservationSchema = new mongoose.Schema(
 // Availability Optimization Compound Index
 reservationSchema.index({ cafe_id: 1, status: 1, start_time: 1, end_time: 1 });
 reservationSchema.index({ 'payment_data.order_id': 1 });
+reservationSchema.index({ cafe_id: 1, start_time: -1 });
+reservationSchema.index({ user_id: 1, created_at: -1 });
 
 module.exports = mongoose.model('Reservation', reservationSchema);

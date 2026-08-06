@@ -41,5 +41,6 @@ const tableSchema = new mongoose.Schema(
 );
 
 tableSchema.index({ cafe_id: 1, table_number: 1, is_deleted: 1 }, { unique: true });
+tableSchema.index({ cafe_id: 1, status: 1, is_deleted: 1 });
 
 module.exports = mongoose.model('Table', tableSchema);
