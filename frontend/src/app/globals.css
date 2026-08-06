@@ -1,0 +1,147 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── CSS Custom Properties (shadcn/ui semantic tokens) ──────────────────────
+   These map to Tailwind's `background`, `foreground`, `primary`, etc. classes.
+   Brand-specific values also live here for CSS-var access outside Tailwind.
+─────────────────────────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    /* Brand raw values for direct CSS var usage */
+    --brand-red:        #C8102E;
+    --brand-red-dark:   #9B0D21;
+    --brand-cream:      #FDFBF7;
+    --brand-tan:        #F5ECD7;
+    --brand-blush:      #F2C4C4;
+    --brand-brown:      #2C1810;
+    --brand-mocha:      #7A5C3E;
+
+    /* shadcn/ui semantic tokens – light mode (cream-based) */
+    --background:        39 40% 99%;   /* #FDFBF7 – cream */
+    --foreground:        17 36% 13%;   /* #2C1810 – espresso dark */
+
+    --card:              39 40% 99%;
+    --card-foreground:   17 36% 13%;
+
+    --popover:           39 40% 99%;
+    --popover-foreground:17 36% 13%;
+
+    --primary:           350 86% 43%;  /* #C8102E – brand red */
+    --primary-foreground:0 0% 100%;
+
+    --secondary:         35 52% 90%;   /* #F5ECD7 – warm tan */
+    --secondary-foreground:17 36% 13%;
+
+    --muted:             35 30% 93%;
+    --muted-foreground:  25 28% 48%;   /* #7A5C3E – mocha */
+
+    --accent:            350 86% 43%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive:       350 86% 43%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border:            35 30% 88%;
+    --input:             35 30% 88%;
+    --ring:              350 86% 43%;
+
+    --radius:            0.75rem;
+  }
+}
+
+/* ─── Base Resets ────────────────────────────────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    /* scroll-behavior handled via data-scroll-behavior="smooth" on <html> element in layout.tsx */
+  }
+
+  body {
+    @apply bg-brand-cream text-brand-brown font-sans antialiased;
+    min-height: 100vh;
+  }
+
+  /* Remove default margins on headings */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+
+  /* Reduce motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+
+    /* Also collapse backdrop-blur on low-power preference to avoid jank */
+    .glass {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+  }
+}
+
+/* ─── Component Utilities ────────────────────────────────────────────────── */
+@layer components {
+  /* Glassmorphism shorthand — use className="glass" */
+  .glass {
+    @apply bg-white/50 backdrop-blur-md border border-white/60;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+
+  /* Active carousel card glass shine overlay */
+  .glass-shine::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* Drop shadow for product PNG images (transparent-bg coffee photography) */
+  .product-shadow {
+    filter: drop-shadow(0px 15px 10px rgba(0, 0, 0, 0.25));
+  }
+
+  /* Size pill group */
+  .size-pill {
+    @apply w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold
+           transition-colors cursor-pointer select-none;
+  }
+
+  .size-pill-inactive {
+    @apply text-white/70 hover:text-white;
+  }
+
+  .size-pill-active {
+    @apply bg-white text-brand-red;
+  }
+
+  /* CTA Button on hero  */
+  .cta-hero {
+    @apply inline-flex items-center gap-2 bg-brand-red text-white font-sans font-semibold
+           px-8 py-4 rounded-full shadow-brand-md hover:bg-brand-redDark
+           transition-all duration-200 hover:shadow-brand-lg hover:-translate-y-0.5;
+  }
+}
+
+/* ─── Scrollbar Styling ──────────────────────────────────────────────────── */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
