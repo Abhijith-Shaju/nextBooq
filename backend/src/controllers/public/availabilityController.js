@@ -1,4 +1,5 @@
 const { allocateTables } = require('../../services/allocationEngine');
+const { validateOperatingHours } = require('../../utils/operatingHours');
 const { BadRequestError } = require('../../utils/errors');
 
 const getAvailableSlots = async (req, res, next) => {
@@ -29,6 +30,9 @@ const getAvailableSlots = async (req, res, next) => {
     let allocationDetails = null;
 
     try {
+      if (req.cafe) {
+        validateOperatingHours(req.cafe, startTime, endTime);
+      }
       allocationDetails = await allocateTables(cafeId, startTime, endTime, party);
       isAvailable = true;
     } catch (allocError) {

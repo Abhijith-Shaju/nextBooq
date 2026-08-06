@@ -30,6 +30,18 @@ const cafeSchema = new mongoose.Schema(
       booking_lead_time_hours: { type: Number, default: 24 },
       hold_duration_minutes: { type: Number, default: 10 },
     },
+    operating_hours: [
+      {
+        day_of_week: {
+          type: String,
+          enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+          required: true,
+        },
+        open_time: { type: String, default: '09:00' },
+        close_time: { type: String, default: '22:00' },
+        is_closed: { type: Boolean, default: false },
+      },
+    ],
     subscription_status: {
       type: String,
       enum: ['active', 'inactive', 'trial', 'past_due'],
