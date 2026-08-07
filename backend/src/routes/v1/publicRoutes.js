@@ -5,10 +5,14 @@ const { enforceSubscriptionForWrite } = require('../../middleware/validateSubscr
 const { authenticate } = require('../../middleware/auth');
 const { getAvailableSlots } = require('../../controllers/public/availabilityController');
 const { createReservation } = require('../../controllers/public/bookingController');
+const { getCustomerReservations } = require('../../controllers/public/customerController');
 const { getCafeBySlug } = require('../../controllers/admin/cafeController');
 
 // Cafe profile lookup by slug
 router.get('/cafes/slug/:slug', getCafeBySlug);
+
+// Customer reservation history
+router.get('/customer/reservations', authenticate, getCustomerReservations);
 
 // Available slots search (Public)
 router.get('/cafes/:cafeId/available-slots', extractTenant, getAvailableSlots);

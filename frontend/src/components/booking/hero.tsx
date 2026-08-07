@@ -2,38 +2,77 @@
 
 import { useTenant } from '@/components/providers/tenant-provider';
 import Image from 'next/image';
+import { Coffee, Clock, ShieldCheck, Sparkles, MapPin, CheckCircle2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export function Hero() {
   const { cafe } = useTenant();
 
   return (
-    <div className="relative w-full h-[50vh] min-h-[400px] bg-slate-900 flex items-center justify-center overflow-hidden">
+    <div className="relative w-full min-h-[440px] lg:min-h-[500px] bg-brand-brown text-white flex items-center justify-center overflow-hidden py-16 px-4">
+      {/* Background Hero Image / Ambient Glow */}
       {cafe.hero_image_url ? (
         <Image
           src={cafe.hero_image_url}
           alt={cafe.name}
           fill
-          className="object-cover opacity-60 mix-blend-overlay"
+          className="object-cover opacity-40 mix-blend-overlay"
           priority
         />
       ) : (
-        <div className="absolute inset-0 bg-gradient-to-r from-brand-red to-brand-mocha opacity-80" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-red/40 via-brand-brown to-brand-brown opacity-90" />
       )}
-      
-      <div className="relative z-10 flex flex-col items-center justify-center text-white p-6 text-center">
-        {cafe.logo_url && (
-          <div className="w-24 h-24 mb-6 rounded-full overflow-hidden border-4 border-white shadow-lg bg-white">
-            <Image src={cafe.logo_url} alt={`${cafe.name} logo`} width={96} height={96} className="object-cover" />
-          </div>
-        )}
-        <h1 className="text-5xl font-extrabold tracking-tight mb-4 drop-shadow-md">
-          {cafe.name}
-        </h1>
-        {cafe.description && (
-          <p className="text-xl max-w-2xl font-light opacity-90 drop-shadow">
-            {cafe.description}
+
+      {/* Decorative Blobs */}
+      <div className="absolute top-1/4 left-10 w-72 h-72 bg-brand-red/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-80 h-80 bg-brand-accent/20 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="relative z-10 max-w-5xl mx-auto text-center space-y-6">
+        {/* Status Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full text-xs font-bold text-brand-cream shadow-sm"
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          Accepting Real-Time Table Holds
+        </motion.div>
+
+        {/* Cafe Title & Description */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="space-y-3"
+        >
+          <h1 className="text-4xl sm:text-6xl font-black font-display tracking-tight text-white drop-shadow-md">
+            {cafe.name}
+          </h1>
+          <p className="text-base sm:text-lg max-w-2xl mx-auto font-sans font-light text-brand-cream/90 leading-relaxed drop-shadow">
+            {cafe.description || 'Experience handcrafted dining and effortless table reservations with instant confirmation.'}
           </p>
-        )}
+        </motion.div>
+
+        {/* Key Features Badges */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-brand-tan pt-2"
+        >
+          <div className="flex items-center gap-1.5 bg-white/10 px-3.5 py-1.5 rounded-xl border border-white/10">
+            <Clock className="w-4 h-4 text-brand-red" />
+            <span>{cafe.reservation_rules?.default_turn_time_minutes || 90} Min Turn Time</span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-white/10 px-3.5 py-1.5 rounded-xl border border-white/10">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>Instant Lock Guarantee</span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-white/10 px-3.5 py-1.5 rounded-xl border border-white/10">
+            <MapPin className="w-4 h-4 text-amber-400" />
+            <span>Timezone: {cafe.timezone || 'Asia/Kolkata'}</span>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

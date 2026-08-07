@@ -16,9 +16,11 @@ export default function ReservationsHistoryPage() {
   const { data: reservations = [], isLoading } = useManifest(cafe?.id, selectedDate);
 
   const filteredReservations = reservations.filter((r) => {
+    const name = r.guest_name || '';
+    const email = r.guest_email || '';
     const matchesSearch =
-      r.guest_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.guest_email.toLowerCase().includes(searchTerm.toLowerCase());
+      name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -102,25 +104,28 @@ export default function ReservationsHistoryPage() {
                   </td>
                 </tr>
               ) : (
-                filteredReservations.map((res) => (
-                  <tr key={res.id} className="hover:bg-brand-tan/20 transition-all">
-                    <td className="p-4">
-                      <div className="font-bold text-brand-brown">{res.guest_name}</div>
-                      <div className="text-xs text-brand-mocha">{res.guest_email}</div>
-                    </td>
-                    <td className="p-4 font-semibold text-xs">
-                      {res.start_time ? format(parseISO(res.start_time), 'HH:mm') : 'N/A'}
-                    </td>
-                    <td className="p-4 font-semibold text-xs">{res.party_size} Guests</td>
-                    <td className="p-4 font-mono font-bold text-xs">
-                      {res.table_number ? `T-${res.table_number}` : 'Unassigned'}
-                    </td>
-                    <td className="p-4">
-                      <StatusBadge status={res.status} />
-                    </td>
-                    <td className="p-4 font-mono text-xs text-brand-mocha">__v: {res.__v}</td>
-                  </tr>
-                ))
+                filteredReservations.map((res, idx) => {
+                  const resKey = String(res._id || res.id || `res_${idx}`);
+                  return (
+                    <tr key={resKey} className="hover:bg-brand-tan/20 transition-all">
+                      <td className="p-4">
+                        <div className="font-bold text-brand-brown">{res.guest_name || 'Guest'}</div>
+                        <div className="text-xs text-brand-mocha">{res.guest_email || 'N/A'}</div>
+                      </td>
+                      <td className="p-4 font-semibold text-xs">
+                        {res.start_time ? format(parseISO(res.start_time), 'HH:mm') : 'N/A'}
+                      </td>
+                      <td className="p-4 font-semibold text-xs">{res.party_size} Guests</td>
+                      <td className="p-4 font-mono font-bold text-xs">
+                        {res.table_number ? `T-${res.table_number}` : 'Unassigned'}
+                      </td>
+                      <td className="p-4">
+                        <StatusBadge status={res.status} />
+                      </td>
+                      <td className="p-4 font-mono text-xs text-brand-mocha">__v: {res.__v ?? 0}</td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

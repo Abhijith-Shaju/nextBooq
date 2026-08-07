@@ -35,13 +35,14 @@ export function ManifestTable({ reservations, isLoading }: ManifestTableProps) {
   return (
     <div className="space-y-2.5 p-4 overflow-y-auto max-h-[calc(100vh-220px)]">
       {reservations.map((res) => {
-        const isSelected = selectedReservationId === res.id;
+        const resId = res._id || res.id;
+        const isSelected = selectedReservationId === resId;
         const timeFormatted = res.start_time ? format(parseISO(res.start_time), 'HH:mm') : 'N/A';
 
         return (
           <div
-            key={res.id}
-            onClick={() => openDrawer(res.id)}
+            key={resId}
+            onClick={() => resId && openDrawer(resId)}
             className={`p-4 rounded-2xl cursor-pointer transition-all duration-200 border flex items-center justify-between ${
               isSelected
                 ? 'bg-brand-tan/60 border-brand-red shadow-brand-sm'
@@ -50,7 +51,7 @@ export function ManifestTable({ reservations, isLoading }: ManifestTableProps) {
           >
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <h4 className="font-bold text-brand-brown text-base">{res.guest_name}</h4>
+                <h4 className="font-bold text-brand-brown text-base">{res.guest_name || 'Guest'}</h4>
                 <StatusBadge status={res.status} />
               </div>
 

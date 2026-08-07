@@ -57,7 +57,4 @@ const cafeSchema = new mongoose.Schema(
   }
 );
 
-// Routing performance index
-cafeSchema.index({ slug: 1 }, { unique: true });
-
 module.exports = mongoose.model('Cafe', cafeSchema);

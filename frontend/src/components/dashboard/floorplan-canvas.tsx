@@ -70,8 +70,9 @@ export function FloorplanCanvas({ tables, reservations }: FloorplanCanvasProps) 
             <div
               key={table.id || table.table_number}
               onClick={() => {
-                if (assignedRes) {
-                  openDrawer(assignedRes.id);
+                const resId = assignedRes?._id || assignedRes?.id;
+                if (resId) {
+                  openDrawer(resId);
                 }
               }}
               className={`p-5 rounded-3xl border-2 transition-all duration-200 cursor-pointer flex flex-col justify-between h-36 ${getTableStatusColor(

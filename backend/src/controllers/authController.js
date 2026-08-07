@@ -133,10 +133,65 @@ const logoutUser = async (req, res, next) => {
   }
 };
 
+const customerQuickAuth = async (req, res, next) => {
+  try {
+    const { name, email, phone, password } = req.body;
+    if (!email || !phone || !name) {
+      throw new BadRequestError('Name, email, and phone number are required');
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    let user = await User.findOne({ email: cleanEmail });
+
+    if (!user) {
+      user = await User.findOne({ phone: phone.trim() });
+    }
+
+    if (!user) {
+      const userPassword = password || `GuestPass_${Date.now()}`;
+      const salt = await bcrypt.genSalt(10);
+      const password_hash = await bcrypt.hash(userPassword, salt);
+
+      user = new User({
+        name: name.trim(),
+        email: cleanEmail,
+        phone: phone.trim(),
+        password_hash,
+        staff_memberships: [],
+      });
+      await user.save();
+    } else if (password) {
+      const isMatch = await bcrypt.compare(password, user.password_hash);
+      if (!isMatch) {
+        throw new UnauthorizedError('Invalid password for existing customer account');
+      }
+    }
+
+    const token = generateToken(user._id);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          staff_memberships: user.staff_memberships,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   getMe,
   logoutUser,
+  customerQuickAuth,
 };
 

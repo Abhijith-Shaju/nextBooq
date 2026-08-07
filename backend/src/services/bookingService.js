@@ -7,7 +7,71 @@ const { validateOperatingHours } = require('../utils/operatingHours');
 const { ConflictError, NotFoundError, UnprocessableEntityError } = require('../utils/errors');
 
 /**
- * Creates a HOLD reservation using a MongoDB Multi-Document Transaction with auto-retry logic.
+ * Fallback for non-replica set standalone MongoDB instances (development/testing).
+ */
+const createHoldReservationNonTransactional = async ({
+  cafeId,
+  userId,
+  startTime,
+  endTime,
+  partySize,
+  reservationTimezone,
+}) => {
+  const cafe = await Cafe.findById(cafeId);
+  if (!cafe) {
+    throw new NotFoundError('Cafe not found');
+  }
+
+  validateOperatingHours(cafe, startTime, endTime);
+
+  const holdDuration = cafe.reservation_rules?.hold_duration_minutes || 10;
+  const holdExpiresAt = new Date(Date.now() + holdDuration * 60 * 1000);
+
+  const allocation = await allocateTables(
+    cafeId,
+    new Date(startTime),
+    new Date(endTime),
+    partySize
+  );
+
+  if (allocation.totalCapacity < partySize) {
+    throw new UnprocessableEntityError(
+      'Capacity invariant failed: Allocated tables capacity is less than party size'
+    );
+  }
+
+  const reservation = new Reservation({
+    cafe_id: cafeId,
+    user_id: userId,
+    table_ids: allocation.tableIds,
+    start_time: new Date(startTime),
+    end_time: new Date(endTime),
+    party_size: partySize,
+    reservation_timezone: reservationTimezone || cafe.timezone,
+    hold_expires_at: holdExpiresAt,
+    status: 'HOLD',
+    status_history: [
+      {
+        status: 'HOLD',
+        timestamp: new Date(),
+        updated_by: userId,
+      },
+    ],
+  });
+
+  await Table.updateMany(
+    { _id: { $in: allocation.tableIds }, cafe_id: cafeId },
+    { $inc: { __v: 1 } }
+  );
+
+  await reservation.save();
+
+  return reservation;
+};
+
+/**
+ * Creates a HOLD reservation using a MongoDB Multi-Document Transaction with auto-retry logic,
+ * with fallback for standalone non-replica set MongoDB instances.
  */
 const createHoldReservation = async ({
   cafeId,
@@ -22,8 +86,31 @@ const createHoldReservation = async ({
 
   while (attempt < maxRetries) {
     attempt++;
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    let session;
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
+    } catch (sessionErr) {
+      // If MongoDB is not a replica set, fallback gracefully to non-transactional creation
+      if (
+        sessionErr.code === 20 ||
+        sessionErr.codeName === 'IllegalOperation' ||
+        (sessionErr.message && sessionErr.message.includes('replica set'))
+      ) {
+        console.warn(
+          '[MONGOOSE WARN] Multi-document transactions not supported by standalone MongoDB instance. Using non-transactional fallback.'
+        );
+        return await createHoldReservationNonTransactional({
+          cafeId,
+          userId,
+          startTime,
+          endTime,
+          partySize,
+          reservationTimezone,
+        });
+      }
+      throw sessionErr;
+    }
 
     try {
       // Fetch cafe rules for hold duration
@@ -88,8 +175,31 @@ const createHoldReservation = async ({
 
       return reservation;
     } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
+      if (session) {
+        try {
+          await session.abortTransaction();
+          session.endSession();
+        } catch (_) {}
+      }
+
+      // Check if error is due to MongoDB standalone non-replica set restriction
+      if (
+        error.code === 20 ||
+        error.codeName === 'IllegalOperation' ||
+        (error.message && error.message.includes('replica set'))
+      ) {
+        console.warn(
+          '[MONGOOSE WARN] Multi-document transactions not supported by standalone MongoDB instance. Using non-transactional fallback.'
+        );
+        return await createHoldReservationNonTransactional({
+          cafeId,
+          userId,
+          startTime,
+          endTime,
+          partySize,
+          reservationTimezone,
+        });
+      }
 
       const isTransientError =
         error.hasOwnProperty('errorLabels') &&
@@ -98,7 +208,9 @@ const createHoldReservation = async ({
 
       if ((isTransientError || isWriteConflict) && attempt < maxRetries) {
         const delay = Math.pow(2, attempt) * 50; // Exponential backoff: 100ms, 200ms...
-        console.warn(`[MVCC CONFLICT] Retrying booking transaction attempt ${attempt}/${maxRetries} after ${delay}ms...`);
+        console.warn(
+          `[MVCC CONFLICT] Retrying booking transaction attempt ${attempt}/${maxRetries} after ${delay}ms...`
+        );
         await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }
@@ -116,4 +228,5 @@ const createHoldReservation = async ({
 
 module.exports = {
   createHoldReservation,
+  createHoldReservationNonTransactional,
 };

@@ -16,14 +16,17 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
   const { isDrawerOpen, selectedReservationId, closeDrawer } = useDashboardStore();
   const updateStatusMutation = useUpdateStatus(cafeId);
 
-  const res = reservations.find((r) => r.id === selectedReservationId);
+  const res = reservations.find((r) => r._id === selectedReservationId || r.id === selectedReservationId);
 
   if (!isDrawerOpen || !res) return null;
 
+  const resId = res._id || res.id;
+
   const handleStatusChange = (newStatus: ReservationStatus) => {
+    if (!resId) return;
     updateStatusMutation.mutate(
       {
-        reservationId: res.id,
+        reservationId: resId,
         status: newStatus,
         version: res.__v || 0, // OCC version token
       },
@@ -63,14 +66,14 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-brand-brown text-base">{res.guest_name}</h4>
+                  <h4 className="font-bold text-brand-brown text-base">{res.guest_name || 'Guest'}</h4>
                   <p className="text-xs text-brand-mocha">Party of {res.party_size} Guests</p>
                 </div>
               </div>
 
               <div className="pt-2 border-t border-brand-brown/10 space-y-1.5 text-xs text-brand-mocha">
                 <div className="flex items-center gap-2">
-                  <Mail className="w-3.5 h-3.5 text-brand-mocha" /> {res.guest_email}
+                  <Mail className="w-3.5 h-3.5 text-brand-mocha" /> {res.guest_email || 'N/A'}
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="w-3.5 h-3.5 text-brand-mocha" /> {res.guest_phone || 'N/A'}

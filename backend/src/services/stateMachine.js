@@ -89,7 +89,7 @@ const transitionState = async ({
       __v: expectedVersion,
     },
     updateQuery,
-    { new: true, runValidators: true }
+    { returnDocument: 'after', runValidators: true }
   );
 
   if (!updatedReservation) {

@@ -1,5 +1,6 @@
 const { createHoldReservation } = require('../../services/bookingService');
 const { createOrderForReservation } = require('../../services/paymentService');
+const CafeCustomer = require('../../models/CafeCustomer');
 const { BadRequestError } = require('../../utils/errors');
 
 const createReservation = async (req, res, next) => {
@@ -41,6 +42,17 @@ const createReservation = async (req, res, next) => {
     // 2. Generate Razorpay Payment Order
     const deposit = deposit_amount || 100; // default test deposit amount in INR
     const { order } = await createOrderForReservation(reservation._id, cafeId, deposit);
+
+    // 3. Upsert CafeCustomer rolodex record
+    try {
+      await CafeCustomer.findOneAndUpdate(
+        { cafe_id: cafeId, user_id: userId },
+        { $setOnInsert: { cafe_id: cafeId, user_id: userId } },
+        { upsert: true, returnDocument: 'after' }
+      );
+    } catch (err) {
+      console.error('Error upserting CafeCustomer rolodex:', err);
+    }
 
     res.status(201).json({
       status: 'success',

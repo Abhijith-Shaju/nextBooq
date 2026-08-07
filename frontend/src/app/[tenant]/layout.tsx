@@ -11,25 +11,34 @@ export default async function TenantLayout({
 }) {
   const { tenant } = await params;
 
+  // Ignore static assets matched by dynamic tenant route
+  const RESERVED_SLUGS = ['favicon.ico', 'sw.js', 'robots.txt', 'site.webmanifest', '_next'];
+  if (RESERVED_SLUGS.includes(tenant.toLowerCase())) {
+    notFound();
+  }
+
   // Try to get cafe details from our backend
   let cafe: Cafe | null = null;
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/cafes/slug/${tenant}`, {
-      next: { revalidate: 300 }, // 5 minutes
+      cache: 'no-store',
     });
     const data = await res.json();
-    if (data.success && data.data) {
-      cafe = data.data;
+    if ((data.status === 'success' || data.success) && data.data) {
+      cafe = {
+        ...data.data,
+        id: data.data._id || data.data.id,
+      };
     }
   } catch (error) {
     console.error('Error fetching tenant details', error);
   }
 
   if (!cafe) {
-    // For local development when backend is down, use a mock cafe
+    // For local development when backend is down or cafe is not seeded yet, use a mock cafe with a valid Mongo ObjectId
     if (process.env.NODE_ENV === 'development') {
       cafe = {
-        id: 'mock-id-123',
+        id: '65f000000000000000000123',
         slug: tenant,
         name: `${tenant.charAt(0).toUpperCase() + tenant.slice(1)} Cafe`,
         description: 'A beautifully crafted mock cafe for local frontend development.',

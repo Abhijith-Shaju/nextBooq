@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Reservation = require('../../models/Reservation');
 const { transitionState } = require('../../services/stateMachine');
 const { BadRequestError } = require('../../utils/errors');
@@ -39,6 +40,10 @@ const updateReservationStatus = async (req, res, next) => {
     const cafeId = req.tenantId;
     const { resId } = req.params;
     const { status, version } = req.body;
+
+    if (!resId || resId === 'undefined' || !mongoose.Types.ObjectId.isValid(resId)) {
+      throw new BadRequestError('Invalid or missing reservation ID');
+    }
 
     if (!status || version === undefined) {
       throw new BadRequestError('status and version token (__v) are required');

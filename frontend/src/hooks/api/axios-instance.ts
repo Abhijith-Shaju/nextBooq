@@ -34,8 +34,20 @@ axiosInstance.interceptors.response.use(
         case 401:
           removeAuthToken();
           queryClient.setQueryData(['me'], null);
-          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth/')) {
-            window.location.href = '/auth/login';
+          if (typeof window !== 'undefined') {
+            const path = window.location.pathname;
+            // Only redirect to staff login if visiting protected staff control-plane routes
+            const isStaffDashboard =
+              path.includes('/reservations') ||
+              path.includes('/floor-plan') ||
+              path.includes('/analytics') ||
+              path.includes('/staff') ||
+              path.includes('/settings') ||
+              path.startsWith('/admin');
+
+            if (isStaffDashboard) {
+              window.location.href = '/auth/login';
+            }
           }
           break;
 
