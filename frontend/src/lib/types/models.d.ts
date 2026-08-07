@@ -69,7 +69,7 @@ export interface AvailableSlot {
 }
 
 export interface StaffMembership {
-  cafe_id: string;
+  cafe_id: string | Cafe;
   role: 'owner' | 'manager' | 'host';
   permissions: string[];
 }

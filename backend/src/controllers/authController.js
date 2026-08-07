@@ -63,7 +63,10 @@ const loginUser = async (req, res, next) => {
       throw new BadRequestError('Email and password are required');
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({ email: email.toLowerCase() }).populate({
+      path: 'staff_memberships.cafe_id',
+      select: 'name slug timezone org_id',
+    });
     if (!user) {
       throw new UnauthorizedError('Invalid credentials');
     }
@@ -93,7 +96,47 @@ const loginUser = async (req, res, next) => {
   }
 };
 
+const getMe = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id).populate({
+      path: 'staff_memberships.cafe_id',
+      select: 'name slug timezone org_id',
+    });
+
+    if (!user) {
+      throw new UnauthorizedError('User not found');
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        staff_memberships: user.staff_memberships,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const logoutUser = async (req, res, next) => {
+  try {
+    res.status(200).json({
+      status: 'success',
+      message: 'Logged out successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
+  getMe,
+  logoutUser,
 };
+

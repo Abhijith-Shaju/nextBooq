@@ -8,21 +8,26 @@ import { type NextRequest, NextResponse } from "next/server";
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Match operator dashboard routes: /[tenant]/dashboard, /[tenant]/settings, etc.
+  const sessionCookie =
+    request.cookies.get("accessToken") ||
+    request.cookies.get("next-auth.session-token") ||
+    request.cookies.get("__Secure-next-auth.session-token");
+
+  // Protect Onboarding route
+  if (pathname === '/onboarding' && !sessionCookie) {
+    const loginUrl = new URL("/auth/login", request.url);
+    loginUrl.searchParams.set("callbackUrl", "/onboarding");
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Match operator dashboard routes: /[tenant]/dashboard, /[tenant]/reservations, etc.
   const isDashboardRoute =
-    /^\/[^/]+\/(reservations|settings|tables|staff)/.test(pathname);
+    /^\/[^/]+\/(dashboard|reservations|settings|tables|staff)/.test(pathname);
 
-  if (isDashboardRoute) {
-    const sessionCookie =
-      request.cookies.get("next-auth.session-token") ||
-      request.cookies.get("__Secure-next-auth.session-token") ||
-      request.cookies.get("accessToken");
-
-    if (!sessionCookie) {
-      const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
+  if (isDashboardRoute && !sessionCookie) {
+    const loginUrl = new URL("/auth/login", request.url);
+    loginUrl.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();

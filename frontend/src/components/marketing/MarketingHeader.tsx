@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Coffee } from 'lucide-react'
+import { Menu, X, Coffee, LogOut, LayoutDashboard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/components/providers/auth-provider'
 
 const navLinks = [
   { label: 'Features', href: '#features' },
@@ -16,12 +17,18 @@ const navLinks = [
 export default function MarketingHeader() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { user, isAuthenticated, logout } = useAuth()
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 20)
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  const firstMembership = user?.staff_memberships?.[0]
+  const cafeObj = firstMembership?.cafe_id
+  const cafeSlug = typeof cafeObj === 'object' && cafeObj?.slug ? cafeObj.slug : null
+  const dashboardHref = cafeSlug ? `/${cafeSlug}/dashboard` : '/onboarding'
 
   return (
     <header
@@ -65,15 +72,35 @@ export default function MarketingHeader() {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
-            <Link
-              href="/auth/login"
-              className="text-brand-mocha hover:text-brand-brown font-medium text-sm transition-colors"
-            >
-              Log in
-            </Link>
-            <Button variant="brand" size="default" asChild>
-              <Link href="/auth/register">Get Started</Link>
-            </Button>
+            {isAuthenticated ? (
+              <>
+                <Button variant="brand" size="default" asChild>
+                  <Link href={dashboardHref} className="flex items-center gap-1.5">
+                    <LayoutDashboard className="w-4 h-4" />
+                    Dashboard
+                  </Link>
+                </Button>
+                <button
+                  onClick={() => logout()}
+                  className="p-2 rounded-xl text-brand-mocha hover:text-brand-red hover:bg-brand-tan/50 transition-colors"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/auth/login"
+                  className="text-brand-mocha hover:text-brand-brown font-medium text-sm transition-colors"
+                >
+                  Log in
+                </Link>
+                <Button variant="brand" size="default" asChild>
+                  <Link href="/auth/register">Get Started</Link>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile menu toggle */}
@@ -112,18 +139,39 @@ export default function MarketingHeader() {
                 </Link>
               ))}
               <div className="flex flex-col gap-3 pt-2 border-t border-brand-tan">
-                <Link
-                  href="/auth/login"
-                  className="text-brand-mocha font-medium text-base py-1"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  Log in
-                </Link>
-                <Button variant="brand" size="lg" asChild className="w-full">
-                  <Link href="/auth/register" onClick={() => setMobileOpen(false)}>
-                    Get Started
-                  </Link>
-                </Button>
+                {isAuthenticated ? (
+                  <>
+                    <Button variant="brand" size="lg" asChild className="w-full">
+                      <Link href={dashboardHref} onClick={() => setMobileOpen(false)}>
+                        Go to Dashboard
+                      </Link>
+                    </Button>
+                    <button
+                      onClick={() => {
+                        setMobileOpen(false)
+                        logout()
+                      }}
+                      className="text-brand-mocha font-medium text-base py-1 text-left flex items-center gap-2"
+                    >
+                      <LogOut className="w-4 h-4" /> Sign Out
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/auth/login"
+                      className="text-brand-mocha font-medium text-base py-1"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      Log in
+                    </Link>
+                    <Button variant="brand" size="lg" asChild className="w-full">
+                      <Link href="/auth/register" onClick={() => setMobileOpen(false)}>
+                        Get Started
+                      </Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </nav>
           </motion.div>
@@ -132,3 +180,4 @@ export default function MarketingHeader() {
     </header>
   )
 }
+

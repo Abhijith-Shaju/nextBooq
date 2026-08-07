@@ -33,7 +33,15 @@ function LoginForm() {
           }
 
           if (user?.staff_memberships && user.staff_memberships.length > 0) {
-            router.push(`/dashboard`);
+            const firstMembership = user.staff_memberships[0];
+            const cafeObj = firstMembership?.cafe_id;
+            const slug = typeof cafeObj === 'object' && cafeObj?.slug ? cafeObj.slug : null;
+
+            if (slug) {
+              router.push(`/${slug}/dashboard`);
+            } else {
+              router.push('/onboarding');
+            }
           } else {
             router.push('/onboarding');
           }

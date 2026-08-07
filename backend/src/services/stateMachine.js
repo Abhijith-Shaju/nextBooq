@@ -39,6 +39,13 @@ const transitionState = async ({
     throw new NotFoundError('Reservation not found');
   }
 
+  // Check OCC version before state validation
+  if (expectedVersion !== undefined && expectedVersion !== null && reservation.__v !== expectedVersion) {
+    throw new ConflictError(
+      `OCC Conflict: Reservation version ${expectedVersion} has already been modified by another request. Please refresh and try again.`
+    );
+  }
+
   const currentStatus = reservation.status;
 
   // Validate state transition matrix
