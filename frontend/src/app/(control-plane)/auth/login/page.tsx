@@ -56,7 +56,7 @@ function LoginForm() {
         <label className="block text-sm font-semibold text-brand-brown mb-1.5">
           Email Address
         </label>
-        <div className="relative">
+        <div className="relative" suppressHydrationWarning>
           <Mail className="w-5 h-5 text-brand-mocha absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="email"
@@ -73,7 +73,7 @@ function LoginForm() {
         <label className="block text-sm font-semibold text-brand-brown mb-1.5">
           Password
         </label>
-        <div className="relative">
+        <div className="relative" suppressHydrationWarning>
           <Lock className="w-5 h-5 text-brand-mocha absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="password"
