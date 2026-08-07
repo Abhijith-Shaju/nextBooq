@@ -1,9 +1,12 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, ReactNode } from 'react';
 import { AuthUser } from '@/lib/types/auth';
 import { axiosInstance } from '@/hooks/api/axios-instance';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { removeAuthToken } from '@/lib/auth-token';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -15,25 +18,35 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { data, isLoading, refetch } = useQuery({
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const { data, isLoading } = useQuery({
     queryKey: ['me'],
     queryFn: async () => {
       try {
         const response = await axiosInstance.get('/api/v1/auth/me');
         return response.data?.data as AuthUser;
       } catch (error) {
+        removeAuthToken();
         return null;
       }
     },
     retry: false,
+    staleTime: 5 * 60 * 1000,
   });
 
   const logout = async () => {
     try {
       await axiosInstance.post('/api/v1/auth/logout');
-      await refetch();
     } catch (error) {
-      console.error('Logout failed', error);
+      console.error('Logout error:', error);
+    } finally {
+      removeAuthToken();
+      queryClient.setQueryData(['me'], null);
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+      toast.success('Signed out successfully');
+      router.push('/auth/login');
     }
   };
 
@@ -58,3 +71,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

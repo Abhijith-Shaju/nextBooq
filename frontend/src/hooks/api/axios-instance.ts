@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { toast } from 'sonner';
 import { QueryClient } from '@tanstack/react-query';
+import { getAuthToken, removeAuthToken } from '@/lib/auth-token';
 
 export const queryClient = new QueryClient();
 
@@ -12,6 +13,17 @@ export const axiosInstance = axios.create({
   },
 });
 
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = getAuthToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -20,6 +32,7 @@ axiosInstance.interceptors.response.use(
 
       switch (status) {
         case 401:
+          removeAuthToken();
           queryClient.setQueryData(['me'], null);
           if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth/')) {
             window.location.href = '/auth/login';
@@ -54,4 +67,5 @@ axiosInstance.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
 
