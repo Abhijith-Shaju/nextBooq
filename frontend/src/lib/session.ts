@@ -31,6 +31,27 @@ export function hasSessionCookie(cookieHeader: string | null): boolean {
   return !!match && match[1].length > 0;
 }
 
+function decodeJwtPayload(token: string): { exp?: number } | null {
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+export function hasValidSessionCookie(cookieHeader: string | null): boolean {
+  if (!cookieHeader) return false;
+  const match = cookieHeader.match(SESSION_COOKIE_PATTERN);
+  if (!match || match[1].length === 0) return false;
+  const payload = decodeJwtPayload(match[1]);
+  if (!payload || typeof payload.exp !== 'number') return false;
+  return payload.exp * 1000 > Date.now();
+}
+
 export interface AuthResult {
   token?: string;
   user?: AuthUser;

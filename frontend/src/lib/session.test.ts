@@ -1,6 +1,14 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
-import { applyAuthResult, clearSession, getToken, hasSessionCookie, setSession } from './session';
+import { applyAuthResult, clearSession, getToken, hasSessionCookie, hasValidSessionCookie, setSession } from './session';
+
+function makeFakeJwt(payload: Record<string, unknown>): string {
+  const base64UrlEncode = (obj: Record<string, unknown>) =>
+    btoa(JSON.stringify(obj)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const header = base64UrlEncode({ alg: 'HS256', typ: 'JWT' });
+  const body = base64UrlEncode(payload);
+  return `${header}.${body}.fakesignature`;
+}
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -88,5 +96,21 @@ describe('session', () => {
 
     expect(() => applyAuthResult(queryClient, undefined)).not.toThrow();
     expect(applyAuthResult(queryClient, undefined)).toBeUndefined();
+  });
+
+  test('hasValidSessionCookie is false when the accessToken value is not JWT-shaped', () => {
+    expect(hasValidSessionCookie('accessToken=not-a-real-jwt')).toBe(false);
+  });
+
+  test('hasValidSessionCookie is false when the token is expired', () => {
+    const expiredToken = makeFakeJwt({ exp: Math.floor(Date.now() / 1000) - 3600 });
+
+    expect(hasValidSessionCookie(`accessToken=${expiredToken}`)).toBe(false);
+  });
+
+  test('hasValidSessionCookie is true when the token has a future exp', () => {
+    const validToken = makeFakeJwt({ exp: Math.floor(Date.now() / 1000) + 3600 });
+
+    expect(hasValidSessionCookie(`accessToken=${validToken}`)).toBe(true);
   });
 });
