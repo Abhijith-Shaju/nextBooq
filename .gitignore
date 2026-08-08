@@ -27,3 +27,8 @@ yarn-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Claude Code skills
+.agents/
+.claude/
+skills-lock.json
