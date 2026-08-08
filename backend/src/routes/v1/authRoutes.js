@@ -8,10 +8,11 @@ const {
   customerQuickAuth,
 } = require('../../controllers/authController');
 const { authenticate } = require('../../middleware/auth');
+const { authRateLimiter } = require('../../middleware/rateLimiter');
 
-router.post('/register', registerUser);
-router.post('/login', loginUser);
-router.post('/customer-quick-auth', customerQuickAuth);
+router.post('/register', authRateLimiter, registerUser);
+router.post('/login', authRateLimiter, loginUser);
+router.post('/customer-quick-auth', authRateLimiter, customerQuickAuth);
 router.get('/me', authenticate, getMe);
 router.post('/logout', logoutUser);
 
