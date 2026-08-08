@@ -1,3 +1,6 @@
+import type { QueryClient } from '@tanstack/react-query';
+import type { AuthUser } from './types/auth';
+
 const SESSION_COOKIE_NAME = 'accessToken';
 const SESSION_COOKIE_PATTERN = new RegExp(`(?:^|;\\s*)${SESSION_COOKIE_NAME}=([^;]*)`);
 
@@ -26,4 +29,20 @@ export function hasSessionCookie(cookieHeader: string | null): boolean {
   if (!cookieHeader) return false;
   const match = cookieHeader.match(SESSION_COOKIE_PATTERN);
   return !!match && match[1].length > 0;
+}
+
+export interface AuthResult {
+  token?: string;
+  user?: AuthUser;
+}
+
+export function applyAuthResult(queryClient: QueryClient, authData: AuthResult | undefined): AuthUser | undefined {
+  if (authData?.token) {
+    setSession(authData.token);
+  }
+  if (authData?.user) {
+    queryClient.setQueryData(['me'], authData.user);
+    queryClient.invalidateQueries({ queryKey: ['me'] });
+  }
+  return authData?.user;
 }

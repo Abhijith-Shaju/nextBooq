@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { axiosInstance } from '@/hooks/api/axios-instance';
 import { RegisterPayload, AuthUser } from '@/lib/types/auth';
 import { ApiResponse } from '@/lib/types/api-responses';
-import { setSession } from '@/lib/session';
+import { applyAuthResult } from '@/lib/session';
 import { toast } from 'sonner';
 
 export interface RegisterResponse {
@@ -16,18 +16,10 @@ export const useRegister = () => {
   return useMutation({
     mutationFn: async (payload: RegisterPayload) => {
       const { data } = await axiosInstance.post<ApiResponse<RegisterResponse>>('/api/v1/auth/register', payload);
-      const authData = data.data;
-      if (authData?.token) {
-        setSession(authData.token);
-      }
-      return authData?.user || (authData as any);
+      return applyAuthResult(queryClient, data.data);
     },
-    onSuccess: (user) => {
-      queryClient.setQueryData(['me'], user);
-      queryClient.invalidateQueries({ queryKey: ['me'] });
+    onSuccess: () => {
       toast.success('Account created successfully');
     },
   });
 };
-
-

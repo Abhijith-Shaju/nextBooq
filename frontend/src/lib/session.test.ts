@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { clearSession, getToken, hasSessionCookie, setSession } from './session';
+import { QueryClient } from '@tanstack/react-query';
+import { applyAuthResult, clearSession, getToken, hasSessionCookie, setSession } from './session';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -54,5 +55,38 @@ describe('session', () => {
     expect(getToken()).toBeNull();
     expect(() => setSession('jwt-abc123')).not.toThrow();
     expect(() => clearSession()).not.toThrow();
+  });
+
+  test('applyAuthResult stores the session token', () => {
+    const queryClient = new QueryClient();
+
+    applyAuthResult(queryClient, { token: 'jwt-abc123', user: { id: 'u1', name: 'Jane', email: 'jane@example.com' } as any });
+
+    expect(getToken()).toBe('jwt-abc123');
+  });
+
+  test('applyAuthResult writes the user into the ["me"] query cache', () => {
+    const queryClient = new QueryClient();
+    const user = { id: 'u1', name: 'Jane', email: 'jane@example.com' } as any;
+
+    applyAuthResult(queryClient, { token: 'jwt-abc123', user });
+
+    expect(queryClient.getQueryData(['me'])).toEqual(user);
+  });
+
+  test('applyAuthResult invalidates the ["me"] query', () => {
+    const queryClient = new QueryClient();
+    const user = { id: 'u1', name: 'Jane', email: 'jane@example.com' } as any;
+
+    applyAuthResult(queryClient, { token: 'jwt-abc123', user });
+
+    expect(queryClient.getQueryState(['me'])?.isInvalidated).toBe(true);
+  });
+
+  test('applyAuthResult returns undefined and does not throw when authData is undefined', () => {
+    const queryClient = new QueryClient();
+
+    expect(() => applyAuthResult(queryClient, undefined)).not.toThrow();
+    expect(applyAuthResult(queryClient, undefined)).toBeUndefined();
   });
 });
