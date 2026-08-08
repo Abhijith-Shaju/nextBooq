@@ -5,7 +5,7 @@ const auditLogSchema = new mongoose.Schema(
     cafe_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Cafe',
-      required: true,
+      required: false,
       index: true,
     },
     entity_type: {

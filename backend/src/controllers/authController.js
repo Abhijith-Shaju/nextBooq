@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const config = require('../config/env');
 const { BadRequestError, UnauthorizedError } = require('../utils/errors');
+const { logAuditEvent } = require('../services/auditService');
 
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, config.JWT_SECRET, { expiresIn: '7d' });
@@ -38,6 +39,14 @@ const registerUser = async (req, res, next) => {
 
     await user.save();
     const token = generateToken(user._id);
+
+    await logAuditEvent({
+      cafeId: null,
+      entityType: 'User',
+      entityId: user._id,
+      action: 'REGISTER',
+      performedByUserId: user._id,
+    });
 
     res.status(201).json({
       status: 'success',
@@ -77,6 +86,14 @@ const loginUser = async (req, res, next) => {
     }
 
     const token = generateToken(user._id);
+
+    await logAuditEvent({
+      cafeId: null,
+      entityType: 'User',
+      entityId: user._id,
+      action: 'LOGIN',
+      performedByUserId: user._id,
+    });
 
     res.status(200).json({
       status: 'success',
@@ -173,6 +190,14 @@ const customerQuickAuth = async (req, res, next) => {
     }
 
     const token = generateToken(user._id);
+
+    await logAuditEvent({
+      cafeId: null,
+      entityType: 'User',
+      entityId: user._id,
+      action: 'CUSTOMER_QUICK_AUTH',
+      performedByUserId: user._id,
+    });
 
     res.status(200).json({
       status: 'success',
