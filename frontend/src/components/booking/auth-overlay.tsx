@@ -203,14 +203,14 @@ export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChang
 
               <div>
                 <Label className="text-xs font-semibold text-brand-brown flex items-center justify-between">
-                  <span>Create Password (Optional)</span>
-                  <span className="text-[10px] text-brand-mocha">Saves profile</span>
+                  <span>Password</span>
+                  <span className="text-[10px] text-brand-mocha">Required if you've booked with us before</span>
                 </Label>
                 <div className="relative mt-1">
                   <Lock className="w-4 h-4 text-brand-mocha absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <Input
                     type="password"
-                    placeholder="Create a password for instant future bookings"
+                    placeholder="Leave blank if this is your first time here"
                     value={guestPassword}
                     onChange={(e) => setGuestPassword(e.target.value)}
                     className="pl-10 h-11 text-sm rounded-xl border-brand-brown/20 focus:border-brand-red focus:ring-brand-red/20"

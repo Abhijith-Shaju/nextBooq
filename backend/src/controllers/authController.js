@@ -160,7 +160,12 @@ const customerQuickAuth = async (req, res, next) => {
         staff_memberships: [],
       });
       await user.save();
-    } else if (password) {
+    } else {
+      if (!password) {
+        throw new UnauthorizedError(
+          'An account with this email or phone already exists. Please provide your password to continue.'
+        );
+      }
       const isMatch = await bcrypt.compare(password, user.password_hash);
       if (!isMatch) {
         throw new UnauthorizedError('Invalid password for existing customer account');

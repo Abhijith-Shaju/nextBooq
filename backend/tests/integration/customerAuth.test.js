@@ -117,4 +117,90 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
     expect(historyRes.body.data.length).toBeGreaterThan(0);
     expect(historyRes.body.data[0].party_size).toEqual(2);
   });
+
+  test('customer-quick-auth rejects an existing account when no password is provided', async () => {
+    // First call creates the account with a real password.
+    await request(app)
+      .post('/api/v1/auth/customer-quick-auth')
+      .send({
+        name: 'Carol Guest',
+        email: 'carol@example.com',
+        phone: '+18885551111',
+        password: 'CarolsRealPassword1!',
+      });
+
+    // A second caller who only knows the email/phone, and omits the password,
+    // must NOT be able to log in as Carol.
+    const res = await request(app)
+      .post('/api/v1/auth/customer-quick-auth')
+      .send({
+        name: 'Someone Else',
+        email: 'carol@example.com',
+        phone: '+19998887777',
+      });
+
+    expect(res.statusCode).toEqual(401);
+    expect(res.body.data).toBeUndefined();
+  });
+
+  test('customer-quick-auth logs in an existing account when the correct password is provided', async () => {
+    await request(app)
+      .post('/api/v1/auth/customer-quick-auth')
+      .send({
+        name: 'Dave Guest',
+        email: 'dave@example.com',
+        phone: '+18885552222',
+        password: 'DavesRealPassword1!',
+      });
+
+    const res = await request(app)
+      .post('/api/v1/auth/customer-quick-auth')
+      .send({
+        name: 'Dave Guest',
+        email: 'dave@example.com',
+        phone: '+18885552222',
+        password: 'DavesRealPassword1!',
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.data.token).toBeDefined();
+    expect(res.body.data.user.email).toEqual('dave@example.com');
+  });
+
+  test('customer-quick-auth rejects an existing account when the wrong password is provided', async () => {
+    await request(app)
+      .post('/api/v1/auth/customer-quick-auth')
+      .send({
+        name: 'Erin Guest',
+        email: 'erin@example.com',
+        phone: '+18885553333',
+        password: 'ErinsRealPassword1!',
+      });
+
+    const res = await request(app)
+      .post('/api/v1/auth/customer-quick-auth')
+      .send({
+        name: 'Erin Guest',
+        email: 'erin@example.com',
+        phone: '+18885553333',
+        password: 'TotallyWrongPassword!',
+      });
+
+    expect(res.statusCode).toEqual(401);
+    expect(res.body.message).toMatch(/invalid password/i);
+  });
+
+  test('customer-quick-auth creates a brand-new account when no password is provided', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/customer-quick-auth')
+      .send({
+        name: 'Frank NewGuest',
+        email: 'frank@example.com',
+        phone: '+18885554444',
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.data.token).toBeDefined();
+    expect(res.body.data.user.email).toEqual('frank@example.com');
+  });
 });
