@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { axiosInstance } from '@/hooks/api/axios-instance';
 import { AuthUser } from '@/lib/types/auth';
 import { ApiResponse } from '@/lib/types/api-responses';
-import { setAuthToken } from '@/lib/auth-token';
+import { setSession } from '@/lib/session';
 import { toast } from 'sonner';
 
 export interface CustomerQuickAuthPayload {
@@ -28,7 +28,7 @@ export const useCustomerQuickAuth = () => {
       );
       const authData = data.data;
       if (authData?.token) {
-        setAuthToken(authData.token);
+        setSession(authData.token);
       }
       return authData?.user || (authData as any);
     },

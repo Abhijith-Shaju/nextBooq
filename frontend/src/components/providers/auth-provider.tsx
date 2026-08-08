@@ -4,7 +4,7 @@ import { createContext, useContext, ReactNode } from 'react';
 import { AuthUser } from '@/lib/types/auth';
 import { axiosInstance } from '@/hooks/api/axios-instance';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { removeAuthToken } from '@/lib/auth-token';
+import { clearSession } from '@/lib/session';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const response = await axiosInstance.get('/api/v1/auth/me');
         return response.data?.data as AuthUser;
       } catch (error) {
-        removeAuthToken();
+        clearSession();
         return null;
       }
     },
@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      removeAuthToken();
+      clearSession();
       queryClient.setQueryData(['me'], null);
       queryClient.invalidateQueries({ queryKey: ['me'] });
       toast.success('Signed out successfully');

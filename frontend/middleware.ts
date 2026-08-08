@@ -1,36 +1,27 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { resolveRedirect } from "@/lib/route-guard";
 
 /**
  * Middleware handles route protection for the operator dashboard routes.
  * The customer-facing [tenant]/(public) routes are open to all.
  * The [tenant]/(dashboard) routes require an authenticated session cookie.
+ *
+ * Redirect policy lives in lib/route-guard.ts so it's testable outside
+ * the Edge runtime; this file just adapts NextRequest/NextResponse to it.
  */
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const decision = resolveRedirect(
+    request.nextUrl.pathname,
+    request.headers.get("cookie")
+  );
 
-  const sessionCookie =
-    request.cookies.get("accessToken") ||
-    request.cookies.get("next-auth.session-token") ||
-    request.cookies.get("__Secure-next-auth.session-token");
-
-  // Protect Onboarding route
-  if (pathname === '/onboarding' && !sessionCookie) {
-    const loginUrl = new URL("/auth/login", request.url);
-    loginUrl.searchParams.set("callbackUrl", "/onboarding");
-    return NextResponse.redirect(loginUrl);
+  if (!decision) {
+    return NextResponse.next();
   }
 
-  // Match operator dashboard routes: /[tenant]/dashboard, /[tenant]/reservations, etc.
-  const isDashboardRoute =
-    /^\/[^/]+\/(dashboard|reservations|settings|tables|staff)/.test(pathname);
-
-  if (isDashboardRoute && !sessionCookie) {
-    const loginUrl = new URL("/auth/login", request.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  return NextResponse.next();
+  const loginUrl = new URL(decision.redirectTo, request.url);
+  loginUrl.searchParams.set("callbackUrl", decision.callbackUrl);
+  return NextResponse.redirect(loginUrl);
 }
 
 export const config = {

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { toast } from 'sonner';
 import { QueryClient } from '@tanstack/react-query';
-import { getAuthToken, removeAuthToken } from '@/lib/auth-token';
+import { getToken, clearSession } from '@/lib/session';
 
 export const queryClient = new QueryClient();
 
@@ -15,7 +15,7 @@ export const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = getAuthToken();
+    const token = getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -32,7 +32,7 @@ axiosInstance.interceptors.response.use(
 
       switch (status) {
         case 401:
-          removeAuthToken();
+          clearSession();
           queryClient.setQueryData(['me'], null);
           if (typeof window !== 'undefined') {
             const path = window.location.pathname;

@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { axiosInstance } from '@/hooks/api/axios-instance';
 import { LoginPayload, AuthUser } from '@/lib/types/auth';
 import { ApiResponse } from '@/lib/types/api-responses';
-import { setAuthToken } from '@/lib/auth-token';
+import { setSession } from '@/lib/session';
 import { toast } from 'sonner';
 
 export interface LoginResponse {
@@ -18,7 +18,7 @@ export const useLogin = () => {
       const { data } = await axiosInstance.post<ApiResponse<LoginResponse>>('/api/v1/auth/login', payload);
       const authData = data.data;
       if (authData?.token) {
-        setAuthToken(authData.token);
+        setSession(authData.token);
       }
       return authData?.user || (authData as any);
     },
