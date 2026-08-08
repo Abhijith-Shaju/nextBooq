@@ -82,6 +82,7 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
         name: 'Bob Guest',
         email: 'bob@example.com',
         phone: '+18885559999',
+        password: 'BobsPassword1!',
       });
 
     expect(authRes.statusCode).toEqual(200);
@@ -139,7 +140,7 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
         phone: '+19998887777',
       });
 
-    expect(res.statusCode).toEqual(401);
+    expect(res.statusCode).toEqual(400);
     expect(res.body.data).toBeUndefined();
   });
 
@@ -190,7 +191,7 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
     expect(res.body.message).toMatch(/invalid password/i);
   });
 
-  test('customer-quick-auth creates a brand-new account when no password is provided', async () => {
+  test('customer-quick-auth rejects a brand-new account when no password is provided', async () => {
     const res = await request(app)
       .post('/api/v1/auth/customer-quick-auth')
       .send({
@@ -199,8 +200,22 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
         phone: '+18885554444',
       });
 
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.data).toBeUndefined();
+  });
+
+  test('customer-quick-auth creates a brand-new account when a password is provided', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/customer-quick-auth')
+      .send({
+        name: 'Frank NewGuest',
+        email: 'frank2@example.com',
+        phone: '+18885554445',
+        password: 'FranksPassword1!',
+      });
+
     expect(res.statusCode).toEqual(200);
     expect(res.body.data.token).toBeDefined();
-    expect(res.body.data.user.email).toEqual('frank@example.com');
+    expect(res.body.data.user.email).toEqual('frank2@example.com');
   });
 });

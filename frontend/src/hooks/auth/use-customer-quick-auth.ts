@@ -8,7 +8,7 @@ export interface CustomerQuickAuthPayload {
   name: string;
   email: string;
   phone: string;
-  password?: string;
+  password: string;
 }
 
 export interface CustomerQuickAuthResponse {

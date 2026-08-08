@@ -49,6 +49,7 @@ describe('Integration Test: Auth Event Audit Logging', () => {
       name: 'Ivy Guest',
       email: 'ivy@example.com',
       phone: '+18885557777',
+      password: 'IvysPassword1!',
     });
 
     expect(res.statusCode).toEqual(200);

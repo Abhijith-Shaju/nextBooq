@@ -153,8 +153,8 @@ const logoutUser = async (req, res, next) => {
 const customerQuickAuth = async (req, res, next) => {
   try {
     const { name, email, phone, password } = req.body;
-    if (!email || !phone || !name) {
-      throw new BadRequestError('Name, email, and phone number are required');
+    if (!email || !phone || !name || !password) {
+      throw new BadRequestError('Name, email, phone, and password are required');
     }
 
     const cleanEmail = email.toLowerCase().trim();
@@ -165,9 +165,8 @@ const customerQuickAuth = async (req, res, next) => {
     }
 
     if (!user) {
-      const userPassword = password || `GuestPass_${Date.now()}`;
       const salt = await bcrypt.genSalt(10);
-      const password_hash = await bcrypt.hash(userPassword, salt);
+      const password_hash = await bcrypt.hash(password, salt);
 
       user = new User({
         name: name.trim(),
@@ -178,11 +177,6 @@ const customerQuickAuth = async (req, res, next) => {
       });
       await user.save();
     } else {
-      if (!password) {
-        throw new UnauthorizedError(
-          'An account with this email or phone already exists. Please provide your password to continue.'
-        );
-      }
       const isMatch = await bcrypt.compare(password, user.password_hash);
       if (!isMatch) {
         throw new UnauthorizedError('Invalid password for existing customer account');
