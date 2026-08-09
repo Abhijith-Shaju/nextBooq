@@ -65,6 +65,52 @@ const createCafe = async (req, res, next) => {
   }
 };
 
+const POSITIVE_INT_RULES = ['default_turn_time_minutes', 'max_party_size', 'hold_duration_minutes'];
+const NON_NEGATIVE_INT_RULES = ['booking_lead_time_hours'];
+
+const updateCafe = async (req, res, next) => {
+  try {
+    const cafeId = req.tenantId;
+    const { reservation_rules } = req.body;
+
+    const cafe = await Cafe.findById(cafeId);
+    if (!cafe) {
+      throw new NotFoundError('Cafe not found');
+    }
+
+    if (reservation_rules && typeof reservation_rules === 'object') {
+      for (const field of POSITIVE_INT_RULES) {
+        if (reservation_rules[field] === undefined) continue;
+        const value = reservation_rules[field];
+        if (!Number.isInteger(value) || value <= 0) {
+          throw new BadRequestError(`reservation_rules.${field} must be a positive integer`);
+        }
+      }
+      for (const field of NON_NEGATIVE_INT_RULES) {
+        if (reservation_rules[field] === undefined) continue;
+        const value = reservation_rules[field];
+        if (!Number.isInteger(value) || value < 0) {
+          throw new BadRequestError(`reservation_rules.${field} must be a non-negative integer`);
+        }
+      }
+
+      cafe.reservation_rules = {
+        ...cafe.reservation_rules.toObject(),
+        ...reservation_rules,
+      };
+    }
+
+    await cafe.save();
+
+    res.status(200).json({
+      status: 'success',
+      data: cafe,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getCafeBySlug = async (req, res, next) => {
   try {
     const { slug } = req.params;
@@ -91,5 +137,6 @@ const getCafeBySlug = async (req, res, next) => {
 
 module.exports = {
   createCafe,
+  updateCafe,
   getCafeBySlug,
 };

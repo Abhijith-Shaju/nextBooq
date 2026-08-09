@@ -1,5 +1,6 @@
 const Reservation = require('../models/Reservation');
 const { ConflictError, UnprocessableEntityError, NotFoundError } = require('../utils/errors');
+const { notifyCafeRoom } = require('./socketService');
 
 const VALID_TRANSITIONS = {
   HOLD: ['PENDING_PAYMENT', 'EXPIRED', 'CANCELLED'],
@@ -97,6 +98,13 @@ const transitionState = async ({
       `OCC Conflict: Reservation version ${expectedVersion} has already been modified by another request. Please refresh and try again.`
     );
   }
+
+  // Push a real-time update to the cafe's dashboard (host stand manifest,
+  // floorplan) so staff see status changes without a manual refresh.
+  notifyCafeRoom(tenantId.toString(), 'reservation_updated', {
+    reservationId: updatedReservation._id.toString(),
+    status: updatedReservation.status,
+  });
 
   return updatedReservation;
 };

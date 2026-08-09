@@ -44,10 +44,19 @@ const errorHandler = (err, req, res, next) => {
     error = new AppError('Authentication token has expired', 401);
   }
 
+  const message = error.message || 'Internal Server Error';
+
   res.status(error.statusCode).json({
     status: error.status || 'error',
     statusCode: error.statusCode,
-    message: error.message || 'Internal Server Error',
+    message,
+    // Nested to match the frontend's ApiResponse.error contract
+    // (frontend/src/lib/types/api-responses.d.ts) — the top-level `message`
+    // above is kept for any caller still reading it directly.
+    error: {
+      code: err.name || 'ERROR',
+      message,
+    },
     ...(config.NODE_ENV === 'development' && { stack: err.stack }),
   });
 };

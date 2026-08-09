@@ -2,6 +2,33 @@ const Table = require('../../models/Table');
 const { BadRequestError, NotFoundError } = require('../../utils/errors');
 const { logAuditEvent } = require('../../services/auditService');
 
+/**
+ * The Table Editor UI lets a host pick merge partners by their human-readable
+ * table_number (what's printed on the actual table), not by Mongo _id. This
+ * resolves those table_numbers to real Table documents within the same cafe,
+ * rejecting anything that doesn't resolve instead of letting an ObjectId cast
+ * fail deep inside a .save() call.
+ */
+const resolveMergeTableIds = async (cafeId, tableNumbers, excludeTableId = null) => {
+  if (!tableNumbers || tableNumbers.length === 0) return [];
+
+  const query = { cafe_id: cafeId, table_number: { $in: tableNumbers } };
+  if (excludeTableId) {
+    query._id = { $ne: excludeTableId };
+  }
+  const matches = await Table.find(query);
+
+  const foundNumbers = new Set(matches.map((t) => t.table_number));
+  const unresolved = tableNumbers.filter((n) => !foundNumbers.has(n));
+  if (unresolved.length > 0) {
+    throw new BadRequestError(
+      `can_merge_with references unknown table_number(s): ${unresolved.join(', ')}`
+    );
+  }
+
+  return matches.map((t) => t._id);
+};
+
 const getTables = async (req, res, next) => {
   try {
     const cafeId = req.tenantId;
@@ -26,20 +53,22 @@ const createTable = async (req, res, next) => {
       throw new BadRequestError('table_number and capacity are required');
     }
 
+    const mergeTableIds = await resolveMergeTableIds(cafeId, can_merge_with);
+
     const table = new Table({
       cafe_id: cafeId,
       table_number,
       capacity,
-      can_merge_with: can_merge_with || [],
+      can_merge_with: mergeTableIds,
       status: status || 'active',
     });
 
     await table.save();
 
-    // Maintain symmetric adjacency invariant if can_merge_with provided
-    if (can_merge_with && can_merge_with.length > 0) {
+    // Maintain symmetric adjacency invariant
+    if (mergeTableIds.length > 0) {
       await Table.updateMany(
-        { _id: { $in: can_merge_with }, cafe_id: cafeId },
+        { _id: { $in: mergeTableIds }, cafe_id: cafeId },
         { $addToSet: { can_merge_with: table._id } }
       );
     }
@@ -80,10 +109,22 @@ const updateTable = async (req, res, next) => {
     if (status !== undefined) existingTable.status = status;
     if (is_deleted !== undefined) existingTable.is_deleted = is_deleted;
 
+    // Deleting a table must not leave it as a phantom merge partner for
+    // whichever tables still reference it.
+    if (is_deleted === true) {
+      await Table.updateMany(
+        { cafe_id: cafeId },
+        { $pull: { can_merge_with: existingTable._id } }
+      );
+    }
+
     if (can_merge_with !== undefined) {
+      const newMergeTableIds = await resolveMergeTableIds(cafeId, can_merge_with, existingTable._id);
+      const newMergeIdStrings = new Set(newMergeTableIds.map((id) => id.toString()));
+
       // Remove symmetric reference from old neighbors no longer in array
       const removedIds = existingTable.can_merge_with.filter(
-        (id) => !can_merge_with.includes(id.toString())
+        (id) => !newMergeIdStrings.has(id.toString())
       );
       if (removedIds.length > 0) {
         await Table.updateMany(
@@ -93,14 +134,14 @@ const updateTable = async (req, res, next) => {
       }
 
       // Add symmetric reference to new neighbors
-      if (can_merge_with.length > 0) {
+      if (newMergeTableIds.length > 0) {
         await Table.updateMany(
-          { _id: { $in: can_merge_with }, cafe_id: cafeId },
+          { _id: { $in: newMergeTableIds }, cafe_id: cafeId },
           { $addToSet: { can_merge_with: existingTable._id } }
         );
       }
 
-      existingTable.can_merge_with = can_merge_with;
+      existingTable.can_merge_with = newMergeTableIds;
     }
 
     await existingTable.save();

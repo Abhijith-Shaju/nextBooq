@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { resolveRedirect } from './route-guard';
+import { resolveRedirect, isDashboardRoute } from './route-guard';
 
 function makeFakeJwt(payload: Record<string, unknown>): string {
   const base64UrlEncode = (obj: Record<string, unknown>) =>
@@ -41,5 +41,25 @@ describe('resolveRedirect', () => {
 
   test('returns null for the public tenant storefront route with no session', () => {
     expect(resolveRedirect('/mycafe', null)).toBeNull();
+  });
+});
+
+describe('isDashboardRoute', () => {
+  test.each([
+    '/mycafe/dashboard',
+    '/mycafe/tables',
+    '/mycafe/reservations',
+    '/mycafe/settings',
+    '/mycafe/staff',
+  ])('%s is a dashboard route', (path) => {
+    expect(isDashboardRoute(path)).toBe(true);
+  });
+
+  test('the public tenant storefront route is not a dashboard route', () => {
+    expect(isDashboardRoute('/mycafe')).toBe(false);
+  });
+
+  test('the customer booking checkout route is not a dashboard route', () => {
+    expect(isDashboardRoute('/mycafe/checkout')).toBe(false);
   });
 });

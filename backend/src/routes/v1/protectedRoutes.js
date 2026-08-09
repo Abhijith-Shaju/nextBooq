@@ -14,13 +14,21 @@ const {
   createTable,
   updateTable,
 } = require('../../controllers/admin/tableController');
-const { createCafe } = require('../../controllers/admin/cafeController');
+const { createCafe, updateCafe } = require('../../controllers/admin/cafeController');
 
 // Global Auth required for all protected routes
 router.use(authenticate);
 
 // Create Cafe & Organization
 router.post('/cafes', createCafe);
+
+// Update Cafe Settings / Reservation Rules (edit_settings permission required)
+router.put(
+  '/cafes/:cafeId',
+  extractTenant,
+  requirePermission('edit_settings'),
+  updateCafe
+);
 
 // Host Stand Manifest (view_reservations permission required)
 router.get(

@@ -2,6 +2,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { QueryClient } from '@tanstack/react-query';
 import { getToken, clearSession } from '@/lib/session';
+import { isDashboardRoute } from '@/lib/route-guard';
 
 export const queryClient = new QueryClient();
 
@@ -36,16 +37,10 @@ axiosInstance.interceptors.response.use(
           queryClient.setQueryData(['me'], null);
           if (typeof window !== 'undefined') {
             const path = window.location.pathname;
-            // Only redirect to staff login if visiting protected staff control-plane routes
-            const isStaffDashboard =
-              path.includes('/reservations') ||
-              path.includes('/floor-plan') ||
-              path.includes('/analytics') ||
-              path.includes('/staff') ||
-              path.includes('/settings') ||
-              path.startsWith('/admin');
-
-            if (isStaffDashboard) {
+            // Only redirect to staff login if visiting protected staff dashboard
+            // routes — shares the same route list the dashboard middleware
+            // itself protects (lib/route-guard.ts), so this can't drift stale.
+            if (isDashboardRoute(path)) {
               window.location.href = '/auth/login';
             }
           }
