@@ -10,6 +10,9 @@ const getLocalTimeDetails = (dateObj, timeZone = 'UTC') => {
     const formatter = new Intl.DateTimeFormat('en-US', {
       timeZone,
       weekday: 'long',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
@@ -19,11 +22,17 @@ const getLocalTimeDetails = (dateObj, timeZone = 'UTC') => {
     let weekday = '';
     let hour = '';
     let minute = '';
+    let year = '';
+    let month = '';
+    let day = '';
 
     for (const part of parts) {
       if (part.type === 'weekday') weekday = part.value.toLowerCase();
       if (part.type === 'hour') hour = part.value;
       if (part.type === 'minute') minute = part.value;
+      if (part.type === 'year') year = part.value;
+      if (part.type === 'month') month = part.value;
+      if (part.type === 'day') day = part.value;
     }
 
     // Adjust 24:00 if formatted as such
@@ -32,6 +41,7 @@ const getLocalTimeDetails = (dateObj, timeZone = 'UTC') => {
     return {
       dayOfWeek: weekday,
       timeString: `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`,
+      dateKey: `${year}-${month}-${day}`,
     };
   } catch (error) {
     // Fallback to UTC if timezone string is invalid
@@ -41,8 +51,14 @@ const getLocalTimeDetails = (dateObj, timeZone = 'UTC') => {
     return {
       dayOfWeek,
       timeString: `${hours}:${minutes}`,
+      dateKey: dateObj.toISOString().slice(0, 10),
     };
   }
+};
+
+const timeStringToMinutes = (timeString) => {
+  const [hours, minutes] = timeString.split(':').map(Number);
+  return hours * 60 + minutes;
 };
 
 /**
@@ -82,7 +98,16 @@ const validateOperatingHours = (cafe, startTime, endTime) => {
     );
   }
 
-  if (endDetails.timeString > closeTime) {
+  // Compare end time as minutes-since-start-of-the-start-day, rolling the end
+  // time forward by 24h if it falls on a later calendar date than the start
+  // (e.g. a 23:50 -> 00:30 booking). A plain string/time comparison would
+  // otherwise see "00:30" as earlier than the close time and wrongly allow it.
+  const endMinutes = timeStringToMinutes(endDetails.timeString);
+  const dayOffsetMinutes = endDetails.dateKey === startDetails.dateKey ? 0 : 24 * 60;
+  const effectiveEndMinutes = endMinutes + dayOffsetMinutes;
+  const closeMinutes = timeStringToMinutes(closeTime);
+
+  if (effectiveEndMinutes > closeMinutes) {
     throw new UnprocessableEntityError(
       `Requested end time (${endDetails.timeString}) exceeds cafe closing time (${closeTime} ${timeZone}).`
     );

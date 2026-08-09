@@ -2,7 +2,7 @@ const Reservation = require('../models/Reservation');
 const { ConflictError, UnprocessableEntityError, NotFoundError } = require('../utils/errors');
 
 const VALID_TRANSITIONS = {
-  HOLD: ['PENDING_PAYMENT', 'EXPIRED'],
+  HOLD: ['PENDING_PAYMENT', 'EXPIRED', 'CANCELLED'],
   PENDING_PAYMENT: ['CONFIRMED', 'CANCELLED'],
   CONFIRMED: ['CHECKED_IN', 'SEATED', 'CANCELLED', 'NO_SHOW'],
   CHECKED_IN: ['SEATED', 'LEFT_BEFORE_SEATING'],

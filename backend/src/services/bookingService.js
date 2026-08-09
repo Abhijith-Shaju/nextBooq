@@ -7,6 +7,32 @@ const { validateOperatingHours } = require('../utils/operatingHours');
 const { ConflictError, NotFoundError, UnprocessableEntityError } = require('../utils/errors');
 
 /**
+ * Rejects a new hold if the same user already holds an active reservation at this
+ * cafe whose time window overlaps the requested one (expired HOLDs are excluded,
+ * mirroring allocationEngine's own overlap-exclusion rules).
+ */
+const assertNoUserOverlap = async (cafeId, userId, startTime, endTime, session = null) => {
+  const now = new Date();
+  const query = Reservation.findOne({
+    cafe_id: cafeId,
+    user_id: userId,
+    status: { $in: ['HOLD', 'PENDING_PAYMENT', 'CONFIRMED', 'CHECKED_IN', 'SEATED'] },
+    start_time: { $lt: endTime },
+    end_time: { $gt: startTime },
+    $or: [{ status: { $ne: 'HOLD' } }, { hold_expires_at: { $gt: now } }],
+  });
+
+  if (session) {
+    query.session(session);
+  }
+
+  const existing = await query.exec();
+  if (existing) {
+    throw new ConflictError('You already have a reservation that overlaps this time slot');
+  }
+};
+
+/**
  * Fallback for non-replica set standalone MongoDB instances (development/testing).
  */
 const createHoldReservationNonTransactional = async ({
@@ -23,6 +49,8 @@ const createHoldReservationNonTransactional = async ({
   }
 
   validateOperatingHours(cafe, startTime, endTime);
+
+  await assertNoUserOverlap(cafeId, userId, new Date(startTime), new Date(endTime));
 
   const holdDuration = cafe.reservation_rules?.hold_duration_minutes || 10;
   const holdExpiresAt = new Date(Date.now() + holdDuration * 60 * 1000);
@@ -121,6 +149,8 @@ const createHoldReservation = async ({
 
       // Validate operating hours against requested reservation time
       validateOperatingHours(cafe, startTime, endTime);
+
+      await assertNoUserOverlap(cafeId, userId, new Date(startTime), new Date(endTime), session);
 
       const holdDuration = cafe.reservation_rules?.hold_duration_minutes || 10;
       const holdExpiresAt = new Date(Date.now() + holdDuration * 60 * 1000);

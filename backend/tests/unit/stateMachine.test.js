@@ -2,8 +2,8 @@ const { VALID_TRANSITIONS } = require('../../src/services/stateMachine');
 
 describe('Reservation State Machine - Unit Matrix Tests', () => {
   describe('Valid Lifecycle Transitions', () => {
-    test('HOLD can transition to PENDING_PAYMENT or EXPIRED', () => {
-      expect(VALID_TRANSITIONS.HOLD).toEqual(['PENDING_PAYMENT', 'EXPIRED']);
+    test('HOLD can transition to PENDING_PAYMENT, EXPIRED, or CANCELLED', () => {
+      expect(VALID_TRANSITIONS.HOLD).toEqual(['PENDING_PAYMENT', 'EXPIRED', 'CANCELLED']);
     });
 
     test('PENDING_PAYMENT can transition to CONFIRMED or CANCELLED', () => {
