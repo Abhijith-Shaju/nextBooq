@@ -3,37 +3,19 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { TenantPublicHeader } from '@/components/booking/tenant-header';
+import { StatusBadge } from '@/components/shared/status-badge';
 import { useCustomerReservations } from '@/hooks/customer/use-customer-reservations';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useTenant } from '@/components/providers/tenant-provider';
 import { CustomerAuthModal } from '@/components/auth/customer-auth-modal';
 import { format } from 'date-fns';
-import { Calendar, Clock, Users, ArrowLeft, Loader2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Calendar, Clock, Users, ArrowLeft, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function MyReservationsPage() {
   const { isAuthenticated } = useAuth();
   const { cafe } = useTenant();
   const { data: reservations = [], isLoading, refetch } = useCustomerReservations(isAuthenticated);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'CONFIRMED':
-        return <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs px-2.5 py-1 rounded-full font-bold">Confirmed</span>;
-      case 'HOLD':
-      case 'PENDING_PAYMENT':
-        return <span className="bg-amber-100 text-amber-800 border border-amber-300 text-xs px-2.5 py-1 rounded-full font-bold">Pending Payment</span>;
-      case 'CANCELLED':
-        return <span className="bg-rose-100 text-rose-800 border border-rose-300 text-xs px-2.5 py-1 rounded-full font-bold">Cancelled</span>;
-      case 'SEATED':
-      case 'CHECKED_IN':
-        return <span className="bg-blue-100 text-blue-800 border border-blue-300 text-xs px-2.5 py-1 rounded-full font-bold">In Service</span>;
-      case 'COMPLETED':
-        return <span className="bg-slate-100 text-slate-700 border border-slate-300 text-xs px-2.5 py-1 rounded-full font-bold">Completed</span>;
-      default:
-        return <span className="bg-gray-100 text-gray-700 border border-gray-300 text-xs px-2.5 py-1 rounded-full font-bold">{status}</span>;
-    }
-  };
 
   return (
     <div className="min-h-screen bg-brand-cream flex flex-col font-sans">
@@ -45,8 +27,8 @@ export default function MyReservationsPage() {
             <Link href={`/${cafe.slug}`} className="inline-flex items-center text-xs font-semibold text-brand-mocha hover:text-brand-brown mb-2 transition-colors">
               <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back to Storefront
             </Link>
-            <h1 className="text-3xl font-extrabold font-display text-brand-brown">My Reservations</h1>
-            <p className="text-xs text-brand-mocha mt-0.5">Manage your upcoming and past dining holds at {cafe.name}</p>
+            <h1 className="text-3xl font-bold font-display text-brand-brown">Your tokens</h1>
+            <p className="text-xs text-brand-mocha mt-0.5">Every table you&rsquo;ve held or confirmed at {cafe.name}</p>
           </div>
 
           {isAuthenticated && (
@@ -99,45 +81,49 @@ export default function MyReservationsPage() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {reservations.map((res) => {
               const startDate = new Date(res.start_time);
               const resId = String(res._id || res.id || '');
+              const isPast = ['COMPLETED', 'CANCELLED', 'EXPIRED', 'NO_SHOW', 'LEFT_BEFORE_SEATING'].includes(res.status);
               return (
                 <div
                   key={resId}
-                  className="glass rounded-3xl p-6 border border-brand-brown/10 shadow-brand-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all hover:border-brand-brown/20"
+                  className={`ticket-card flex items-stretch ${isPast ? 'opacity-60' : ''}`}
                 >
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      {getStatusBadge(res.status)}
-                      <span className="text-[11px] font-mono text-brand-mocha">Ref: #{resId.slice(-6)}</span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-brand-brown pt-1">
-                      <div className="flex items-center gap-1.5 font-bold">
-                        <Calendar className="w-4 h-4 text-brand-red" />
-                        {format(startDate, 'EEE, MMM d, yyyy')}
-                      </div>
-                      <div className="flex items-center gap-1.5 font-semibold text-brand-mocha">
-                        <Clock className="w-4 h-4 text-brand-red" />
-                        {format(startDate, 'h:mm a')}
-                      </div>
-                      <div className="flex items-center gap-1.5 font-semibold text-brand-mocha">
-                        <Users className="w-4 h-4 text-brand-red" />
-                        {res.party_size} Guests
-                      </div>
-                    </div>
+                  <div className="flex w-16 shrink-0 flex-col items-center justify-center bg-brand-gold/15 text-brand-gold">
+                    <span className="font-mono text-lg font-bold tabular-nums">#{resId.slice(-4)}</span>
                   </div>
+                  <div className="flex flex-1 flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <StatusBadge status={res.status} />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs text-brand-brown">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 text-brand-red" />
+                          {format(startDate, 'EEE, MMM d')}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Clock className="h-3.5 w-3.5 text-brand-red" />
+                          {format(startDate, 'h:mm a')}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Users className="h-3.5 w-3.5 text-brand-red" />
+                          {res.party_size} guests
+                        </span>
+                      </div>
+                    </div>
 
-                  {res.status === 'PENDING_PAYMENT' && (
-                    <Link
-                      href={`/${cafe.slug}/checkout?reservationId=${resId}`}
-                      className="cta-hero py-2.5 px-4 text-xs font-bold shadow-brand-sm whitespace-nowrap"
-                    >
-                      Complete Payment
-                    </Link>
-                  )}
+                    {res.status === 'PENDING_PAYMENT' && (
+                      <Link
+                        href={`/${cafe.slug}/checkout?reservationId=${resId}`}
+                        className="cta-hero shrink-0 whitespace-nowrap px-4 py-2.5 text-xs font-bold shadow-brand-sm"
+                      >
+                        Complete Payment
+                      </Link>
+                    )}
+                  </div>
                 </div>
               );
             })}

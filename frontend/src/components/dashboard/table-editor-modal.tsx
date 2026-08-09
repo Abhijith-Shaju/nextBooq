@@ -185,7 +185,7 @@ export function TableEditorModal({
               <button
                 type="button"
                 onClick={handleDelete}
-                className="py-2.5 px-4 rounded-xl font-semibold bg-rose-100 text-rose-700 hover:bg-rose-200 flex items-center gap-1.5 text-xs transition-all"
+                className="tone-critical py-2.5 px-4 rounded-xl font-semibold hover:opacity-80 flex items-center gap-1.5 text-xs transition-opacity"
               >
                 <Trash2 className="w-4 h-4" /> Soft Delete
               </button>
@@ -202,7 +202,7 @@ export function TableEditorModal({
               <button
                 type="submit"
                 disabled={createTableMutation.isPending || editTableMutation.isPending}
-                className="cta-hero py-2.5 px-6 text-sm font-bold shadow-brand-md"
+                className="btn-action py-2.5 px-6 text-sm"
               >
                 <Save className="w-4 h-4 mr-1" /> Save Table
               </button>

@@ -27,77 +27,73 @@ export default function TablesInventoryPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 glass p-6 rounded-3xl border border-brand-brown/10 shadow-brand-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white/70 backdrop-blur-sm p-5 rounded-2xl border border-brand-brown/10">
         <div>
-          <h1 className="text-3xl font-extrabold font-display text-brand-brown">Table Inventory Editor</h1>
-          <p className="text-xs text-brand-mocha mt-0.5">Manage physical cafe floorplan tables and adjacent merges</p>
+          <h1 className="text-2xl font-bold font-display text-brand-brown">Table Inventory</h1>
+          <p className="text-xs text-brand-mochaMid mt-0.5">Manage physical cafe floorplan tables and adjacent merges</p>
         </div>
 
         <button
           onClick={handleOpenAdd}
-          className="cta-hero py-3 px-6 text-sm font-bold shadow-brand-md"
+          className="btn-action py-2.5 px-5 text-sm"
         >
-          <Plus className="w-4 h-4 mr-1" /> Add New Table
+          <Plus className="w-4 h-4 mr-1" /> Add table
         </button>
       </div>
 
       {/* Table Data List */}
-      <div className="glass rounded-3xl border border-brand-brown/10 shadow-brand-md overflow-hidden">
+      <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-brand-brown/10 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-brand-brown">
-            <thead className="bg-brand-tan/30 text-xs uppercase font-bold text-brand-mocha border-b border-brand-brown/10">
+            <thead className="bg-brand-tan/30 text-xs uppercase font-bold text-brand-mochaMid border-b border-brand-brown/10">
               <tr>
-                <th className="p-4">Table Number</th>
-                <th className="p-4">Guest Capacity</th>
-                <th className="p-4">Service Status</th>
-                <th className="p-4">Can Merge With</th>
+                <th className="p-4">Table</th>
+                <th className="p-4">Capacity</th>
+                <th className="p-4">Status</th>
+                <th className="p-4">Can merge with</th>
                 <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-brand-brown/10">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-brand-mocha animate-pulse">
+                  <td colSpan={5} className="p-8 text-center text-brand-mochaMid animate-pulse">
                     Loading floorplan tables...
                   </td>
                 </tr>
               ) : tables.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-brand-mocha">
-                    No physical tables created yet. Click "Add New Table" to start.
+                  <td colSpan={5} className="p-8 text-center text-brand-mochaMid">
+                    No physical tables created yet. Click &ldquo;Add table&rdquo; to start.
                   </td>
                 </tr>
               ) : (
                 tables.map((table) => (
-                  <tr key={table.id || table.table_number} className="hover:bg-brand-tan/20 transition-all">
-                    <td className="p-4 font-mono font-bold text-base flex items-center gap-1.5">
-                      <Hash className="w-4 h-4 text-brand-red" /> T-{table.table_number}
+                  <tr key={table.id || table.table_number} className="hover:bg-brand-tan/20 transition-colors">
+                    <td className="p-4 font-mono font-bold text-sm flex items-center gap-1.5 tabular-nums">
+                      <Hash className="w-4 h-4 text-brand-red" /> {table.table_number}
                     </td>
                     <td className="p-4 font-semibold text-xs">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-brand-tan/50 text-brand-brown">
-                        <Users className="w-3.5 h-3.5" /> {table.capacity} Guests
+                      <span className="tone-neutral inline-flex items-center gap-1 px-2.5 py-1 rounded-full">
+                        <Users className="w-3.5 h-3.5" /> {table.capacity}
                       </span>
                     </td>
                     <td className="p-4 text-xs font-bold">
                       {table.status === 'out_of_service' ? (
-                        <span className="px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
-                          Out of Service
-                        </span>
+                        <span className="tone-critical px-2.5 py-1 rounded-full">Out of service</span>
                       ) : (
-                        <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                          Active
-                        </span>
+                        <span className="tone-success px-2.5 py-1 rounded-full">Active</span>
                       )}
                     </td>
-                    <td className="p-4 text-xs font-mono text-brand-mocha">
+                    <td className="p-4 text-xs font-mono text-brand-mochaMid tabular-nums">
                       {table.can_merge_with && table.can_merge_with.length > 0
-                        ? table.can_merge_with.map((t) => `T-${t}`).join(', ')
+                        ? table.can_merge_with.join(', ')
                         : 'None'}
                     </td>
                     <td className="p-4 text-right">
                       <button
                         onClick={() => handleOpenEdit(table)}
-                        className="p-2 rounded-xl text-brand-brown hover:bg-brand-tan/50 transition-all border border-brand-brown/10"
+                        className="p-2 rounded-xl text-brand-brown hover:bg-brand-tan/50 transition-colors border border-brand-brown/10"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>

@@ -33,20 +33,13 @@
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
 
-  /* Tenant Branding Variables */
-  --color-brandPrimary: hsl(var(--brand-primary));
-  --color-brandPrimary-foreground: hsl(0 0% 100%);
-  --color-brandAccent: hsl(var(--brand-accent));
-
-  /* Brand Palette Utilities for Tailwind v4 */
-  --color-brand-red: #C8102E;
-  --color-brand-redDark: #9B0D21;
-  --color-brand-redLight: #E8415A;
-  --color-brand-cream: #FDFBF7;
-  --color-brand-tan: #F5ECD7;
-  --color-brand-blush: #F2C4C4;
-  --color-brand-brown: #2C1810;
-  --color-brand-mocha: #7A5C3E;
+  /* Tenant Branding Variables — set as raw color values (not HSL fragments) so
+     TenantThemeProvider can write a cafe's override straight from resolveTenantTheme()
+     with no HSL math involved. */
+  --color-brandPrimary: var(--brand-primary);
+  --color-brandPrimary-foreground: var(--brand-primary-foreground);
+  --color-brandAccent: var(--brand-accent);
+  --color-brandAccent-foreground: var(--brand-accent-foreground);
 
   --shadow-brand-sm: 0 2px 8px rgba(200, 16, 46, 0.15);
   --shadow-brand-md: 0 4px 20px rgba(200, 16, 46, 0.25);
@@ -58,123 +51,63 @@
   --radius-sm: calc(var(--radius) - 4px);
 }
 
+/* ─── Design tokens (single source of truth — no duplicate/overriding block) ── */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  /* shadcn/ui semantic tokens — "Token Counter" parchment/terracotta theme */
+  --background: 39 66% 91%;
+  /* #F7ECD8 parchment */
+  --foreground: 17 47% 12%;
+  /* #2C1810 ink */
 
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card: 42 100% 98%;
+  /* #FFFCF5 ticket paper */
+  --card-foreground: 17 47% 12%;
 
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
+  --popover: 42 100% 98%;
+  --popover-foreground: 17 47% 12%;
 
-  --primary: 222.2 47.4% 11.2%;
-  --primary-foreground: 210 40% 98%;
+  --primary: 350 79% 41%;
+  /* #C8102E terracotta */
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 40 58% 85%;
+  /* #EFE0C3 */
+  --secondary-foreground: 17 47% 12%;
 
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
+  --muted: 40 58% 85%;
+  --muted-foreground: 24 38% 35%;
+  /* #7A5237 ink-soft */
 
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
+  --accent: 350 79% 41%;
+  --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive: 350 79% 41%;
+  --destructive-foreground: 0 0% 100%;
 
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 222.2 84% 4.9%;
+  --border: 39 48% 74%;
+  /* #DCC69C rule */
+  --input: 39 48% 74%;
+  --ring: 350 79% 41%;
 
-  --radius: 0.5rem;
+  --radius: 0.875rem;
 
-  /* Default fallback brand colors */
-  --brand-primary: 220 89% 53%;
-  /* Blue */
-  --brand-accent: 24 98% 50%;
-  /* Orange */
+  /* Ink/paper scale — the platform's own neutral system, not tenant-themed. */
+  --ink: 17 47% 12%;
+  --ink-soft: 24 38% 35%;
+  --ink-faint: 31 30% 55%;
+  --paper-ground: 39 66% 91%;
+  --paper-deep: 40 58% 85%;
+  --paper-raised: 42 100% 98%;
+  --rule: 39 48% 74%;
+
+  /* Tenant-overridable brand accents — raw color values so
+     TenantThemeProvider can write resolveTenantTheme()'s hex output directly,
+     no HSL conversion needed. Defaults match the approved Token Counter direction. */
+  --brand-primary: #C8102E;
+  --brand-primary-foreground: #FFFFFF;
+  --brand-accent: #A8752E;
+  --brand-accent-foreground: #2C1810;
 }
-
-.dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-
-  --primary: 210 40% 98%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 212.7 26.8% 83.9%;
-}
-
-
-    @layer base {
-      :root {
-        /* Brand raw values for direct CSS var usage */
-        --brand-red: #C8102E;
-        --brand-red-dark: #9B0D21;
-        --brand-cream: #FDFBF7;
-        --brand-tan: #F5ECD7;
-        --brand-blush: #F2C4C4;
-        --brand-brown: #2C1810;
-        --brand-mocha: #7A5C3E;
-
-        /* shadcn/ui semantic tokens – light mode (cream-based) */
-        --background: 39 40% 99%;
-        /* #FDFBF7 – cream */
-        --foreground: 17 36% 13%;
-        /* #2C1810 – espresso dark */
-
-        --card: 39 40% 99%;
-        --card-foreground: 17 36% 13%;
-
-        --popover: 39 40% 99%;
-        --popover-foreground: 17 36% 13%;
-
-        --primary: 350 86% 43%;
-        /* #C8102E – brand red */
-        --primary-foreground: 0 0% 100%;
-
-        --secondary: 35 52% 90%;
-        /* #F5ECD7 – warm tan */
-        --secondary-foreground: 17 36% 13%;
-
-        --muted: 35 30% 93%;
-        --muted-foreground: 25 28% 48%;
-        /* #7A5C3E – mocha */
-
-        --accent: 350 86% 43%;
-        --accent-foreground: 0 0% 100%;
-
-        --destructive: 350 86% 43%;
-        --destructive-foreground: 0 0% 100%;
-
-        --border: 35 30% 88%;
-        --input: 35 30% 88%;
-        --ring: 350 86% 43%;
-
-        --radius: 0.75rem;
-      }
-    }
 
     /* ─── Base Resets ────────────────────────────────────────────────────────── */
     @layer base {
@@ -262,6 +195,67 @@
       /* CTA Button on hero  */
       .cta-hero {
         @apply inline-flex items-center gap-2 bg-brand-red text-white font-sans font-semibold px-8 py-4 rounded-full shadow-brand-md hover:bg-brand-redDark transition-all duration-200 hover:shadow-brand-lg hover:-translate-y-0.5;
+      }
+
+      /* ── Token Counter ticket primitives (booking flow) ──────────────────── */
+
+      /* A ticket/token card: paper surface + rounded card shape. */
+      .ticket-card {
+        @apply bg-white rounded-3xl shadow-card overflow-hidden;
+      }
+
+      /* Perforated tear line between two ticket sections, with punched
+         semicircle notches at each edge so the card reads as a real stub. */
+      .ticket-perf {
+        @apply relative h-4 -mx-px;
+        background:
+          radial-gradient(circle at 0 50%, hsl(var(--paper-ground)) 8px, transparent 8.5px) left / 100% 100% no-repeat,
+          radial-gradient(circle at 100% 50%, hsl(var(--paper-ground)) 8px, transparent 8.5px) right / 100% 100% no-repeat;
+      }
+
+      .ticket-perf::before {
+        content: '';
+        @apply absolute top-1/2 left-5 right-5 border-t-2 border-dashed;
+        border-color: hsl(var(--rule));
+        transform: translateY(-1px);
+      }
+
+      /* Tabular data label pairs (date/time/party fields on a ticket). */
+      .ticket-field .k {
+        @apply font-mono text-[10px] uppercase tracking-wide text-brand-mochaMid;
+      }
+
+      .ticket-field .v {
+        @apply font-mono font-bold text-brand-brown tabular-nums;
+      }
+
+      /* ── Semantic status tones (dashboard + booking) ──────────────────────
+         Fixed universal red/amber/green-family semantics — deliberately NOT
+         tenant-themed via --brand-primary/--brand-accent, since "seated" must
+         read the same regardless of a cafe's brand color. Single source of
+         truth for StatusBadge and any other status-driven surface (metric
+         pills, floorplan tiles) so the mapping never drifts between them. */
+      .tone-success {
+        @apply bg-emerald-100 text-emerald-800;
+      }
+
+      .tone-pending {
+        @apply bg-brand-gold/15 text-brand-gold;
+      }
+
+      .tone-critical {
+        @apply bg-brand-red/10 text-brand-redDark;
+      }
+
+      .tone-neutral {
+        @apply bg-brand-tan text-brand-mocha;
+      }
+
+      /* Dashboard/Operate-mode primary action button — distinct from .cta-hero,
+         which is a marketing-hero CTA and shouldn't be reused as a generic
+         "Save"/"Add" button in an operational tool. */
+      .btn-action {
+        @apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand-red text-white font-semibold hover:bg-brand-redDark transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
       }
     }
 

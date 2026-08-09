@@ -10,26 +10,31 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-inter)", "var(--font-sans)", "system-ui", "sans-serif"],
-        display: ["var(--font-playfair)", "var(--font-display)", "Georgia", "serif"],
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       colors: {
+        // Tenant-overridable brand tokens (see TenantThemeProvider / resolveTenantTheme).
+        // Every cafe-specific accent must route through these, never a literal hex.
         brand: {
-          DEFAULT: "hsl(var(--brand-primary))",
-          foreground: "hsl(var(--brand-primary-foreground))",
-          accent: "hsl(var(--brand-accent))",
-          "accent-foreground": "hsl(var(--brand-accent-foreground))",
-          red: "#C8102E",
-          redDark: "#9B0D21",
-          redLight: "#E8415A",
-          cream: "#FDFBF7",
-          tan: "#F5ECD7",
+          DEFAULT: "var(--brand-primary)",
+          foreground: "var(--brand-primary-foreground)",
+          accent: "var(--brand-accent)",
+          "accent-foreground": "var(--brand-accent-foreground)",
+          red: "var(--brand-primary)",
+          redDark: "color-mix(in srgb, var(--brand-primary) 78%, black)",
+          redLight: "color-mix(in srgb, var(--brand-primary) 82%, white)",
+          cream: "hsl(var(--paper-ground))",
+          tan: "hsl(var(--paper-deep))",
+          brown: "hsl(var(--ink))",
+          mocha: "hsl(var(--ink-soft))",
+          mochaMid: "hsl(var(--ink-faint))",
+          gold: "var(--brand-accent)",
+          // Marketing/control-plane surface only (out of scope for the booking-flow
+          // redesign) — left as static literals, not tenant-themed.
           blush: "#F2C4C4",
           blushLight: "#FAE8E8",
-          brown: "#2C1810",
-          mocha: "#7A5C3E",
-          mochaMid: "#9C7A5A",
-          gold: "#D4A853",
         },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",

@@ -6,7 +6,7 @@ import { useTenant } from '@/components/providers/tenant-provider';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { CountdownTimer } from './countdown-timer';
-import { ShieldCheck, Coffee, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function CheckoutCard() {
@@ -25,7 +25,7 @@ export function CheckoutCard() {
         name: cafe.name,
         description: 'Table Hold Security Deposit',
         order_id: reservation?.razorpay_order_id || 'order_' + Math.random().toString(36).substring(7),
-        handler: function (response) {
+        handler: function () {
           toast.success('Payment verified! Reservation confirmed.');
           router.push(`/${cafe.slug}/success`);
         },
@@ -40,63 +40,46 @@ export function CheckoutCard() {
   };
 
   return (
-    <div className="w-full max-w-lg mx-auto glass p-8 rounded-3xl border border-brand-brown/10 shadow-brand-lg">
-      <div className="flex items-center justify-between border-b border-brand-brown/10 pb-6 mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-brand-red/10 text-brand-red rounded-2xl flex items-center justify-center">
-            <Coffee className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold font-display text-brand-brown">{cafe.name}</h2>
-            <p className="text-xs text-brand-mocha">Table Hold Deposit Confirmation</p>
-          </div>
+    <div className="ticket-card mx-auto w-full max-w-md">
+      <div className="ticket-field grid grid-cols-3 gap-3 p-5">
+        <div>
+          <div className="k">Date</div>
+          <div className="v mt-0.5 text-[15px]">{date ? format(date, 'EEE d MMM') : '—'}</div>
         </div>
+        <div>
+          <div className="k">Time</div>
+          <div className="v mt-0.5 text-[15px]">{time || '—'}</div>
+        </div>
+        <div>
+          <div className="k">Party</div>
+          <div className="v mt-0.5 text-[15px]">{partySize} guests</div>
+        </div>
+      </div>
+
+      <div className="ticket-perf" />
+
+      <div className="flex items-center gap-3 px-5 pt-4">
         <CountdownTimer />
       </div>
 
-      {/* Booking Summary */}
-      <div className="bg-brand-tan/30 p-5 rounded-2xl border border-brand-brown/10 space-y-3 text-sm mb-6">
-        <div className="flex justify-between">
-          <span className="text-brand-mocha">Date:</span>
-          <span className="font-bold text-brand-brown">
-            {date ? format(date, 'EEEE, MMMM d, yyyy') : 'Selected Date'}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-brand-mocha">Time Slot:</span>
-          <span className="font-bold text-brand-brown">{time || 'Selected Time'}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-brand-mocha">Party Size:</span>
-          <span className="font-bold text-brand-brown">{partySize} Guests</span>
-        </div>
+      <div className="flex items-baseline justify-between border-t border-dashed border-brand-brown/15 px-5 py-4 mt-4">
+        <span className="text-sm text-brand-mocha">Deposit to confirm</span>
+        <span className="font-mono text-2xl font-bold text-brand-brown">
+          ₹{depositAmount}
+          <span className="ml-1 font-sans text-xs font-normal text-brand-mochaMid">refundable</span>
+        </span>
       </div>
 
-      {/* Pricing Breakdown */}
-      <div className="space-y-2 border-t border-b border-brand-brown/10 py-4 mb-6 text-sm">
-        <div className="flex justify-between text-brand-mocha">
-          <span>Table Reservation Hold Fee</span>
-          <span>₹{depositAmount}.00</span>
-        </div>
-        <div className="flex justify-between text-xs text-green-700 font-semibold">
-          <span>Adjusted on Final Cafe Bill</span>
-          <span>100% Refundable</span>
-        </div>
-        <div className="flex justify-between items-center text-lg font-bold text-brand-brown pt-2">
-          <span>Total Deposit Due:</span>
-          <span className="text-brand-red text-2xl font-display">₹{depositAmount}.00</span>
-        </div>
-      </div>
-
-      <button
-        onClick={handlePay}
-        className="w-full cta-hero py-4 justify-center text-lg font-bold shadow-brand-lg mb-4"
-      >
-        <Lock className="w-5 h-5 mr-1.5" /> Pay ₹{depositAmount} via Razorpay
-      </button>
-
-      <div className="flex items-center justify-center gap-2 text-xs text-brand-mocha">
-        <ShieldCheck className="w-4 h-4 text-green-600" /> 256-bit Encrypted Secure Checkout
+      <div className="px-5 pb-5">
+        <button
+          onClick={handlePay}
+          className="w-full cta-hero justify-center py-3.5 text-base font-bold shadow-brand-lg"
+        >
+          <Lock className="mr-1.5 h-4 w-4" /> Pay ₹{depositAmount} &amp; confirm table
+        </button>
+        <p className="mt-3 text-center text-xs text-brand-mochaMid">
+          Deposit is held by Razorpay and adjusted against your bill at the cafe.
+        </p>
       </div>
     </div>
   );

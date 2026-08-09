@@ -3,7 +3,7 @@
 import { useDashboardStore } from '@/store/use-dashboard-store';
 import { useUpdateStatus } from '@/hooks/host/use-update-status';
 import { Reservation, ReservationStatus } from '@/lib/types/models';
-import { StatusBadge } from './status-badge';
+import { StatusBadge } from '@/components/shared/status-badge';
 import { X, User, Phone, Mail, Clock, Hash, CheckCircle, UserCheck, LogOut, XCircle, AlertCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -100,7 +100,7 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
               <button
                 onClick={() => handleStatusChange('CHECKED_IN')}
                 disabled={updateStatusMutation.isPending}
-                className="w-full py-3 px-4 rounded-xl font-semibold bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center gap-2 transition-all text-sm shadow-sm"
+                className="btn-action w-full py-3 px-4 text-sm"
               >
                 <UserCheck className="w-4 h-4" /> Check In Guest
               </button>
@@ -110,7 +110,7 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
               <button
                 onClick={() => handleStatusChange('SEATED')}
                 disabled={updateStatusMutation.isPending}
-                className="w-full py-3 px-4 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 transition-all text-sm shadow-sm"
+                className="tone-success w-full py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:opacity-80 transition-opacity text-sm"
               >
                 <CheckCircle className="w-4 h-4" /> Seat Guest at Table
               </button>
@@ -120,7 +120,7 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
               <button
                 onClick={() => handleStatusChange('COMPLETED')}
                 disabled={updateStatusMutation.isPending}
-                className="w-full py-3 px-4 rounded-xl font-semibold bg-gray-800 hover:bg-black text-white flex items-center justify-center gap-2 transition-all text-sm shadow-sm"
+                className="w-full py-3 px-4 rounded-xl font-semibold bg-brand-brown hover:bg-brand-brown/85 text-white flex items-center justify-center gap-2 transition-colors text-sm"
               >
                 <LogOut className="w-4 h-4" /> Complete Dining (Clear Table)
               </button>
@@ -131,14 +131,14 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
                 <button
                   onClick={() => handleStatusChange('NO_SHOW')}
                   disabled={updateStatusMutation.isPending}
-                  className="py-2.5 px-3 rounded-xl font-semibold bg-purple-100 text-purple-800 hover:bg-purple-200 flex items-center justify-center gap-1.5 transition-all text-xs"
+                  className="tone-neutral py-2.5 px-3 rounded-xl font-semibold hover:opacity-80 flex items-center justify-center gap-1.5 transition-opacity text-xs"
                 >
                   <AlertCircle className="w-3.5 h-3.5" /> No-Show
                 </button>
                 <button
                   onClick={() => handleStatusChange('CANCELLED')}
                   disabled={updateStatusMutation.isPending}
-                  className="py-2.5 px-3 rounded-xl font-semibold bg-rose-100 text-rose-800 hover:bg-rose-200 flex items-center justify-center gap-1.5 transition-all text-xs"
+                  className="tone-critical py-2.5 px-3 rounded-xl font-semibold hover:opacity-80 flex items-center justify-center gap-1.5 transition-opacity text-xs"
                 >
                   <XCircle className="w-3.5 h-3.5" /> Cancel
                 </button>
@@ -148,8 +148,8 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
         </div>
 
         <div className="pt-6 border-t border-brand-brown/10 text-center">
-          <span className="text-[11px] text-brand-mocha">
-            Version Token (`__v`): {res.__v} • Optimistic Concurrency Control
+          <span className="text-[11px] font-mono text-brand-mochaMid tabular-nums">
+            Version {res.__v} &middot; optimistic concurrency guard
           </span>
         </div>
       </div>

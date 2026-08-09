@@ -1,7 +1,8 @@
 'use client';
 
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode, CSSProperties } from 'react';
 import { Cafe } from '@/lib/types/models';
+import { resolveTenantTheme } from '@/lib/theme/resolve-tenant-theme';
 
 interface TenantContextType {
   cafe: Cafe;
@@ -10,9 +11,15 @@ interface TenantContextType {
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
 
 export function TenantProvider({ cafe, children }: { cafe: Cafe; children: ReactNode }) {
+  const theme = resolveTenantTheme(cafe);
+  const themeStyle = {
+    '--brand-primary': theme.brandPrimary,
+    '--brand-accent': theme.brandAccent,
+  } as CSSProperties;
+
   return (
     <TenantContext.Provider value={{ cafe }}>
-      {children}
+      <div style={themeStyle}>{children}</div>
     </TenantContext.Provider>
   );
 }

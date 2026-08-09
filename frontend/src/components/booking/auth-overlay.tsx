@@ -20,6 +20,7 @@ export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChang
   const { date, time, partySize } = useBookingStore();
   const bookTable = useBookTable(cafe?.id, cafe?.slug);
   const quickAuth = useCustomerQuickAuth();
+  const holdDurationMinutes = cafe?.reservation_rules?.hold_duration_minutes ?? 10;
 
   const [guestName, setGuestName] = useState(user?.name || '');
   const [guestEmail, setGuestEmail] = useState(user?.email || '');
@@ -93,38 +94,33 @@ export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChang
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] p-6 rounded-3xl border border-brand-brown/15 shadow-brand-md bg-white">
-        <DialogHeader className="text-center space-y-1.5">
+      <DialogContent className="sm:max-w-[480px] p-0 rounded-3xl border-0 shadow-brand-md bg-white overflow-hidden">
+        <DialogHeader className="text-center space-y-1.5 px-6 pt-6">
           <div className="mx-auto w-12 h-12 bg-brand-red/10 text-brand-red rounded-2xl flex items-center justify-center mb-1 shadow-brand-sm">
             <Calendar className="w-6 h-6" />
           </div>
           <DialogTitle className="text-2xl font-bold font-display text-brand-brown">
-            Confirm Table Reservation
+            Hold this table
           </DialogTitle>
           <DialogDescription className="text-xs text-brand-mocha">
-            Hold for {partySize} {partySize === 1 ? 'guest' : 'guests'} at {cafe?.name}
+            {time} &middot; {partySize} {partySize === 1 ? 'guest' : 'guests'} &middot; {cafe?.name}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 px-6 pb-6 pt-2">
           {/* Reservation Summary Pill */}
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-brand-tan/30 to-brand-cream border border-brand-brown/10 text-xs space-y-2">
-            <div className="flex justify-between items-center pb-2 border-b border-brand-brown/10">
-              <span className="text-brand-mocha font-semibold">Dining Time:</span>
-              <span className="font-bold text-brand-brown flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-brand-red" />
-                {date ? format(date, 'EEE, MMM d, yyyy') : ''} @ {time}
-              </span>
+          <div className="ticket-field grid grid-cols-3 gap-3 rounded-2xl bg-brand-tan/40 p-4">
+            <div>
+              <div className="k">Date</div>
+              <div className="v mt-0.5 text-[13px]">{date ? format(date, 'EEE d MMM') : ''}</div>
             </div>
-            <div className="flex justify-between items-center text-[11px]">
-              <span className="text-brand-mocha">Party Capacity:</span>
-              <span className="font-bold text-brand-brown">{partySize} Guests</span>
+            <div>
+              <div className="k">Time</div>
+              <div className="v mt-0.5 text-[13px]">{time}</div>
             </div>
-            <div className="flex justify-between items-center text-[11px]">
-              <span className="text-brand-mocha font-semibold">Hold Lock Window:</span>
-              <span className="font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
-                10 Mins Guaranteed
-              </span>
+            <div>
+              <div className="k">Hold</div>
+              <div className="v mt-0.5 text-[13px] text-brand-gold">{holdDurationMinutes} min</div>
             </div>
           </div>
 
@@ -232,11 +228,11 @@ export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChang
           >
             {isSubmitting || bookTable.isPending || quickAuth.isPending ? (
               <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Securing Your Table...
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Holding your table...
               </>
             ) : (
               <>
-                Confirm & Lock Reservation <ArrowRight className="w-4 h-4 ml-1.5" />
+                Proceed to payment <ArrowRight className="w-4 h-4 ml-1.5" />
               </>
             )}
           </Button>

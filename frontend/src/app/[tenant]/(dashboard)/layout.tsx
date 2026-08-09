@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { io } from 'socket.io-client';
 import { Coffee, LayoutDashboard, Calendar, Grid, Settings, LogOut, User } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
+import { isNavItemActive } from '@/lib/dashboard/nav-active';
 
 export default function TenantDashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -50,34 +51,35 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
   return (
     <div className="min-h-screen bg-brand-cream flex flex-col md:flex-row font-sans">
       {/* Sidebar Navigation */}
-      <aside className="w-full md:w-64 glass border-r border-brand-brown/10 p-6 flex flex-col justify-between shrink-0">
+      <aside className="w-full md:w-64 bg-white/70 backdrop-blur-sm border-r border-brand-brown/10 p-6 flex flex-col justify-between shrink-0">
         <div>
           {/* Brand Header */}
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-brand-red rounded-2xl flex items-center justify-center text-white shadow-brand-md">
+            <div className="w-10 h-10 bg-brand-red rounded-xl flex items-center justify-center text-white shadow-brand-sm">
               <Coffee className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-bold font-display text-brand-brown text-lg leading-tight truncate max-w-[140px]">
+              <h2 className="font-bold font-display text-brand-brown text-base leading-tight truncate max-w-[140px]">
                 {cafe.name}
               </h2>
-              <span className="text-[11px] font-mono text-brand-mocha">/{cafe.slug}</span>
+              <span className="text-[11px] font-mono text-brand-mochaMid">/{cafe.slug}</span>
             </div>
           </div>
 
           {/* Nav Links */}
-          <nav className="space-y-1.5">
+          <nav className="space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href || (item.label === 'Host Stand' && pathname.endsWith('/dashboard'));
+              const isActive = isNavItemActive(pathname, item);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-semibold text-sm transition-all duration-200 ${
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors duration-150 ${
                     isActive
                       ? 'bg-brand-red text-white shadow-brand-sm'
-                      : 'text-brand-brown hover:bg-brand-tan/50'
+                      : 'text-brand-mocha hover:bg-brand-tan/50 hover:text-brand-brown'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -96,13 +98,13 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
             </div>
             <div className="truncate">
               <p className="text-xs font-bold text-brand-brown truncate">{user?.name || 'Operator'}</p>
-              <p className="text-[10px] text-brand-mocha truncate">{user?.email || 'staff@nextbooq.com'}</p>
+              <p className="text-[10px] text-brand-mochaMid truncate">{user?.email || 'staff@nextbooq.com'}</p>
             </div>
           </div>
 
           <button
             onClick={() => logout()}
-            className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-xs font-semibold text-rose-700 hover:bg-rose-50 transition-all border border-rose-200"
+            className="tone-critical w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-xs font-semibold hover:opacity-80 transition-opacity"
           >
             <LogOut className="w-3.5 h-3.5" /> Sign Out
           </button>

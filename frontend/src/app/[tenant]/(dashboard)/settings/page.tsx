@@ -48,22 +48,22 @@ export default function CafeSettingsPage() {
   return (
     <div className="max-w-3xl space-y-6">
       {/* Header */}
-      <div className="glass p-6 rounded-3xl border border-brand-brown/10 shadow-brand-sm">
+      <div className="bg-white/70 backdrop-blur-sm p-5 rounded-2xl border border-brand-brown/10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-brand-red/10 text-brand-red rounded-2xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-brand-red/10 text-brand-red rounded-xl flex items-center justify-center">
             <SettingsIcon className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-3xl font-extrabold font-display text-brand-brown">Cafe Availability Rules</h1>
-            <p className="text-xs text-brand-mocha mt-0.5">
-              Configure parameters governing table slot durations, party size limits, and lead times
+            <h1 className="text-2xl font-bold font-display text-brand-brown">Cafe Availability Rules</h1>
+            <p className="text-xs text-brand-mochaMid mt-0.5">
+              Parameters governing table slot durations, party size limits, and lead times
             </p>
           </div>
         </div>
       </div>
 
       {/* Settings Form */}
-      <div className="glass p-8 rounded-3xl border border-brand-brown/10 shadow-brand-md">
+      <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-brand-brown/10">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -77,9 +77,9 @@ export default function CafeSettingsPage() {
                 required
                 value={turnTime}
                 onChange={(e) => setTurnTime(parseInt(e.target.value) || 90)}
-                className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm"
+                className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm font-mono tabular-nums"
               />
-              <p className="text-[11px] text-brand-mocha mt-1">Average dining duration allocated per booking.</p>
+              <p className="text-[11px] text-brand-mochaMid mt-1">Average dining duration allocated per booking.</p>
             </div>
 
             <div>
@@ -93,9 +93,9 @@ export default function CafeSettingsPage() {
                 required
                 value={maxParty}
                 onChange={(e) => setMaxParty(parseInt(e.target.value) || 12)}
-                className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm"
+                className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm font-mono tabular-nums"
               />
-              <p className="text-[11px] text-brand-mocha mt-1">Highest number of guests permitted in online widget.</p>
+              <p className="text-[11px] text-brand-mochaMid mt-1">Highest number of guests permitted in online widget.</p>
             </div>
 
             <div>
@@ -109,9 +109,9 @@ export default function CafeSettingsPage() {
                 required
                 value={leadTime}
                 onChange={(e) => setLeadTime(parseInt(e.target.value) || 24)}
-                className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm"
+                className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm font-mono tabular-nums"
               />
-              <p className="text-[11px] text-brand-mocha mt-1">Minimum hours notice required before booking.</p>
+              <p className="text-[11px] text-brand-mochaMid mt-1">Minimum hours notice required before booking.</p>
             </div>
 
             <div>
@@ -125,9 +125,9 @@ export default function CafeSettingsPage() {
                 required
                 value={holdDuration}
                 onChange={(e) => setHoldDuration(parseInt(e.target.value) || 10)}
-                className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm"
+                className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm font-mono tabular-nums"
               />
-              <p className="text-[11px] text-brand-mocha mt-1">Time allowed for customer to complete deposit payment.</p>
+              <p className="text-[11px] text-brand-mochaMid mt-1">Time allowed for customer to complete deposit payment.</p>
             </div>
           </div>
 
@@ -135,7 +135,7 @@ export default function CafeSettingsPage() {
             <button
               type="submit"
               disabled={isSaving}
-              className="cta-hero py-3 px-8 text-base font-bold shadow-brand-md"
+              className="btn-action py-3 px-8 text-sm"
             >
               {isSaving ? (
                 <>
