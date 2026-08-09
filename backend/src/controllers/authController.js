@@ -77,11 +77,27 @@ const loginUser = async (req, res, next) => {
       select: 'name slug timezone org_id',
     });
     if (!user) {
+      await logAuditEvent({
+        cafeId: null,
+        entityType: 'User',
+        entityId: null,
+        action: 'LOGIN_FAILED',
+        afterState: { attempted_email: email.toLowerCase(), ip: req.ip },
+        performedByUserId: null,
+      });
       throw new UnauthorizedError('Invalid credentials');
     }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
+      await logAuditEvent({
+        cafeId: null,
+        entityType: 'User',
+        entityId: user._id,
+        action: 'LOGIN_FAILED',
+        afterState: { ip: req.ip },
+        performedByUserId: null,
+      });
       throw new UnauthorizedError('Invalid credentials');
     }
 
@@ -179,6 +195,14 @@ const customerQuickAuth = async (req, res, next) => {
     } else {
       const isMatch = await bcrypt.compare(password, user.password_hash);
       if (!isMatch) {
+        await logAuditEvent({
+          cafeId: null,
+          entityType: 'User',
+          entityId: user._id,
+          action: 'CUSTOMER_QUICK_AUTH_FAILED',
+          afterState: { ip: req.ip },
+          performedByUserId: null,
+        });
         throw new UnauthorizedError('Invalid password for existing customer account');
       }
     }

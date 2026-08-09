@@ -14,7 +14,7 @@ const auditLogSchema = new mongoose.Schema(
     },
     entity_id: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
+      required: false,
     },
     action: {
       type: String,
