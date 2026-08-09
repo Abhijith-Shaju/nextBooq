@@ -21,5 +21,12 @@ describe('Integration Test: Rate Limit Block Audit Logging', () => {
     expect(log.entity_id).toBeNull();
     expect(log.after_state.path).toEqual('/api/v1/auth/login');
     expect(log.after_state.ip).toBeDefined();
+
+    // Additional requests past the limit must not produce additional audit log writes.
+    await request(app).post('/api/v1/auth/login').send(credentials);
+    await request(app).post('/api/v1/auth/login').send(credentials);
+
+    const count = await AuditLog.countDocuments({ action: 'RATE_LIMIT_BLOCKED' });
+    expect(count).toBe(1);
   }, 20000);
 });
