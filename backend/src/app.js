@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const routes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
+const sanitizeInput = require('./middleware/sanitizeInput');
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use(cors({
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(sanitizeInput);
 
 // Healthcheck Route
 app.get('/health', (req, res) => {

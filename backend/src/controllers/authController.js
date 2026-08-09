@@ -15,13 +15,21 @@ const registerUser = async (req, res, next) => {
     if (!email || !phone || !password || !name) {
       throw new BadRequestError('Name, email, phone, and password are required');
     }
+    if (
+      typeof name !== 'string' ||
+      typeof email !== 'string' ||
+      typeof phone !== 'string' ||
+      typeof password !== 'string'
+    ) {
+      throw new BadRequestError('name, email, phone, and password must all be strings');
+    }
 
     const existingEmail = await User.findOne({ email: email.toLowerCase() });
     if (existingEmail) {
       throw new BadRequestError('User with this email already exists');
     }
 
-    const existingPhone = await User.findOne({ phone });
+    const existingPhone = await User.findOne({ phone: phone.trim() });
     if (existingPhone) {
       throw new BadRequestError('User with this phone number already exists');
     }
@@ -30,9 +38,9 @@ const registerUser = async (req, res, next) => {
     const password_hash = await bcrypt.hash(password, salt);
 
     const user = new User({
-      name,
+      name: name.trim(),
       email: email.toLowerCase(),
-      phone,
+      phone: phone.trim(),
       password_hash,
       staff_memberships: [],
     });
@@ -70,6 +78,9 @@ const loginUser = async (req, res, next) => {
     const { email, password } = req.body;
     if (!email || !password) {
       throw new BadRequestError('Email and password are required');
+    }
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      throw new BadRequestError('email and password must be strings');
     }
 
     const user = await User.findOne({ email: email.toLowerCase() }).populate({
@@ -171,6 +182,14 @@ const customerQuickAuth = async (req, res, next) => {
     const { name, email, phone, password } = req.body;
     if (!email || !phone || !name || !password) {
       throw new BadRequestError('Name, email, phone, and password are required');
+    }
+    if (
+      typeof name !== 'string' ||
+      typeof email !== 'string' ||
+      typeof phone !== 'string' ||
+      typeof password !== 'string'
+    ) {
+      throw new BadRequestError('name, email, phone, and password must all be strings');
     }
 
     const cleanEmail = email.toLowerCase().trim();
