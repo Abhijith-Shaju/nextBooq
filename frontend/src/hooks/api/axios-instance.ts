@@ -43,7 +43,12 @@ axiosInstance.interceptors.response.use(
           break;
 
         case 409:
-          toast.error('This table state has changed. Please refresh to see the latest updates.');
+          // TABLE_OCCUPIED carries a structured conflict payload the caller
+          // uses to show a specific "seat anyway?" confirmation — the generic
+          // toast here would just be noise on top of that.
+          if (error.response.data?.error?.code !== 'TABLE_OCCUPIED') {
+            toast.error('This table state has changed. Please refresh to see the latest updates.');
+          }
           break;
 
         case 422:

@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
 const Reservation = require('../../models/Reservation');
 const { transitionState } = require('../../services/stateMachine');
-const { BadRequestError } = require('../../utils/errors');
+const { findSeatedOccupancyConflict } = require('../../services/tableOccupancyService');
+const { BadRequestError, NotFoundError } = require('../../utils/errors');
 
 const getDailyManifest = async (req, res, next) => {
   try {
@@ -43,7 +44,7 @@ const updateReservationStatus = async (req, res, next) => {
   try {
     const cafeId = req.tenantId;
     const { resId } = req.params;
-    const { status, version } = req.body;
+    const { status, version, force } = req.body;
 
     if (!resId || resId === 'undefined' || !mongoose.Types.ObjectId.isValid(resId)) {
       throw new BadRequestError('Invalid or missing reservation ID');
@@ -51,6 +52,42 @@ const updateReservationStatus = async (req, res, next) => {
 
     if (!status || version === undefined) {
       throw new BadRequestError('status and version token (__v) are required');
+    }
+
+    // Seating is the moment a table becomes physically occupied — warn (but
+    // don't hard-block, per product decision) if another reservation is
+    // already SEATED at a table this one is about to use. `force: true` lets
+    // the host proceed anyway after seeing the warning.
+    if (status === 'SEATED' && !force) {
+      const reservation = await Reservation.findOne({ _id: resId, cafe_id: cafeId });
+      if (!reservation) {
+        throw new NotFoundError('Reservation not found');
+      }
+
+      const conflict = await findSeatedOccupancyConflict(cafeId, reservation.table_ids, resId);
+      if (conflict) {
+        const thisReservationTableIds = new Set(reservation.table_ids.map((id) => id.toString()));
+        const sharedTableNumbers = conflict.table_ids
+          .filter((t) => thisReservationTableIds.has(t._id.toString()))
+          .map((t) => t.table_number);
+        const guestName = conflict.user_id?.name || 'Guest';
+
+        return res.status(409).json({
+          status: 'fail',
+          statusCode: 409,
+          message: `Table is currently occupied by ${guestName}`,
+          error: {
+            code: 'TABLE_OCCUPIED',
+            message: `Table is currently occupied by ${guestName}`,
+          },
+          conflict: {
+            reservationId: conflict._id,
+            guestName,
+            tableNumbers: sharedTableNumbers,
+            seatedAt: conflict.seated_at,
+          },
+        });
+      }
     }
 
     const updatedReservation = await transitionState({

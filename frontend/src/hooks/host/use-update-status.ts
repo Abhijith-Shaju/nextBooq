@@ -8,18 +8,23 @@ export interface UpdateStatusPayload {
   reservationId: string;
   status: ReservationStatus;
   version: number; // __v token for OCC
+  // Bypasses the backend's table-occupancy warning when seating a
+  // reservation onto a table another party is currently SEATED at — set
+  // after the host confirms an occupancy-conflict dialog.
+  force?: boolean;
 }
 
 export const useUpdateStatus = (cafeId: string | undefined) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ reservationId, status, version }: UpdateStatusPayload) => {
+    mutationFn: async ({ reservationId, status, version, force }: UpdateStatusPayload) => {
       const { data } = await axiosInstance.put<ApiResponse<Reservation>>(
         `/api/v1/cafes/${cafeId}/reservations/${reservationId}/status`,
         {
           status,
           version,
+          force,
         }
       );
       return data.data;
