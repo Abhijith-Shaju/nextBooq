@@ -7,6 +7,10 @@ const { getSeatedTableIds } = require('../../src/services/tableOccupancyService'
 const { suggestAlternateTable } = require('../../src/services/allocationEngine');
 const { transitionState } = require('../../src/services/stateMachine');
 const { setupTestDB } = require('../setup');
+const request = require('supertest');
+const jwt = require('jsonwebtoken');
+const app = require('../../src/app');
+const config = require('../../src/config/env');
 
 setupTestDB();
 
@@ -218,5 +222,99 @@ describe('transitionState tableIdsUpdate', () => {
     });
 
     expect(updated.table_ids.map((id) => id.toString())).toEqual([tableA._id.toString()]);
+  });
+});
+
+describe('PUT /reservations/:resId/status — alternate table suggestion', () => {
+  let cafe;
+  let hostToken;
+  let tableA;
+  let tableB;
+  let guestA;
+  let guestB;
+
+  const putStatus = (reservationId, body) =>
+    request(app)
+      .put(`/api/v1/cafes/${cafe._id}/reservations/${reservationId}/status`)
+      .set('Authorization', `Bearer ${hostToken}`)
+      .send(body);
+
+  const makeRes = (guest, tableIds, status, offsetHours) =>
+    Reservation.create({
+      cafe_id: cafe._id,
+      user_id: guest._id,
+      table_ids: tableIds,
+      start_time: new Date(Date.now() + offsetHours * 60 * 60 * 1000),
+      end_time: new Date(Date.now() + (offsetHours + 1) * 60 * 60 * 1000),
+      party_size: 2,
+      reservation_timezone: 'UTC',
+      status,
+    });
+
+  beforeEach(async () => {
+    const org = await Organization.create({ name: 'Endpoint Org' });
+    cafe = await Cafe.create({
+      org_id: org._id,
+      name: 'Endpoint Cafe',
+      slug: 'endpoint-cafe',
+      timezone: 'UTC',
+      subscription_status: 'active',
+    });
+
+    const hostUser = await User.create({
+      name: 'Host',
+      email: 'host-endpoint@test.com',
+      phone: '+1555950001',
+      password_hash: 'pass',
+      staff_memberships: [
+        { cafe_id: cafe._id, role: 'host', permissions: ['edit_reservations', 'cancel_reservations'] },
+      ],
+    });
+    hostToken = jwt.sign({ id: hostUser._id.toString() }, config.JWT_SECRET);
+
+    tableA = await Table.create({ cafe_id: cafe._id, table_number: 'A1', capacity: 4 });
+    tableB = await Table.create({ cafe_id: cafe._id, table_number: 'B1', capacity: 4 });
+
+    guestA = await User.create({
+      name: 'Guest A',
+      email: 'ga-endpoint@test.com',
+      phone: '+1555950002',
+      password_hash: 'pass',
+    });
+    guestB = await User.create({
+      name: 'Guest B',
+      email: 'gb-endpoint@test.com',
+      phone: '+1555950003',
+      password_hash: 'pass',
+    });
+  });
+
+  test('the 409 conflict response suggests a free alternate table', async () => {
+    await makeRes(guestA, [tableA._id], 'SEATED', -1);
+    const target = await makeRes(guestB, [tableA._id], 'CONFIRMED', 2);
+
+    const res = await putStatus(target._id, { status: 'SEATED', version: 0 });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('TABLE_OCCUPIED');
+    expect(res.body.conflict.guestName).toBe('Guest A');
+    expect(res.body.alternate).toEqual({ tableNumbers: ['B1'], totalCapacity: 4 });
+  });
+
+  test('omits the alternate when every other table is occupied', async () => {
+    const guestC = await User.create({
+      name: 'Guest C',
+      email: 'gc-endpoint@test.com',
+      phone: '+1555950004',
+      password_hash: 'pass',
+    });
+    await makeRes(guestA, [tableA._id], 'SEATED', -1);
+    await makeRes(guestC, [tableB._id], 'SEATED', -1);
+    const target = await makeRes(guestB, [tableA._id], 'CONFIRMED', 2);
+
+    const res = await putStatus(target._id, { status: 'SEATED', version: 0 });
+
+    expect(res.status).toBe(409);
+    expect(res.body.alternate).toBeUndefined();
   });
 });
