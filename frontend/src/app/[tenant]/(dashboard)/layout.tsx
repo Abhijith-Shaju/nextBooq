@@ -9,35 +9,83 @@ import { io } from 'socket.io-client';
 import { Coffee, LayoutDashboard, Calendar, Grid, Settings, LogOut, User } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { isNavItemActive } from '@/lib/dashboard/nav-active';
+import { axiosInstance } from '@/hooks/api/axios-instance';
+import { hasStaffMembershipForCafe } from '@/lib/dashboard/tenant-membership';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 export default function TenantDashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { cafe } = useTenant();
-  const { user, logout } = useAuth();
+  const { user, isLoading: isAuthLoading, logout } = useAuth();
   const queryClient = useQueryClient();
+
+  // Defense-in-depth: the backend independently rejects requests for a cafe
+  // the user has no staff membership at (see requirePermission in
+  // backend/src/middleware/rbac.js) — this just avoids rendering the
+  // dashboard shell (and firing every query on the page) before that 403s.
+  useEffect(() => {
+    if (isAuthLoading) return;
+    if (!user || !hasStaffMembershipForCafe(user, cafe.id)) {
+      toast.error("You don't have staff access to this cafe.");
+      router.replace('/auth/login');
+    }
+  }, [isAuthLoading, user, cafe.id, router]);
 
   // WebSocket Connection Lifecycle
   useEffect(() => {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-    const socket = io(backendUrl, {
-      withCredentials: true,
-      transports: ['websocket', 'polling'],
-    });
+    let socket: ReturnType<typeof io> | undefined;
+    let cancelled = false;
 
-    socket.on('connect', () => {
-      console.log('Real-Time WebSocket connected:', socket.id);
-      if (cafe?.id) {
-        socket.emit('join_cafe_room', cafe.id);
+    // Socket.IO connects directly to the backend's own origin (not proxied
+    // through this app like the REST API), so the httpOnly session cookie
+    // isn't sent with the handshake. Fetch a short-lived token over the
+    // proxied, cookie-authenticated REST API instead and hand it to the
+    // socket handshake only — it's never persisted to storage.
+    const connect = async () => {
+      try {
+        const { data } = await axiosInstance.get<{ data: { token: string } }>(
+          '/api/v1/auth/socket-token'
+        );
+        if (cancelled) return;
+
+        socket = io(backendUrl, {
+          withCredentials: true,
+          transports: ['websocket', 'polling'],
+          auth: { token: data.data.token },
+        });
+
+        socket.on('connect', () => {
+          console.log('Real-Time WebSocket connected:', socket?.id);
+          if (cafe?.id) {
+            socket?.emit('join_cafe_room', cafe.id);
+          }
+        });
+
+        socket.on('reservation_updated', () => {
+          // Silently invalidate reservations query without disrupting active user
+          queryClient.invalidateQueries({ queryKey: ['reservations'] });
+        });
+
+        socket.on('connect_error', (error) => {
+          console.error('Real-time connection failed:', error.message);
+        });
+
+        socket.on('join_cafe_room_error', (error: { message: string }) => {
+          console.error('Real-time updates unavailable for this cafe:', error.message);
+        });
+      } catch (error) {
+        console.error('Failed to establish real-time connection:', error);
       }
-    });
+    };
 
-    socket.on('reservation_updated', () => {
-      // Silently invalidate reservations query without disrupting active user
-      queryClient.invalidateQueries({ queryKey: ['reservations'] });
-    });
+    connect();
 
     return () => {
-      socket.disconnect();
+      cancelled = true;
+      socket?.disconnect();
     };
   }, [cafe?.id, queryClient]);
 

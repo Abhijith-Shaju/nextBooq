@@ -7,21 +7,51 @@ import { useTenant } from '@/components/providers/tenant-provider';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { StatusBadge } from '@/components/shared/status-badge';
+import { generateIcsContent } from '@/lib/booking/ics';
 
 export function SuccessCard() {
   const { date, time, partySize, reservation, resetBooking } = useBookingStore();
   const { cafe } = useTenant();
 
+  const tokenNumber = reservation?.id ? String(reservation.id).slice(-4).toUpperCase() : '----';
+
   const handleAddToCalendar = () => {
+    if (!date || !time) {
+      toast.error('No reservation time to add to your calendar.');
+      return;
+    }
+
+    const [hours, minutes] = time.split(':').map(Number);
+    const start = new Date(date);
+    start.setHours(hours, minutes, 0, 0);
+    const durationMinutes = cafe.reservation_rules?.default_turn_time_minutes ?? 90;
+    const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
+
+    const icsContent = generateIcsContent({
+      title: `Table booking at ${cafe.name}`,
+      description: `Token #${tokenNumber} — show this at the door.`,
+      location: cafe.name,
+      start,
+      end,
+    });
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${cafe.slug}-reservation.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
     toast.success('Calendar event downloaded (.ics)');
   };
-
-  const tokenNumber = reservation?.id ? String(reservation.id).slice(-4).toUpperCase() : '----';
 
   return (
     <div className="mx-auto w-full max-w-md text-center">
       <div
-        className="mx-auto mb-5 flex h-24 w-24 -rotate-6 items-center justify-center rounded-full border-[3px] border-emerald-600 text-emerald-600"
+        className="relative mx-auto mb-5 flex h-24 w-24 -rotate-6 items-center justify-center rounded-full border-[3px] border-emerald-600 text-emerald-600"
         style={{ boxShadow: 'inset 0 0 0 6px transparent' }}
       >
         <div className="absolute h-[86px] w-[86px] rounded-full border border-dashed border-emerald-600/50" />

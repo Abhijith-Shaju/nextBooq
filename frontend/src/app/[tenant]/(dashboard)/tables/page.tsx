@@ -5,7 +5,16 @@ import { useTenant } from '@/components/providers/tenant-provider';
 import { useTables } from '@/hooks/admin/use-tables';
 import { Table } from '@/lib/types/models';
 import { TableEditorModal } from '@/components/dashboard/table-editor-modal';
+import { describeTableStatus } from '@/lib/dashboard/table-status';
+import { StatusTone } from '@/lib/booking/reservation-status';
 import { Plus, Edit2, Users, Layers, Hash, Grid } from 'lucide-react';
+
+const TONE_CLASSES: Record<StatusTone, string> = {
+  success: 'tone-success',
+  pending: 'tone-pending',
+  critical: 'tone-critical',
+  neutral: 'tone-neutral',
+};
 
 export default function TablesInventoryPage() {
   const { cafe } = useTenant();
@@ -79,11 +88,10 @@ export default function TablesInventoryPage() {
                       </span>
                     </td>
                     <td className="p-4 text-xs font-bold">
-                      {table.status === 'out_of_service' ? (
-                        <span className="tone-critical px-2.5 py-1 rounded-full">Out of service</span>
-                      ) : (
-                        <span className="tone-success px-2.5 py-1 rounded-full">Active</span>
-                      )}
+                      {(() => {
+                        const { label, tone } = describeTableStatus(table.status);
+                        return <span className={`${TONE_CLASSES[tone]} px-2.5 py-1 rounded-full`}>{label}</span>;
+                      })()}
                     </td>
                     <td className="p-4 text-xs font-mono text-brand-mochaMid tabular-nums">
                       {table.can_merge_with && table.can_merge_with.length > 0

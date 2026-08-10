@@ -45,6 +45,12 @@ export interface Reservation {
   razorpay_order_id?: string;
   razorpay_payment_id?: string;
   hold_expires_at?: string;
+  payment_data?: {
+    order_id?: string;
+    amount?: number;
+    currency?: string;
+    expires_at?: string;
+  };
   created_at?: string;
   updated_at?: string;
 }

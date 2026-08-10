@@ -13,7 +13,7 @@ export default function ReservationsHistoryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { data: reservations = [], isLoading } = useManifest(cafe?.id, selectedDate);
+  const { data: reservations = [], isLoading, isError } = useManifest(cafe?.id, selectedDate);
 
   const filteredReservations = reservations.filter((r) => {
     const name = r.guest_name || '';
@@ -95,6 +95,12 @@ export default function ReservationsHistoryPage() {
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-brand-mochaMid animate-pulse">
                     Loading reservation history...
+                  </td>
+                </tr>
+              ) : isError ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-brand-redDark font-semibold">
+                    Couldn&rsquo;t load reservations. Please try refreshing the page.
                   </td>
                 </tr>
               ) : filteredReservations.length === 0 ? (

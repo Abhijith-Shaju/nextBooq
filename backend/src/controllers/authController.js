@@ -5,8 +5,44 @@ const config = require('../config/env');
 const { BadRequestError, UnauthorizedError } = require('../utils/errors');
 const { logAuditEvent } = require('../services/auditService');
 
+const SESSION_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const MIN_PASSWORD_LENGTH = 8;
+
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, config.JWT_SECRET, { expiresIn: '7d' });
+};
+
+// Only applied when *creating* a new account — never on login/auth of an
+// existing user, since retroactively rejecting a pre-existing (weaker)
+// password on login would lock out real customers rather than protect them.
+const assertPasswordStrength = (password) => {
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    throw new BadRequestError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long`);
+  }
+};
+
+// Browser clients authenticate via this httpOnly cookie exclusively — the
+// frontend never reads or stores the raw token (see frontend/src/lib/session.ts
+// and next.config.ts, which proxies frontend API calls through the Next.js
+// origin so this cookie is visible to both the app and its route middleware).
+// The token is still also returned in the JSON body for non-browser/API clients.
+const setAuthCookie = (res, token) => {
+  res.cookie('accessToken', token, {
+    httpOnly: true,
+    secure: config.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: SESSION_COOKIE_MAX_AGE_MS,
+    path: '/',
+  });
+};
+
+const clearAuthCookie = (res) => {
+  res.clearCookie('accessToken', {
+    httpOnly: true,
+    secure: config.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+  });
 };
 
 const registerUser = async (req, res, next) => {
@@ -23,6 +59,7 @@ const registerUser = async (req, res, next) => {
     ) {
       throw new BadRequestError('name, email, phone, and password must all be strings');
     }
+    assertPasswordStrength(password);
 
     const existingEmail = await User.findOne({ email: email.toLowerCase() });
     if (existingEmail) {
@@ -47,6 +84,7 @@ const registerUser = async (req, res, next) => {
 
     await user.save();
     const token = generateToken(user._id);
+    setAuthCookie(res, token);
 
     await logAuditEvent({
       cafeId: null,
@@ -113,6 +151,7 @@ const loginUser = async (req, res, next) => {
     }
 
     const token = generateToken(user._id);
+    setAuthCookie(res, token);
 
     await logAuditEvent({
       cafeId: null,
@@ -168,6 +207,7 @@ const getMe = async (req, res, next) => {
 
 const logoutUser = async (req, res, next) => {
   try {
+    clearAuthCookie(res);
     res.status(200).json({
       status: 'success',
       message: 'Logged out successfully',
@@ -200,6 +240,8 @@ const customerQuickAuth = async (req, res, next) => {
     }
 
     if (!user) {
+      assertPasswordStrength(password);
+
       const salt = await bcrypt.genSalt(10);
       const password_hash = await bcrypt.hash(password, salt);
 
@@ -227,6 +269,7 @@ const customerQuickAuth = async (req, res, next) => {
     }
 
     const token = generateToken(user._id);
+    setAuthCookie(res, token);
 
     await logAuditEvent({
       cafeId: null,
@@ -254,11 +297,31 @@ const customerQuickAuth = async (req, res, next) => {
   }
 };
 
+// Issues a short-lived-in-practice token for the browser's WebSocket
+// connection. Socket.IO connects directly to the backend's own origin (not
+// proxied through Next.js like the REST API), so it can't rely on the
+// httpOnly session cookie — the browser won't attach a cookie scoped to the
+// frontend's origin to a cross-origin socket handshake. This endpoint is
+// itself cookie/Bearer authenticated, so the frontend only ever holds this
+// token transiently in memory to open the socket, never persisting it.
+const getSocketToken = async (req, res, next) => {
+  try {
+    const token = generateToken(req.user._id);
+    res.status(200).json({
+      status: 'success',
+      data: { token },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   getMe,
   logoutUser,
   customerQuickAuth,
+  getSocketToken,
 };
 

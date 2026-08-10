@@ -25,14 +25,14 @@ export function CountdownTimer() {
       setSecondsLeft(secondsUntil(holdExpiresAt, now));
       if (isExpired(holdExpiresAt, now)) {
         resetBooking();
-        router.push('/');
+        router.push(`/${cafe.slug}`);
       }
     };
 
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [holdExpiresAt, router, resetBooking]);
+  }, [holdExpiresAt, router, resetBooking, cafe.slug]);
 
   if (!holdExpiresAt) return null;
 

@@ -3,6 +3,8 @@
 import { useBookingStore } from '@/store/use-booking-store';
 import { openRazorpayCheckout } from '@/lib/razorpay';
 import { useTenant } from '@/components/providers/tenant-provider';
+import { axiosInstance } from '@/hooks/api/axios-instance';
+import { DEFAULT_TENANT_THEME } from '@/lib/theme/resolve-tenant-theme';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { CountdownTimer } from './countdown-timer';
@@ -17,6 +19,11 @@ export function CheckoutCard() {
   const depositAmount = 100; // ₹100 deposit per specs
 
   const handlePay = async () => {
+    if (!reservation?.razorpay_order_id) {
+      toast.error('Your reservation hold is still loading. Please wait a moment and try again.');
+      return;
+    }
+
     try {
       await openRazorpayCheckout({
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_mockkey',
@@ -24,13 +31,29 @@ export function CheckoutCard() {
         currency: 'INR',
         name: cafe.name,
         description: 'Table Hold Security Deposit',
-        order_id: reservation?.razorpay_order_id || 'order_' + Math.random().toString(36).substring(7),
-        handler: function () {
-          toast.success('Payment verified! Reservation confirmed.');
-          router.push(`/${cafe.slug}/success`);
+        order_id: reservation.razorpay_order_id,
+        handler: async function (response) {
+          // The Razorpay `handler` firing only means the client-side widget
+          // completed a flow — it is not proof of payment. Confirmation must
+          // come from the backend, which re-verifies the signature server-side.
+          try {
+            await axiosInstance.post(
+              `/api/v1/cafes/${cafe.id}/reservations/${reservation.id}/verify-payment`,
+              {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }
+            );
+            toast.success('Payment verified! Reservation confirmed.');
+            router.push(`/${cafe.slug}/success`);
+          } catch (verifyError) {
+            console.error(verifyError);
+            toast.error('We could not verify your payment. Please contact the cafe if you were charged.');
+          }
         },
         theme: {
-          color: cafe.brand_primary || '#C8102E',
+          color: cafe.brand_primary || DEFAULT_TENANT_THEME.brandPrimary,
         },
       });
     } catch (error) {

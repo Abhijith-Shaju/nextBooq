@@ -63,7 +63,14 @@ describe('Integration Test: High Concurrency Double-Booking Stress Test', () => 
   });
 
   test('50 concurrent booking requests for a single table result in exactly 1 reservation created', async () => {
-    const startTime = '2026-08-10T19:00:00.000Z';
+    // Computed relative to "now" (rather than hardcoded) so this test doesn't
+    // start failing the booking_lead_time_hours check once real calendar time
+    // catches up to a fixed date. Pinned to 19:00 UTC, safely inside the
+    // cafe's default 09:00-22:00 operating hours regardless of what time of
+    // day the suite happens to run.
+    const futureDate = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+    futureDate.setUTCHours(19, 0, 0, 0);
+    const startTime = futureDate.toISOString();
     const concurrentRequests = 50;
     const requestPromises = [];
 

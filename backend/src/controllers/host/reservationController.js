@@ -20,6 +20,10 @@ const getDailyManifest = async (req, res, next) => {
     const reservations = await Reservation.find({
       cafe_id: cafeId,
       ...dateQuery,
+      // A HOLD whose expiry has passed but hasn't been swept to EXPIRED yet
+      // (see reservationExpiryService.js) shouldn't clutter the host's
+      // manifest as if it were still a live hold.
+      $or: [{ status: { $ne: 'HOLD' } }, { hold_expires_at: { $gt: new Date() } }],
     })
       .populate('user_id', 'name email phone')
       .populate('table_ids', 'table_number capacity')

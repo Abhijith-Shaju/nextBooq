@@ -12,12 +12,24 @@ const handleRazorpayWebhook = async (req, res, next) => {
       return res.status(400).json({ status: 'fail', message: 'Missing Razorpay signature' });
     }
 
-    // Verify HMAC-SHA256 signature
-    const shasum = crypto.createHmac('sha256', secret);
-    shasum.update(JSON.stringify(req.body));
-    const expectedSignature = shasum.digest('hex');
+    // Verify HMAC-SHA256 signature over the exact bytes Razorpay signed.
+    // req.rawBody is populated by the express.json() `verify` hook in app.js;
+    // re-serializing req.body via JSON.stringify is not guaranteed to match
+    // the original bytes (key order, whitespace) and would make legitimate
+    // webhooks fail verification.
+    if (!req.rawBody) {
+      return res.status(400).json({ status: 'fail', message: 'Missing raw request body' });
+    }
 
-    if (signature !== expectedSignature) {
+    const expectedSignature = crypto.createHmac('sha256', secret).update(req.rawBody).digest('hex');
+
+    const signatureBuffer = Buffer.from(signature, 'hex');
+    const expectedBuffer = Buffer.from(expectedSignature, 'hex');
+    const signatureValid =
+      signatureBuffer.length === expectedBuffer.length &&
+      crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
+
+    if (!signatureValid) {
       console.warn('[WEBHOOK BAD SIG] Webhook signature verification failed');
       return res.status(400).json({ status: 'fail', message: 'Invalid webhook signature' });
     }

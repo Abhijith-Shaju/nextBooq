@@ -1,5 +1,17 @@
 import { create } from 'zustand';
-import { Cafe, Reservation } from '@/lib/types/models';
+import { Cafe } from '@/lib/types/models';
+
+// Shape of the in-progress booking's reservation, as returned by the hold-creation
+// endpoint. This is intentionally narrower than the full `Reservation` API model
+// (no guest_name/guest_email/etc.) since that's all the checkout flow has.
+export interface BookingHoldReservation {
+  id: string;
+  status: string;
+  razorpay_order_id: string;
+  amount: number;
+  currency: string;
+  hold_expires_at: string;
+}
 
 interface BookingState {
   cafe: Cafe | null;
@@ -7,15 +19,15 @@ interface BookingState {
   date: Date | null;
   time: string | null;
   selectedSlot: string | null;
-  reservation: Reservation | null;
+  reservation: BookingHoldReservation | null;
   payment: any | null;
   holdExpiresAt: Date | null;
-  
+
   setCafe: (cafe: Cafe) => void;
   setPartySize: (size: number) => void;
   setDate: (date: Date) => void;
   setTime: (time: string) => void;
-  setReservation: (reservation: Reservation) => void;
+  setReservation: (reservation: BookingHoldReservation) => void;
   setPayment: (payment: any) => void;
   setHoldExpiresAt: (date: Date) => void;
   clearBooking: () => void;

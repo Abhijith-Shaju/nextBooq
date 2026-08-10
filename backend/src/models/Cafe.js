@@ -29,6 +29,7 @@ const cafeSchema = new mongoose.Schema(
       max_party_size: { type: Number, default: 12 },
       booking_lead_time_hours: { type: Number, default: 24 },
       hold_duration_minutes: { type: Number, default: 10 },
+      payment_timeout_minutes: { type: Number, default: 15 },
     },
     operating_hours: [
       {

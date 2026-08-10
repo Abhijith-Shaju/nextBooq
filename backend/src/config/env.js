@@ -18,6 +18,14 @@ const envSchema = z
     RAZORPAY_KEY_ID: z.string().optional().default(INSECURE_DEFAULTS.RAZORPAY_KEY_ID),
     RAZORPAY_KEY_SECRET: z.string().optional().default(INSECURE_DEFAULTS.RAZORPAY_KEY_SECRET),
     RAZORPAY_WEBHOOK_SECRET: z.string().optional().default(INSECURE_DEFAULTS.RAZORPAY_WEBHOOK_SECRET),
+    CORS_ALLOWED_ORIGINS: z.string().optional().default('http://localhost:3000'),
+    // Passed straight to Express's `trust proxy` setting. Controls how many
+    // hops of X-Forwarded-For to trust when deriving req.ip (used by rate
+    // limiting and audit logs) — must match the real number of reverse
+    // proxies/load balancers in front of this process, or those become
+    // trivially spoofable/collapse to one IP. "0"/unset means "don't trust
+    // any proxy" (safe default for direct-exposure deployments).
+    TRUST_PROXY: z.string().optional().default('0'),
   })
   .superRefine((data, ctx) => {
     // RAZORPAY_WEBHOOK_SECRET gates the HMAC signature check that authorizes

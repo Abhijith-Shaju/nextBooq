@@ -1,6 +1,46 @@
 const Table = require('../../models/Table');
-const { BadRequestError, NotFoundError } = require('../../utils/errors');
+const Reservation = require('../../models/Reservation');
+const { BadRequestError, NotFoundError, UnprocessableEntityError } = require('../../utils/errors');
 const { logAuditEvent } = require('../../services/auditService');
+
+const ACTIVE_RESERVATION_STATUSES = ['HOLD', 'PENDING_PAYMENT', 'CONFIRMED', 'CHECKED_IN', 'SEATED'];
+
+/**
+ * Rejects a table capacity reduction that would leave any active reservation's
+ * party_size over the combined capacity of its assigned tables (accounting for
+ * merge partners, not just this table alone) — mirrors the same invariant
+ * enforced at booking time in allocationEngine/bookingService.
+ */
+const assertCapacityReductionIsSafe = async (cafeId, tableId, newCapacity) => {
+  const reservations = await Reservation.find({
+    cafe_id: cafeId,
+    table_ids: tableId,
+    status: { $in: ACTIVE_RESERVATION_STATUSES },
+  });
+
+  if (reservations.length === 0) return;
+
+  const otherTableIds = new Set();
+  reservations.forEach((r) => r.table_ids.forEach((id) => {
+    if (id.toString() !== tableId.toString()) otherTableIds.add(id.toString());
+  }));
+
+  const otherTables = await Table.find({ _id: { $in: [...otherTableIds] } });
+  const capacityById = new Map(otherTables.map((t) => [t._id.toString(), t.capacity]));
+
+  for (const reservation of reservations) {
+    const totalCapacity = reservation.table_ids.reduce((sum, id) => {
+      const idStr = id.toString();
+      return sum + (idStr === tableId.toString() ? newCapacity : capacityById.get(idStr) || 0);
+    }, 0);
+
+    if (reservation.party_size > totalCapacity) {
+      throw new UnprocessableEntityError(
+        `Cannot reduce capacity to ${newCapacity}: reservation ${reservation._id} (party of ${reservation.party_size}) would no longer fit`
+      );
+    }
+  }
+};
 
 /**
  * The Table Editor UI lets a host pick merge partners by their human-readable
@@ -12,7 +52,7 @@ const { logAuditEvent } = require('../../services/auditService');
 const resolveMergeTableIds = async (cafeId, tableNumbers, excludeTableId = null) => {
   if (!tableNumbers || tableNumbers.length === 0) return [];
 
-  const query = { cafe_id: cafeId, table_number: { $in: tableNumbers } };
+  const query = { cafe_id: cafeId, table_number: { $in: tableNumbers }, is_deleted: false };
   if (excludeTableId) {
     query._id = { $ne: excludeTableId };
   }
@@ -103,6 +143,10 @@ const updateTable = async (req, res, next) => {
     }
 
     const beforeState = existingTable.toObject();
+
+    if (capacity !== undefined && capacity < existingTable.capacity) {
+      await assertCapacityReductionIsSafe(cafeId, existingTable._id, capacity);
+    }
 
     if (table_number !== undefined) existingTable.table_number = table_number;
     if (capacity !== undefined) existingTable.capacity = capacity;

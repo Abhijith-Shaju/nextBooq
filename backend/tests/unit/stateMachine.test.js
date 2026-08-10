@@ -6,8 +6,8 @@ describe('Reservation State Machine - Unit Matrix Tests', () => {
       expect(VALID_TRANSITIONS.HOLD).toEqual(['PENDING_PAYMENT', 'EXPIRED', 'CANCELLED']);
     });
 
-    test('PENDING_PAYMENT can transition to CONFIRMED or CANCELLED', () => {
-      expect(VALID_TRANSITIONS.PENDING_PAYMENT).toEqual(['CONFIRMED', 'CANCELLED']);
+    test('PENDING_PAYMENT can transition to CONFIRMED, CANCELLED, or EXPIRED', () => {
+      expect(VALID_TRANSITIONS.PENDING_PAYMENT).toEqual(['CONFIRMED', 'CANCELLED', 'EXPIRED']);
     });
 
     test('CONFIRMED can transition to CHECKED_IN, SEATED, CANCELLED, or NO_SHOW', () => {

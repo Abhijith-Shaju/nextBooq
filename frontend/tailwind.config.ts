@@ -87,16 +87,21 @@ const config: Config = {
         "card-hover":
           "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
         luxury: "0 25px 50px -12px rgb(0 0 0 / 0.25)",
-        "brand-sm": "0 2px 8px rgba(200, 16, 46, 0.15)",
-        "brand-md": "0 4px 20px rgba(200, 16, 46, 0.25)",
-        "brand-lg": "0 8px 40px rgba(200, 16, 46, 0.30)",
-        "brand-xl": "0 16px 60px rgba(155, 13, 33, 0.35)",
+        // Derived from --brand-primary rather than a hardcoded red — see the
+        // matching comment on --shadow-brand-* in globals.css.
+        "brand-sm": "0 2px 8px color-mix(in srgb, var(--brand-primary) 15%, transparent)",
+        "brand-md": "0 4px 20px color-mix(in srgb, var(--brand-primary) 25%, transparent)",
+        "brand-lg": "0 8px 40px color-mix(in srgb, var(--brand-primary) 30%, transparent)",
+        "brand-xl":
+          "0 16px 60px color-mix(in srgb, color-mix(in srgb, var(--brand-primary) 100%, black 25%) 35%, transparent)",
         "card-glass": "0 4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255,255,255,0.6)",
         "hero-img": "0 24px 60px rgba(44, 24, 16, 0.25)",
       },
       backgroundImage: {
-        "brand-gradient": "linear-gradient(135deg, #C8102E 0%, #9B0D21 100%)",
-        "brand-gradient-soft": "linear-gradient(135deg, #E8415A 0%, #C8102E 60%, #9B0D21 100%)",
+        "brand-gradient":
+          "linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 100%, black 24%) 100%)",
+        "brand-gradient-soft":
+          "linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 100%, white 22%) 0%, var(--brand-primary) 60%, color-mix(in srgb, var(--brand-primary) 100%, black 24%) 100%)",
         "cream-gradient": "linear-gradient(180deg, #FDFBF7 0%, #F5ECD7 100%)",
         "glass-shine": "linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.05) 100%)",
       },

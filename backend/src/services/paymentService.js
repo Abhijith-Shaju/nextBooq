@@ -1,5 +1,7 @@
+const crypto = require('crypto');
 const razorpay = require('../config/razorpay');
 const Reservation = require('../models/Reservation');
+const Cafe = require('../models/Cafe');
 const { transitionState } = require('./stateMachine');
 const { BadRequestError } = require('../utils/errors');
 const config = require('../config/env');
@@ -12,6 +14,9 @@ const createOrderForReservation = async (reservationId, tenantId, amountInRupees
   if (!reservation) {
     throw new BadRequestError('Reservation not found');
   }
+
+  const cafe = await Cafe.findById(tenantId);
+  const paymentTimeoutMinutes = cafe?.reservation_rules?.payment_timeout_minutes || 15;
 
   if (reservation.status !== 'HOLD') {
     throw new BadRequestError(`Cannot create payment order for reservation in state ${reservation.status}`);
@@ -84,6 +89,7 @@ const createOrderForReservation = async (reservationId, tenantId, amountInRupees
         currency: 'INR',
         status: 'CREATED',
         webhook_processed: false,
+        expires_at: new Date(Date.now() + paymentTimeoutMinutes * 60 * 1000),
       },
     });
 
@@ -97,6 +103,68 @@ const createOrderForReservation = async (reservationId, tenantId, amountInRupees
   }
 };
 
+/**
+ * Verifies the signature Razorpay Checkout hands back to the browser after a
+ * successful payment (HMAC-SHA256 of "order_id|payment_id" keyed with the
+ * account's key secret — distinct from the webhook secret) and, if valid,
+ * confirms the reservation. This is the authoritative confirmation path the
+ * frontend must call; the client-side Razorpay `handler` callback firing is
+ * not proof of payment on its own.
+ */
+const verifyCheckoutPayment = async ({
+  reservationId,
+  tenantId,
+  razorpayOrderId,
+  razorpayPaymentId,
+  razorpaySignature,
+}) => {
+  const reservation = await Reservation.findOne({ _id: reservationId, cafe_id: tenantId });
+  if (!reservation) {
+    throw new BadRequestError('Reservation not found');
+  }
+
+  if (reservation.payment_data?.order_id !== razorpayOrderId) {
+    throw new BadRequestError('Order ID does not match this reservation');
+  }
+
+  const expectedSignature = crypto
+    .createHmac('sha256', config.RAZORPAY_KEY_SECRET)
+    .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+    .digest('hex');
+
+  const providedBuffer = Buffer.from(razorpaySignature || '', 'hex');
+  const expectedBuffer = Buffer.from(expectedSignature, 'hex');
+  const signatureValid =
+    providedBuffer.length === expectedBuffer.length &&
+    crypto.timingSafeEqual(providedBuffer, expectedBuffer);
+
+  if (!signatureValid) {
+    throw new BadRequestError('Invalid payment signature');
+  }
+
+  if (reservation.status === 'CONFIRMED') {
+    // Already confirmed, likely by the webhook racing this call — idempotent no-op.
+    return reservation;
+  }
+
+  if (reservation.status !== 'PENDING_PAYMENT') {
+    throw new BadRequestError(`Cannot confirm payment for reservation in state ${reservation.status}`);
+  }
+
+  return transitionState({
+    reservationId: reservation._id,
+    tenantId,
+    targetStatus: 'CONFIRMED',
+    expectedVersion: reservation.__v,
+    paymentDataUpdates: {
+      payment_id: razorpayPaymentId,
+      status: 'SUCCESS',
+      webhook_processed: true,
+    },
+  });
+};
+
 module.exports = {
   createOrderForReservation,
+  verifyCheckoutPayment,
 };

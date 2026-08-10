@@ -15,6 +15,18 @@ export function formatInTimezone(date: Date | string, timeZone: string, formatSt
   return formatInTimeZone(dateObj, timeZone, formatStr);
 }
 
+/**
+ * The earliest calendar day a booking can be made on, given the cafe's
+ * booking_lead_time_hours. Days before this are disabled in the date picker
+ * so a customer can't select a date that the backend would reject anyway —
+ * only an approximation (it floors to the whole day, so some individual
+ * times on the cutoff day may still be too soon), the backend remains the
+ * authoritative check.
+ */
+export function getLeadTimeDisabledBefore(leadTimeHours: number, now: Date = new Date()): Date {
+  return startOfDay(addHours(now, leadTimeHours));
+}
+
 export function getDisabledDates(
   minLeadTimeHours: number,
   maxLeadTimeDays: number,

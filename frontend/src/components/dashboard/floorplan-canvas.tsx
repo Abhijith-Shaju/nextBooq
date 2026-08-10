@@ -50,13 +50,10 @@ export function FloorplanCanvas({ tables, reservations }: FloorplanCanvasProps) 
         {tables.map((table) => {
           const { tone, assignedReservation } = resolveTableVisualState(table, reservations);
           const resId = assignedReservation?._id || assignedReservation?.id;
+          const Tag = resId ? 'button' : 'div';
 
-          return (
-            <div
-              key={table.id || table.table_number}
-              onClick={() => resId && openDrawer(resId)}
-              className={`p-4 rounded-2xl border-2 transition-colors duration-150 cursor-pointer flex flex-col justify-between h-32 ${TONE_CLASSES[tone]}`}
-            >
+          const content = (
+            <>
               <div className="flex items-center justify-between">
                 <span className="font-mono font-bold text-sm flex items-center gap-1 tabular-nums">
                   <Hash className="w-3.5 h-3.5 opacity-60" /> {table.table_number}
@@ -78,7 +75,20 @@ export function FloorplanCanvas({ tables, reservations }: FloorplanCanvasProps) 
                   <p className="text-xs font-medium opacity-60">Empty</p>
                 )}
               </div>
-            </div>
+            </>
+          );
+
+          return (
+            <Tag
+              key={table.id || table.table_number}
+              type={resId ? 'button' : undefined}
+              onClick={resId ? () => openDrawer(resId) : undefined}
+              className={`p-4 rounded-2xl border-2 transition-colors duration-150 flex flex-col justify-between h-32 text-left ${
+                resId ? 'cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-red focus-visible:outline-offset-2' : ''
+              } ${TONE_CLASSES[tone]}`}
+            >
+              {content}
+            </Tag>
           );
         })}
       </div>

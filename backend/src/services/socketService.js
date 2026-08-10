@@ -1,4 +1,5 @@
 const { Server } = require('socket.io');
+const { authenticateSocket, isAuthorizedForCafe } = require('./socketAuth');
 
 let io = null;
 
@@ -10,15 +11,30 @@ const initSocket = (server) => {
     },
   });
 
+  // Reject the handshake outright for unauthenticated clients — without this,
+  // anyone could connect and join_cafe_room for any tenant.
+  io.use(async (socket, next) => {
+    try {
+      socket.user = await authenticateSocket(socket.handshake.auth?.token);
+      next();
+    } catch (error) {
+      next(new Error('Unauthorized'));
+    }
+  });
+
   io.on('connection', (socket) => {
     console.log(`🔌 Real-Time WebSocket connected: ${socket.id}`);
 
     socket.on('join_cafe_room', (cafeId) => {
-      if (cafeId) {
-        socket.join(`cafe:${cafeId}`);
-        socket.join(cafeId);
-        console.log(`📡 Socket ${socket.id} joined room for cafe: ${cafeId}`);
+      if (!cafeId || !isAuthorizedForCafe(socket.user, cafeId)) {
+        socket.emit('join_cafe_room_error', { message: 'Not authorized for this cafe' });
+        console.warn(`📡 Socket ${socket.id} denied join for cafe: ${cafeId}`);
+        return;
       }
+
+      socket.join(`cafe:${cafeId}`);
+      socket.join(cafeId);
+      console.log(`📡 Socket ${socket.id} joined room for cafe: ${cafeId}`);
     });
 
     socket.on('disconnect', () => {

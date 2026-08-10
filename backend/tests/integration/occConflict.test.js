@@ -36,7 +36,7 @@ describe('Integration Test: Optimistic Concurrency Control (OCC) Version Conflic
         {
           cafe_id: cafe._id,
           role: 'host',
-          permissions: ['view_reservations', 'edit_reservations'],
+          permissions: ['view_reservations', 'edit_reservations', 'cancel_reservations'],
         },
       ],
     });

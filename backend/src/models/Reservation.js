@@ -28,6 +28,7 @@ const paymentDataSchema = new mongoose.Schema(
     status: { type: String, default: 'CREATED' },
     webhook_processed: { type: Boolean, default: false },
     requires_manual_refund: { type: Boolean, default: false },
+    expires_at: { type: Date, default: null },
   },
   { _id: false }
 );
@@ -121,6 +122,7 @@ const reservationSchema = new mongoose.Schema(
 // Availability Optimization Compound Index
 reservationSchema.index({ cafe_id: 1, status: 1, start_time: 1, end_time: 1 });
 reservationSchema.index({ 'payment_data.order_id': 1 });
+reservationSchema.index({ status: 1, 'payment_data.expires_at': 1 });
 reservationSchema.index({ cafe_id: 1, start_time: -1 });
 reservationSchema.index({ user_id: 1, created_at: -1 });
 

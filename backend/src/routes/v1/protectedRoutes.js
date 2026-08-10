@@ -26,6 +26,7 @@ router.post('/cafes', createCafe);
 router.put(
   '/cafes/:cafeId',
   extractTenant,
+  enforceSubscriptionForWrite,
   requirePermission('edit_settings'),
   updateCafe
 );
@@ -38,11 +39,11 @@ router.get(
   getDailyManifest
 );
 
-// Update Reservation Status (edit_reservations permission required)
+// Update Reservation Status (cancel_reservations required to cancel; edit_reservations for other transitions)
 router.put(
   '/cafes/:cafeId/reservations/:resId/status',
   extractTenant,
-  requirePermission('edit_reservations'),
+  requirePermission((req) => (req.body?.status === 'CANCELLED' ? 'cancel_reservations' : 'edit_reservations')),
   updateReservationStatus
 );
 

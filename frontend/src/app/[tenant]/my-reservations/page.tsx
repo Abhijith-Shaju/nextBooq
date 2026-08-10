@@ -2,20 +2,53 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { TenantPublicHeader } from '@/components/booking/tenant-header';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { useCustomerReservations } from '@/hooks/customer/use-customer-reservations';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useTenant } from '@/components/providers/tenant-provider';
+import { useBookingStore } from '@/store/use-booking-store';
 import { CustomerAuthModal } from '@/components/auth/customer-auth-modal';
+import { Reservation } from '@/lib/types/models';
 import { format } from 'date-fns';
 import { Calendar, Clock, Users, ArrowLeft, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function MyReservationsPage() {
   const { isAuthenticated } = useAuth();
   const { cafe } = useTenant();
+  const router = useRouter();
   const { data: reservations = [], isLoading, refetch } = useCustomerReservations(isAuthenticated);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const { setReservation, setPartySize, setDate, setTime, setHoldExpiresAt } = useBookingStore();
+
+  // Checkout reads its data from the booking store, never from the URL (see
+  // CheckoutCard) — so resuming an in-progress payment means hydrating that
+  // store from the reservation we already fetched, the same way a fresh
+  // booking hydrates it in use-book-table.ts. This is also what fixes the
+  // reservation_id/reservationId param-name mismatch that broke this button:
+  // there's no query param to name at all now.
+  const resumePayment = (res: Reservation) => {
+    const resId = String(res._id || res.id || '');
+    const expiresAt = res.payment_data?.expires_at;
+
+    setReservation({
+      id: resId,
+      status: res.status,
+      razorpay_order_id: res.payment_data?.order_id || '',
+      amount: res.payment_data?.amount || 0,
+      currency: res.payment_data?.currency || 'INR',
+      hold_expires_at: expiresAt || '',
+    });
+    setPartySize(res.party_size);
+    setDate(new Date(res.start_time));
+    setTime(format(new Date(res.start_time), 'HH:mm'));
+    if (expiresAt) {
+      setHoldExpiresAt(new Date(expiresAt));
+    }
+
+    router.push(`/${cafe.slug}/checkout`);
+  };
 
   return (
     <div className="min-h-screen bg-brand-cream flex flex-col font-sans">
@@ -116,12 +149,12 @@ export default function MyReservationsPage() {
                     </div>
 
                     {res.status === 'PENDING_PAYMENT' && (
-                      <Link
-                        href={`/${cafe.slug}/checkout?reservationId=${resId}`}
+                      <button
+                        onClick={() => resumePayment(res)}
                         className="cta-hero shrink-0 whitespace-nowrap px-4 py-2.5 text-xs font-bold shadow-brand-sm"
                       >
                         Complete Payment
-                      </Link>
+                      </button>
                     )}
                   </div>
                 </div>

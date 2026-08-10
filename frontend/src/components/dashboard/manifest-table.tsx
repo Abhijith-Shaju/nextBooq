@@ -40,10 +40,12 @@ export function ManifestTable({ reservations, isLoading }: ManifestTableProps) {
         const timeFormatted = res.start_time ? format(parseISO(res.start_time), 'HH:mm') : 'N/A';
 
         return (
-          <div
+          <button
             key={resId}
+            type="button"
             onClick={() => resId && openDrawer(resId)}
-            className={`p-3.5 rounded-xl cursor-pointer transition-colors duration-150 border flex items-center justify-between ${
+            aria-pressed={isSelected}
+            className={`w-full text-left p-3.5 rounded-xl cursor-pointer transition-colors duration-150 border flex items-center justify-between focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-red focus-visible:outline-offset-2 ${
               isSelected
                 ? 'bg-brand-tan/60 border-brand-red'
                 : 'bg-white/60 border-brand-brown/10 hover:border-brand-mochaMid/40 hover:bg-brand-tan/20'
@@ -71,7 +73,7 @@ export function ManifestTable({ reservations, isLoading }: ManifestTableProps) {
             </div>
 
             <ChevronRight className="w-4 h-4 text-brand-mochaMid/60" />
-          </div>
+          </button>
         );
       })}
     </div>

@@ -25,6 +25,7 @@ export interface HoldReservationResponse {
 export const useBookTable = (cafeId: string | undefined, slug: string | undefined) => {
   const queryClient = useQueryClient();
   const setReservation = useBookingStore((state) => state.setReservation);
+  const setHoldExpiresAt = useBookingStore((state) => state.setHoldExpiresAt);
   const router = useRouter();
 
   return useMutation({
@@ -37,6 +38,17 @@ export const useBookTable = (cafeId: string | undefined, slug: string | undefine
     },
     onSuccess: (data) => {
       if (data) {
+        setReservation({
+          id: data.reservation_id,
+          status: data.status,
+          razorpay_order_id: data.razorpay_order_id,
+          amount: data.amount,
+          currency: data.currency,
+          hold_expires_at: data.hold_expires_at,
+        });
+        if (data.hold_expires_at) {
+          setHoldExpiresAt(new Date(data.hold_expires_at));
+        }
         queryClient.invalidateQueries({ queryKey: ['availability'] });
         toast.success('Hold created! Redirecting to checkout...');
         if (slug) {

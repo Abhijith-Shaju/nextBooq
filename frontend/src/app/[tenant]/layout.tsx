@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { TenantProvider } from '@/components/providers/tenant-provider';
-import { Cafe } from '@/lib/types/models';
+import { resolveTenantCafe } from '@/lib/resolve-tenant-cafe';
 
 export default async function TenantLayout({
   children,
@@ -17,45 +17,17 @@ export default async function TenantLayout({
     notFound();
   }
 
-  // Try to get cafe details from our backend
-  let cafe: Cafe | null = null;
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/cafes/slug/${tenant}`, {
-      cache: 'no-store',
-    });
-    const data = await res.json();
-    if ((data.status === 'success' || data.success) && data.data) {
-      cafe = {
-        ...data.data,
-        id: data.data._id || data.data.id,
-      };
-    }
-  } catch (error) {
-    console.error('Error fetching tenant details', error);
+  const result = await resolveTenantCafe({
+    tenant,
+    apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+    nodeEnv: process.env.NODE_ENV,
+  });
+
+  if ('notFound' in result) {
+    notFound();
   }
 
-  if (!cafe) {
-    // For local development when backend is down or cafe is not seeded yet, use a mock cafe with a valid Mongo ObjectId
-    if (process.env.NODE_ENV === 'development') {
-      cafe = {
-        id: '65f000000000000000000123',
-        slug: tenant,
-        name: `${tenant.charAt(0).toUpperCase() + tenant.slice(1)} Cafe`,
-        description: 'A beautifully crafted mock cafe for local frontend development.',
-        timezone: 'Asia/Kolkata',
-        brand_primary: '220 89% 53%',
-        brand_accent: '24 98% 50%',
-        reservation_rules: {
-          default_turn_time_minutes: 90,
-          max_party_size: 12,
-          booking_lead_time_hours: 24,
-          hold_duration_minutes: 10,
-        },
-      };
-    } else {
-      notFound();
-    }
-  }
+  const { cafe } = result;
 
   return (
     <TenantProvider cafe={cafe}>

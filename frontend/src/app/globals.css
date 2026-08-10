@@ -41,10 +41,14 @@
   --color-brandAccent: var(--brand-accent);
   --color-brandAccent-foreground: var(--brand-accent-foreground);
 
-  --shadow-brand-sm: 0 2px 8px rgba(200, 16, 46, 0.15);
-  --shadow-brand-md: 0 4px 20px rgba(200, 16, 46, 0.25);
-  --shadow-brand-lg: 0 8px 40px rgba(200, 16, 46, 0.30);
-  --shadow-brand-xl: 0 16px 60px rgba(155, 13, 33, 0.35);
+  /* Derived from --brand-primary (below) via color-mix rather than a
+     hardcoded red, so a tenant's custom brand color tints these shadows too —
+     otherwise every cafe's brand-shadowed surfaces stay red regardless of
+     their actual brand color. */
+  --shadow-brand-sm: 0 2px 8px color-mix(in srgb, var(--brand-primary) 15%, transparent);
+  --shadow-brand-md: 0 4px 20px color-mix(in srgb, var(--brand-primary) 25%, transparent);
+  --shadow-brand-lg: 0 8px 40px color-mix(in srgb, var(--brand-primary) 30%, transparent);
+  --shadow-brand-xl: 0 16px 60px color-mix(in srgb, color-mix(in srgb, var(--brand-primary) 100%, black 25%) 35%, transparent);
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);

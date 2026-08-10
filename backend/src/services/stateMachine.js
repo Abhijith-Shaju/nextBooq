@@ -1,10 +1,35 @@
 const Reservation = require('../models/Reservation');
+const CafeCustomer = require('../models/CafeCustomer');
 const { ConflictError, UnprocessableEntityError, NotFoundError } = require('../utils/errors');
 const { notifyCafeRoom } = require('./socketService');
 
+// Keeps the per-cafe customer rolodex (repeat-visit/no-show history) in sync
+// with reservation outcomes. Upserts because a guest's first-ever visit won't
+// have a CafeCustomer record yet at booking time in every code path.
+const CUSTOMER_COUNTER_FIELD_BY_STATUS = {
+  COMPLETED: 'total_visits',
+  NO_SHOW: 'total_no_shows',
+};
+
+const recordCustomerOutcome = async (cafeId, userId, targetStatus) => {
+  const field = CUSTOMER_COUNTER_FIELD_BY_STATUS[targetStatus];
+  if (!field) return;
+
+  await CafeCustomer.findOneAndUpdate(
+    { cafe_id: cafeId, user_id: userId },
+    { $inc: { [field]: 1 }, $setOnInsert: { cafe_id: cafeId, user_id: userId } },
+    { upsert: true }
+  );
+};
+
 const VALID_TRANSITIONS = {
   HOLD: ['PENDING_PAYMENT', 'EXPIRED', 'CANCELLED'],
-  PENDING_PAYMENT: ['CONFIRMED', 'CANCELLED'],
+  PENDING_PAYMENT: ['CONFIRMED', 'CANCELLED', 'EXPIRED'],
+  // CONFIRMED -> SEATED is intentional, not a missing CHECKED_IN step: CHECKED_IN
+  // models a guest checking in at the host stand ahead of their table being ready,
+  // but a host can also seat a CONFIRMED party directly the moment they walk in
+  // and a table is free. In that path checked_in_at legitimately stays null while
+  // seated_at is set — that's expected, not a data-integrity bug.
   CONFIRMED: ['CHECKED_IN', 'SEATED', 'CANCELLED', 'NO_SHOW'],
   CHECKED_IN: ['SEATED', 'LEFT_BEFORE_SEATING'],
   SEATED: ['COMPLETED'],
@@ -98,6 +123,8 @@ const transitionState = async ({
       `OCC Conflict: Reservation version ${expectedVersion} has already been modified by another request. Please refresh and try again.`
     );
   }
+
+  await recordCustomerOutcome(tenantId, updatedReservation.user_id, targetStatus);
 
   // Push a real-time update to the cafe's dashboard (host stand manifest,
   // floorplan) so staff see status changes without a manual refresh.

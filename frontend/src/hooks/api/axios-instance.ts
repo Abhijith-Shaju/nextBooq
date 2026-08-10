@@ -1,29 +1,22 @@
 import axios from 'axios';
 import { toast } from 'sonner';
-import { QueryClient } from '@tanstack/react-query';
-import { getToken, clearSession } from '@/lib/session';
 import { isDashboardRoute } from '@/lib/route-guard';
+import { queryClient } from '@/lib/query-client';
 
-export const queryClient = new QueryClient();
+export { queryClient };
 
+// Requests hit this app's own origin (relative baseURL) and are proxied to
+// the backend by next.config.ts's rewrite. The session lives in an httpOnly
+// cookie set by the backend on login, so the browser attaches it
+// automatically via withCredentials — there is no token for this client to
+// read or attach itself. See src/lib/session.ts.
 export const axiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+  baseURL: '',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
-
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = getToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
 
 axiosInstance.interceptors.response.use(
   (response) => response,
@@ -33,7 +26,6 @@ axiosInstance.interceptors.response.use(
 
       switch (status) {
         case 401:
-          clearSession();
           queryClient.setQueryData(['me'], null);
           if (typeof window !== 'undefined') {
             const path = window.location.pathname;

@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Table } from '@/lib/types/models';
+import { Table, TableStatus } from '@/lib/types/models';
 import { useCreateTable } from '@/hooks/admin/use-create-table';
 import { useEditTable } from '@/hooks/admin/use-edit-table';
+import { useModalDismiss } from '@/hooks/use-modal-dismiss';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { X, Plus, Save, Trash2, Hash, Users, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -24,15 +26,15 @@ export function TableEditorModal({
 }: TableEditorModalProps) {
   const [tableNumber, setTableNumber] = useState(editingTable?.table_number || '');
   const [capacity, setCapacity] = useState(editingTable?.capacity || 2);
-  const [status, setStatus] = useState<'active' | 'out_of_service'>(
-    editingTable?.status || 'active'
-  );
+  const [status, setStatus] = useState<TableStatus>(editingTable?.status || 'active');
   const [canMergeWith, setCanMergeWith] = useState<string[]>(
     editingTable?.can_merge_with || []
   );
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const createTableMutation = useCreateTable(cafeId);
   const editTableMutation = useEditTable(cafeId);
+  const { onBackdropClick } = useModalDismiss(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -77,19 +79,17 @@ export function TableEditorModal({
     }
   };
 
-  const handleDelete = () => {
+  const handleDeleteConfirmed = () => {
     if (!editingTable) return;
-    if (confirm(`Are you sure you want to delete Table ${editingTable.table_number}?`)) {
-      editTableMutation.mutate(
-        {
-          tableId: editingTable.id || editingTable._id!,
-          is_deleted: true,
-        },
-        {
-          onSuccess: () => onClose(),
-        }
-      );
-    }
+    editTableMutation.mutate(
+      {
+        tableId: editingTable.id || editingTable._id!,
+        is_deleted: true,
+      },
+      {
+        onSuccess: () => onClose(),
+      }
+    );
   };
 
   const toggleMergeTable = (tblNum: string) => {
@@ -101,7 +101,10 @@ export function TableEditorModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs flex items-center justify-center p-4"
+      onClick={onBackdropClick}
+    >
       <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 border border-brand-brown/10 space-y-6 animate-scale-in">
         <div className="flex items-center justify-between border-b border-brand-brown/10 pb-4">
           <h3 className="text-xl font-bold font-display text-brand-brown">
@@ -150,7 +153,7 @@ export function TableEditorModal({
             </label>
             <select
               value={status}
-              onChange={(e) => setStatus(e.target.value as any)}
+              onChange={(e) => setStatus(e.target.value as TableStatus)}
               className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm"
             >
               <option value="active">Active (Available for booking)</option>
@@ -184,7 +187,7 @@ export function TableEditorModal({
             {isEditing && (
               <button
                 type="button"
-                onClick={handleDelete}
+                onClick={() => setIsDeleteConfirmOpen(true)}
                 className="tone-critical py-2.5 px-4 rounded-xl font-semibold hover:opacity-80 flex items-center gap-1.5 text-xs transition-opacity"
               >
                 <Trash2 className="w-4 h-4" /> Soft Delete
@@ -210,6 +213,18 @@ export function TableEditorModal({
           </div>
         </form>
       </div>
+
+      {isEditing && (
+        <ConfirmDialog
+          open={isDeleteConfirmOpen}
+          onOpenChange={setIsDeleteConfirmOpen}
+          title={`Delete Table ${editingTable.table_number}?`}
+          description="This soft-deletes the table — it will no longer accept bookings, but existing reservation history is preserved."
+          confirmLabel="Delete"
+          variant="destructive"
+          onConfirm={handleDeleteConfirmed}
+        />
+      )}
     </div>
   );
 }

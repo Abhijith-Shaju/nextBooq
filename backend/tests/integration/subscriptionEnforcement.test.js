@@ -72,6 +72,18 @@ describe('Integration Test: Subscription Enforcement Middleware', () => {
     expect(res.body.message).toMatch(/subscription is inactive/i);
   });
 
+  test('blocks cafe settings update with HTTP 402 Payment Required when subscription is inactive', async () => {
+    const res = await request(app)
+      .put(`/api/v1/cafes/${cafe._id}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        reservation_rules: { max_party_size: 10 },
+      });
+
+    expect(res.status).toBe(402);
+    expect(res.body.message).toMatch(/subscription is inactive/i);
+  });
+
   test('allows read-only operations (fetching tables / reservations) when subscription is inactive', async () => {
     const res = await request(app)
       .get(`/api/v1/cafes/${cafe._id}/tables`)

@@ -2,14 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { useBookingStore } from '@/store/use-booking-store';
+import { useTenant } from '@/components/providers/tenant-provider';
 import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
 import { CalendarIcon, Sparkles } from 'lucide-react';
 import { addDays, isSameDay, format, isSaturday, isSunday, nextSaturday } from 'date-fns';
 import { motion } from 'framer-motion';
+import { getLeadTimeDisabledBefore } from '@/lib/timezone';
 
 export function DatePicker() {
   const { date, setDate } = useBookingStore();
+  const { cafe } = useTenant();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -24,11 +27,14 @@ export function DatePicker() {
   // Compute upcoming weekend date
   const weekendDate = isSaturday(today) || isSunday(today) ? today : nextSaturday(today);
 
+  const leadTimeHours = cafe.reservation_rules?.booking_lead_time_hours ?? 24;
+  const disabledBefore = getLeadTimeDisabledBefore(leadTimeHours);
+
   const presets = [
     { label: 'Today', value: today },
     { label: 'Tomorrow', value: tomorrow },
     { label: 'This Weekend', value: weekendDate },
-  ];
+  ].filter((preset) => preset.value >= disabledBefore);
 
   return (
     <div className="space-y-3">
@@ -73,11 +79,7 @@ export function DatePicker() {
           mode="single"
           selected={date || undefined}
           onSelect={(day) => day && setDate(day)}
-          disabled={(d) => {
-            const current = new Date();
-            current.setHours(0, 0, 0, 0);
-            return d < current;
-          }}
+          disabled={(d) => d < disabledBefore}
           className="rounded-md text-brand-brown font-sans"
         />
       </div>

@@ -5,21 +5,23 @@ import { useBookingStore } from '@/store/use-booking-store';
 import { useTenant } from '@/components/providers/tenant-provider';
 import { useAvailability } from '@/hooks/public/use-availability';
 import { describeSlot } from '@/lib/booking/slot';
+import { getLeadTimeDisabledBefore } from '@/lib/timezone';
 import { Clock } from 'lucide-react';
 
 export function TimeSlotPicker({ onSelect }: { onSelect: () => void }) {
   const { cafe } = useTenant();
   const { date, setDate, partySize, time, setTime } = useBookingStore();
   const holdDurationMinutes = cafe.reservation_rules?.hold_duration_minutes ?? 10;
+  const leadTimeHours = cafe.reservation_rules?.booking_lead_time_hours ?? 24;
 
-  // Auto-initialize date to Today if not set so time slots load automatically
+  // Auto-initialize date to the earliest lead-time-eligible day if not set,
+  // so time slots load automatically without defaulting to a "today" that
+  // the backend would reject as too soon.
   useEffect(() => {
     if (!date) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      setDate(today);
+      setDate(getLeadTimeDisabledBefore(leadTimeHours));
     }
-  }, [date, setDate]);
+  }, [date, setDate, leadTimeHours]);
 
   const { data: slots = [], isLoading } = useAvailability(cafe?.id, date, partySize);
 

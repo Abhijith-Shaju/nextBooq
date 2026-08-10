@@ -4,9 +4,10 @@ import { createContext, useContext, ReactNode } from 'react';
 import { AuthUser } from '@/lib/types/auth';
 import { axiosInstance } from '@/hooks/api/axios-instance';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { clearSession } from '@/lib/session';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useBookingStore } from '@/store/use-booking-store';
+import { useDashboardStore } from '@/store/use-dashboard-store';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -28,7 +29,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const response = await axiosInstance.get('/api/v1/auth/me');
         return response.data?.data as AuthUser;
       } catch (error) {
-        clearSession();
         return null;
       }
     },
@@ -42,9 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      clearSession();
       queryClient.setQueryData(['me'], null);
       queryClient.invalidateQueries({ queryKey: ['me'] });
+      // Clear any in-progress booking/dashboard UI state — a second person
+      // signing in on the same shared browser tab shouldn't inherit it.
+      useBookingStore.getState().resetBooking();
+      useDashboardStore.getState().reset();
       toast.success('Signed out successfully');
       router.push('/auth/login');
     }

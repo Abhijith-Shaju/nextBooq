@@ -2,6 +2,7 @@
 
 import { useDashboardStore } from '@/store/use-dashboard-store';
 import { useUpdateStatus } from '@/hooks/host/use-update-status';
+import { useModalDismiss } from '@/hooks/use-modal-dismiss';
 import { Reservation, ReservationStatus } from '@/lib/types/models';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { X, User, Phone, Mail, Clock, Hash, CheckCircle, UserCheck, LogOut, XCircle, AlertCircle } from 'lucide-react';
@@ -15,6 +16,7 @@ interface ReservationDrawerProps {
 export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerProps) {
   const { isDrawerOpen, selectedReservationId, closeDrawer } = useDashboardStore();
   const updateStatusMutation = useUpdateStatus(cafeId);
+  const { onBackdropClick } = useModalDismiss(isDrawerOpen, closeDrawer);
 
   const res = reservations.find((r) => r._id === selectedReservationId || r.id === selectedReservationId);
 
@@ -41,7 +43,10 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
   const startFormatted = res.start_time ? format(parseISO(res.start_time), 'HH:mm') : 'N/A';
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs flex justify-end">
+    <div
+      className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs flex justify-end"
+      onClick={onBackdropClick}
+    >
       <div className="w-full max-w-md bg-white h-full shadow-2xl p-6 flex flex-col justify-between overflow-y-auto animate-fade-in border-l border-brand-brown/10">
         <div>
           {/* Header */}

@@ -6,11 +6,19 @@ const { UnauthorizedError } = require('../utils/errors');
 const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    let token;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else if (req.cookies?.accessToken) {
+      // Browser clients no longer send an Authorization header — the session
+      // lives in an httpOnly cookie set on login (see authController.js).
+      token = req.cookies.accessToken;
+    }
+
+    if (!token) {
       throw new UnauthorizedError('Authentication token missing or malformed');
     }
 
-    const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, config.JWT_SECRET);
 
     const user = await User.findById(decoded.id);

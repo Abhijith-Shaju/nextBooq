@@ -1,5 +1,5 @@
 const { createHoldReservation } = require('../../services/bookingService');
-const { createOrderForReservation } = require('../../services/paymentService');
+const { createOrderForReservation, verifyCheckoutPayment } = require('../../services/paymentService');
 const CafeCustomer = require('../../models/CafeCustomer');
 const { BadRequestError } = require('../../utils/errors');
 
@@ -53,6 +53,19 @@ const createReservation = async (req, res, next) => {
     }
     const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
 
+    const MAX_DEPOSIT_AMOUNT_RUPEES = 100000;
+    let deposit;
+    if (deposit_amount === undefined || deposit_amount === null || deposit_amount === '') {
+      deposit = 100; // default test deposit amount in INR
+    } else {
+      deposit = Number(deposit_amount);
+    }
+    if (!Number.isFinite(deposit) || deposit <= 0 || deposit > MAX_DEPOSIT_AMOUNT_RUPEES) {
+      throw new BadRequestError(
+        `deposit_amount must be a positive number no greater than ${MAX_DEPOSIT_AMOUNT_RUPEES}`
+      );
+    }
+
     // 1. Transactional HOLD reservation creation
     const reservation = await createHoldReservation({
       cafeId,
@@ -64,7 +77,6 @@ const createReservation = async (req, res, next) => {
     });
 
     // 2. Generate Razorpay Payment Order
-    const deposit = deposit_amount || 100; // default test deposit amount in INR
     const { order } = await createOrderForReservation(reservation._id, cafeId, deposit);
 
     // 3. Upsert CafeCustomer rolodex record
@@ -94,6 +106,36 @@ const createReservation = async (req, res, next) => {
   }
 };
 
+const verifyPayment = async (req, res, next) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      throw new BadRequestError(
+        'razorpay_order_id, razorpay_payment_id and razorpay_signature are required'
+      );
+    }
+
+    const reservation = await verifyCheckoutPayment({
+      reservationId: req.params.reservationId,
+      tenantId: req.tenantId,
+      razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id,
+      razorpaySignature: razorpay_signature,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        reservation_id: reservation._id,
+        status: reservation.status,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createReservation,
+  verifyPayment,
 };
