@@ -19,6 +19,31 @@ const findSeatedOccupancyConflict = async (cafeId, tableIds, excludeReservationI
     .populate('table_ids', 'table_number');
 };
 
+/**
+ * Collects every table currently held by a SEATED reservation at this cafe,
+ * other than the one being seated. Deliberately ignores the reservations'
+ * booked time windows: a party that is physically at a table still occupies
+ * it after their slot has nominally ended, which is exactly the situation the
+ * seating-conflict flow exists to surface.
+ */
+const getSeatedTableIds = async (cafeId, excludeReservationId) => {
+  const seatedReservations = await Reservation.find({
+    cafe_id: cafeId,
+    _id: { $ne: excludeReservationId },
+    status: 'SEATED',
+  }).select('table_ids');
+
+  const tableIds = new Set();
+  for (const reservation of seatedReservations) {
+    for (const tableId of reservation.table_ids) {
+      tableIds.add(tableId.toString());
+    }
+  }
+
+  return tableIds;
+};
+
 module.exports = {
   findSeatedOccupancyConflict,
+  getSeatedTableIds,
 };
