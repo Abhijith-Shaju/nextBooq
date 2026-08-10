@@ -68,10 +68,49 @@ const createCafe = async (req, res, next) => {
 const POSITIVE_INT_RULES = ['default_turn_time_minutes', 'max_party_size', 'hold_duration_minutes'];
 const NON_NEGATIVE_INT_RULES = ['booking_lead_time_hours'];
 
+const VALID_DAYS_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const TIME_STRING_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+const validateOperatingHoursInput = (operatingHours) => {
+  if (!Array.isArray(operatingHours)) {
+    throw new BadRequestError('operating_hours must be an array');
+  }
+
+  const seenDays = new Set();
+
+  for (const entry of operatingHours) {
+    const { day_of_week, open_time, close_time, is_closed } = entry || {};
+
+    if (!VALID_DAYS_OF_WEEK.includes(day_of_week)) {
+      throw new BadRequestError(`operating_hours.day_of_week must be one of: ${VALID_DAYS_OF_WEEK.join(', ')}`);
+    }
+    if (seenDays.has(day_of_week)) {
+      throw new BadRequestError(`operating_hours has a duplicate entry for ${day_of_week}`);
+    }
+    seenDays.add(day_of_week);
+
+    if (open_time !== undefined && !TIME_STRING_PATTERN.test(open_time)) {
+      throw new BadRequestError(`operating_hours.open_time must be a HH:mm time string (got "${open_time}")`);
+    }
+    if (close_time !== undefined && !TIME_STRING_PATTERN.test(close_time)) {
+      throw new BadRequestError(`operating_hours.close_time must be a HH:mm time string (got "${close_time}")`);
+    }
+    if (is_closed !== undefined && typeof is_closed !== 'boolean') {
+      throw new BadRequestError('operating_hours.is_closed must be a boolean');
+    }
+
+    // A closed day's open/close values are never read (see utils/operatingHours.js),
+    // so an inverted range only matters — and must be rejected — when the day is open.
+    if (!is_closed && open_time !== undefined && close_time !== undefined && close_time <= open_time) {
+      throw new BadRequestError(`operating_hours.close_time must be after open_time for ${day_of_week}`);
+    }
+  }
+};
+
 const updateCafe = async (req, res, next) => {
   try {
     const cafeId = req.tenantId;
-    const { reservation_rules } = req.body;
+    const { reservation_rules, operating_hours } = req.body;
 
     const cafe = await Cafe.findById(cafeId);
     if (!cafe) {
@@ -98,6 +137,11 @@ const updateCafe = async (req, res, next) => {
         ...cafe.reservation_rules.toObject(),
         ...reservation_rules,
       };
+    }
+
+    if (operating_hours !== undefined) {
+      validateOperatingHoursInput(operating_hours);
+      cafe.operating_hours = operating_hours;
     }
 
     await cafe.save();

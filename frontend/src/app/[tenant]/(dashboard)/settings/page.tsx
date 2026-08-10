@@ -4,7 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTenant } from '@/components/providers/tenant-provider';
 import { axiosInstance } from '@/hooks/api/axios-instance';
-import { Save, Settings as SettingsIcon, Clock, Users, ShieldAlert, Hourglass, Loader2 } from 'lucide-react';
+import {
+  DAY_LABELS,
+  mergeOperatingHours,
+  validateOperatingHoursForSubmit,
+  OperatingHourEntry,
+} from '@/lib/dashboard/operating-hours';
+import { Save, Settings as SettingsIcon, Clock, Users, ShieldAlert, Hourglass, Loader2, CalendarClock } from 'lucide-react';
 import { toast } from 'sonner';
 
 const DEFAULT_RULES = {
@@ -24,6 +30,9 @@ export default function CafeSettingsPage() {
   const [maxParty, setMaxParty] = useState(rules.max_party_size || 12);
   const [leadTime, setLeadTime] = useState(rules.booking_lead_time_hours || 24);
   const [holdDuration, setHoldDuration] = useState(rules.hold_duration_minutes || 10);
+  const [operatingHours, setOperatingHours] = useState<OperatingHourEntry[]>(
+    mergeOperatingHours(cafe.operating_hours)
+  );
   const [isSaving, setIsSaving] = useState(false);
 
   // `cafe` is fetched server-side (see [tenant]/layout.tsx) and only changes
@@ -31,21 +40,35 @@ export default function CafeSettingsPage() {
   // below) — this component doesn't necessarily unmount when that happens,
   // so without this sync the form would keep showing whatever was on screen
   // at first mount instead of picking up newly-saved values.
+  const operatingHoursKey = JSON.stringify(cafe.operating_hours || []);
   useEffect(() => {
     setTurnTime(rules.default_turn_time_minutes || 90);
     setMaxParty(rules.max_party_size || 12);
     setLeadTime(rules.booking_lead_time_hours || 24);
     setHoldDuration(rules.hold_duration_minutes || 10);
+    setOperatingHours(mergeOperatingHours(cafe.operating_hours));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     rules.default_turn_time_minutes,
     rules.max_party_size,
     rules.booking_lead_time_hours,
     rules.hold_duration_minutes,
+    operatingHoursKey,
   ]);
+
+  const updateDay = (day: OperatingHourEntry['day_of_week'], patch: Partial<OperatingHourEntry>) => {
+    setOperatingHours((prev) => prev.map((entry) => (entry.day_of_week === day ? { ...entry, ...patch } : entry)));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const hoursError = validateOperatingHoursForSubmit(operatingHours);
+    if (hoursError) {
+      toast.error(hoursError);
+      return;
+    }
+
     setIsSaving(true);
     try {
       await axiosInstance.put(`/api/v1/cafes/${cafe.id}`, {
@@ -55,6 +78,7 @@ export default function CafeSettingsPage() {
           booking_lead_time_hours: leadTime,
           hold_duration_minutes: holdDuration,
         },
+        operating_hours: operatingHours,
       });
       // `cafe` comes from a Server Component fetch (see [tenant]/layout.tsx),
       // not react-query — router.refresh() re-runs that fetch so the rest of
@@ -156,6 +180,61 @@ export default function CafeSettingsPage() {
                 className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm font-mono tabular-nums"
               />
               <p className="text-[11px] text-brand-mochaMid mt-1">Time allowed for customer to complete deposit payment.</p>
+            </div>
+          </div>
+
+          <div className="pt-6 border-t border-brand-brown/10">
+            <h2 className="text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
+              <CalendarClock className="w-4 h-4 text-brand-red" /> Operating Hours
+            </h2>
+            <p className="text-[11px] text-brand-mochaMid mb-3">
+              Bookings outside these hours are rejected. Mark a day closed to block it entirely.
+            </p>
+            <div className="space-y-2">
+              {operatingHours.map((entry) => (
+                <div
+                  key={entry.day_of_week}
+                  className="flex flex-wrap items-center gap-3 rounded-xl border border-brand-brown/10 bg-white px-4 py-2.5"
+                >
+                  <span className="w-24 text-sm font-semibold text-brand-brown">
+                    {DAY_LABELS[entry.day_of_week]}
+                  </span>
+
+                  <label className="flex items-center gap-1.5 text-xs text-brand-mochaMid">
+                    <input
+                      type="checkbox"
+                      checked={entry.is_closed}
+                      onChange={(e) => updateDay(entry.day_of_week, { is_closed: e.target.checked })}
+                      aria-label={`${DAY_LABELS[entry.day_of_week]} closed`}
+                    />
+                    Closed
+                  </label>
+
+                  <label className="flex items-center gap-1.5 text-xs text-brand-mochaMid">
+                    Open
+                    <input
+                      type="time"
+                      value={entry.open_time}
+                      disabled={entry.is_closed}
+                      onChange={(e) => updateDay(entry.day_of_week, { open_time: e.target.value })}
+                      aria-label={`${DAY_LABELS[entry.day_of_week]} opening time`}
+                      className="rounded-lg border border-brand-brown/20 bg-white px-2 py-1 font-mono text-xs disabled:opacity-40"
+                    />
+                  </label>
+
+                  <label className="flex items-center gap-1.5 text-xs text-brand-mochaMid">
+                    Close
+                    <input
+                      type="time"
+                      value={entry.close_time}
+                      disabled={entry.is_closed}
+                      onChange={(e) => updateDay(entry.day_of_week, { close_time: e.target.value })}
+                      aria-label={`${DAY_LABELS[entry.day_of_week]} closing time`}
+                      className="rounded-lg border border-brand-brown/20 bg-white px-2 py-1 font-mono text-xs disabled:opacity-40"
+                    />
+                  </label>
+                </div>
+              ))}
             </div>
           </div>
 

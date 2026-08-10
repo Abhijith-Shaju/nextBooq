@@ -5,6 +5,13 @@ export interface ReservationRules {
   hold_duration_minutes: number;
 }
 
+export interface OperatingHourEntry {
+  day_of_week: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+  open_time: string; // HH:mm
+  close_time: string; // HH:mm
+  is_closed: boolean;
+}
+
 export interface Cafe {
   id: string;
   _id?: string;
@@ -18,6 +25,7 @@ export interface Cafe {
   hero_image_url?: string;
   timezone: string;
   reservation_rules: ReservationRules;
+  operating_hours?: OperatingHourEntry[];
 }
 
 export type ReservationStatus =
