@@ -59,6 +59,7 @@ const transitionState = async ({
   expectedVersion,
   updatedByUserId = null,
   paymentDataUpdates = null,
+  tableIdsUpdate = null,
 }) => {
   const reservation = await Reservation.findOne({ _id: reservationId, cafe_id: tenantId });
   if (!reservation) {
@@ -105,6 +106,13 @@ const transitionState = async ({
     Object.keys(paymentDataUpdates).forEach((key) => {
       updateQuery[`payment_data.${key}`] = paymentDataUpdates[key];
     });
+  }
+
+  // Reassigning a party to a different table on seating: folding table_ids
+  // into this same OCC-guarded update keeps the table move and the status
+  // change atomic for this reservation.
+  if (tableIdsUpdate && tableIdsUpdate.length > 0) {
+    updateQuery.table_ids = tableIdsUpdate;
   }
 
   // Execute OCC Update
