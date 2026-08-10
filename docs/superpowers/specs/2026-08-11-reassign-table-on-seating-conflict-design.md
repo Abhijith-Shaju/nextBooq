@@ -86,19 +86,39 @@ New request flag `reassign: true` (sibling to today's `force: true`,
 mutually exclusive with it in practice — frontend only ever sends one):
 
 - Skip the conflict check's early return.
-- Re-run `suggestAlternateTable` **fresh**, inside the same transaction used
-  for the status transition, to guard against the alternate table having
-  been taken between the conflict being shown and the host confirming.
-- If it still finds a result: update `reservation.table_ids` to the new
-  `tableIds`, then proceed with the normal `transitionState(... SEATED ...)`
-  call, all inside the existing transaction.
-- If it now returns `null` (lost the race): abort and return a fresh 409
+- Re-run `suggestAlternateTable` **fresh** at confirm time, to guard against
+  the alternate table having been taken between the conflict being shown and
+  the host confirming.
+- If it still finds a result: pass the new table ids into `transitionState`
+  so `table_ids` and the `SEATED` status land in the same atomic
+  `findOneAndUpdate` (see concurrency note below).
+- If it now returns `null` (lost the race): return a fresh 409
   `TABLE_OCCUPIED` (recomputing the conflict + alternate as in the normal
   path) so the frontend re-shows the dialog with current data instead of
   silently force-seating or erroring opaquely.
+- If the conflict has cleared entirely by confirm time (the occupying party
+  left), seat on the originally assigned tables — no reassignment needed.
 
 No schema changes. `Reservation.table_ids` already supports being any set of
 active tables for the cafe.
+
+### Concurrency note
+
+`transitionState` does **not** use a MongoDB transaction — it guards with
+optimistic concurrency on the reservation's own `__v` via a conditional
+`findOneAndUpdate`. That protects this reservation from concurrent
+modification, and writing `table_ids` in the same update keeps the table
+move and the status change atomic *for this document*.
+
+It does not serialize two *different* reservations being reassigned onto the
+same free table in the same instant. The re-check immediately before the
+write closes the realistic window (host leaves the dialog open for seconds
+or minutes while another host takes the table); a genuine sub-millisecond
+double-reassign remains possible. Closing that fully would mean threading a
+session through `transitionState`, which is also called by the payment
+flows — more blast radius than this feature warrants. If it ever matters in
+practice, the host still sees the resulting occupancy conflict the next time
+they seat, which is the same failure mode as today's force-seat.
 
 ## Frontend design
 
@@ -140,9 +160,13 @@ time).
 - Backend integration test: same setup but every other table is also
   currently `SEATED` or schedule-blocked → expect 409 with no `alternate`
   field.
-- Backend integration test: race condition — two concurrent `reassign: true`
-  requests contending for the same single alternate table → exactly one
-  succeeds, the other gets a fresh 409.
+- Backend integration test: the suggested alternate is taken between the
+  conflict being shown and the host confirming → `reassign: true` returns a
+  fresh 409 and the reservation stays un-seated. (Deterministic sequential
+  version of the race; see the concurrency note above for why the truly
+  simultaneous case is out of scope.)
+- Backend integration test: the conflict clears before the host confirms →
+  `reassign: true` seats on the original tables, `table_ids` unchanged.
 - Frontend test: conflict dialog renders Reassign only when `alternate` is
   present; two-step confirm calls the mutation with `reassign: true` and the
   right payload.
