@@ -99,31 +99,12 @@ const generateMergeCombinations = (tables, partySize, maxDepth = 3) => {
 };
 
 /**
- * Best-Fit Table Allocation Engine
+ * Picks the best-fit table (or connected merge combo) for a party from an
+ * already-filtered list of available tables. Returns null when nothing fits,
+ * leaving the choice of error message (or of not erroring at all) to the caller.
  */
-const allocateTables = async (cafeId, startTime, endTime, partySize, session = null) => {
-  // Step 1: Overlap exclusion query
-  const blockedTableIds = await getBlockedTableIds(cafeId, startTime, endTime, session);
-
-  // Step 2: Fetch available active tables
-  const tableQuery = Table.find({
-    cafe_id: cafeId,
-    status: 'active',
-    is_deleted: false,
-    _id: { $nin: Array.from(blockedTableIds) },
-  });
-
-  if (session) {
-    tableQuery.session(session);
-  }
-
-  const availableTables = await tableQuery.exec();
-
-  if (!availableTables || availableTables.length === 0) {
-    throw new UnprocessableEntityError('No available tables for the requested time slot');
-  }
-
-  // Step 3: Single Table Fit
+const selectBestFit = (availableTables, partySize) => {
+  // Single Table Fit
   const singleFitTables = availableTables
     .filter((t) => t.capacity >= partySize)
     .sort((a, b) => {
@@ -143,13 +124,11 @@ const allocateTables = async (cafeId, startTime, endTime, partySize, session = n
     };
   }
 
-  // Step 4: Multi-Table Merge Fallback (maxDepth = 3)
+  // Multi-Table Merge Fallback (maxDepth = 3)
   const mergeCombinations = generateMergeCombinations(availableTables, partySize, 3);
 
   if (mergeCombinations.length === 0) {
-    throw new UnprocessableEntityError(
-      `No available table layout can accommodate a party of ${partySize}`
-    );
+    return null;
   }
 
   // Sort combinations deterministically:
@@ -175,8 +154,45 @@ const allocateTables = async (cafeId, startTime, endTime, partySize, session = n
   };
 };
 
+/**
+ * Best-Fit Table Allocation Engine
+ */
+const allocateTables = async (cafeId, startTime, endTime, partySize, session = null) => {
+  // Step 1: Overlap exclusion query
+  const blockedTableIds = await getBlockedTableIds(cafeId, startTime, endTime, session);
+
+  // Step 2: Fetch available active tables
+  const tableQuery = Table.find({
+    cafe_id: cafeId,
+    status: 'active',
+    is_deleted: false,
+    _id: { $nin: Array.from(blockedTableIds) },
+  });
+
+  if (session) {
+    tableQuery.session(session);
+  }
+
+  const availableTables = await tableQuery.exec();
+
+  if (!availableTables || availableTables.length === 0) {
+    throw new UnprocessableEntityError('No available tables for the requested time slot');
+  }
+
+  const selection = selectBestFit(availableTables, partySize);
+
+  if (!selection) {
+    throw new UnprocessableEntityError(
+      `No available table layout can accommodate a party of ${partySize}`
+    );
+  }
+
+  return selection;
+};
+
 module.exports = {
   allocateTables,
   getBlockedTableIds,
   generateMergeCombinations,
+  selectBestFit,
 };
