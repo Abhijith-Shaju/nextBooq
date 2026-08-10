@@ -5,6 +5,7 @@ import { useTenant } from '@/components/providers/tenant-provider';
 import { useManifest } from '@/hooks/host/use-manifest';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { getReservationTableNumbers } from '@/lib/dashboard/reservation-tables';
+import { getReservationGuestName, getReservationGuestEmail } from '@/lib/dashboard/reservation-guest';
 import { Calendar, Search, Filter, Users, Hash, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -17,8 +18,8 @@ export default function ReservationsHistoryPage() {
   const { data: reservations = [], isLoading, isError } = useManifest(cafe?.id, selectedDate);
 
   const filteredReservations = reservations.filter((r) => {
-    const name = r.guest_name || '';
-    const email = r.guest_email || '';
+    const name = getReservationGuestName(r);
+    const email = getReservationGuestEmail(r) || '';
     const matchesSearch =
       name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -117,8 +118,8 @@ export default function ReservationsHistoryPage() {
                   return (
                     <tr key={resKey} className="hover:bg-brand-tan/20 transition-colors">
                       <td className="p-4">
-                        <div className="font-bold text-brand-brown">{res.guest_name || 'Guest'}</div>
-                        <div className="text-xs text-brand-mochaMid">{res.guest_email || 'N/A'}</div>
+                        <div className="font-bold text-brand-brown">{getReservationGuestName(res)}</div>
+                        <div className="text-xs text-brand-mochaMid">{getReservationGuestEmail(res) || 'N/A'}</div>
                       </td>
                       <td className="p-4 font-mono font-semibold text-xs tabular-nums">
                         {res.start_time ? format(parseISO(res.start_time), 'HH:mm') : 'N/A'}

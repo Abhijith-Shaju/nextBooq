@@ -21,13 +21,16 @@ export interface Cafe {
 }
 
 export type ReservationStatus =
+  | 'HOLD'
   | 'PENDING_PAYMENT'
   | 'CONFIRMED'
   | 'CHECKED_IN'
   | 'SEATED'
   | 'COMPLETED'
   | 'CANCELLED'
-  | 'NO_SHOW';
+  | 'EXPIRED'
+  | 'NO_SHOW'
+  | 'LEFT_BEFORE_SEATING';
 
 // A reservation can span multiple tables (merged tables for a large party),
 // so the backend never returns a single flat table_number on a reservation —
@@ -36,13 +39,18 @@ export type ReservationStatus =
 // for the helpers that derive display strings / matching from this.
 export type ReservationTableRef = string | { _id?: string; id?: string; table_number: string; capacity?: number };
 
+// Similarly, there is no flat guest_name/guest_email/guest_phone on a
+// reservation — the backend stores the booking customer as user_id, and only
+// populates it with {name, email, phone} on endpoints that need to display
+// guest identity (currently the host daily manifest). See
+// lib/dashboard/reservation-guest.ts for the helpers that read this safely.
+export type ReservationUserRef = string | { _id?: string; id?: string; name: string; email: string; phone?: string };
+
 export interface Reservation {
   id: string;
   _id?: string;
   cafe_id: string;
-  guest_name: string;
-  guest_email: string;
-  guest_phone: string;
+  user_id?: ReservationUserRef;
   start_time: string; // ISO 8601 UTC string
   end_time: string; // ISO 8601 UTC string
   party_size: number;

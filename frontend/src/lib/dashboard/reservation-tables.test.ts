@@ -5,9 +5,7 @@ import type { Reservation, Table } from '@/lib/types/models';
 const baseReservation: Reservation = {
   id: 'r1',
   cafe_id: 'cafe1',
-  guest_name: 'Priya',
-  guest_email: 'priya@example.com',
-  guest_phone: '+919900000000',
+  user_id: { _id: 'u1', name: 'Priya', email: 'priya@example.com', phone: '+919900000000' },
   start_time: '2026-08-10T13:30:00.000Z',
   end_time: '2026-08-10T15:00:00.000Z',
   party_size: 6,

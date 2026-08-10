@@ -4,6 +4,7 @@ import { Table, Reservation } from '@/lib/types/models';
 import { Users, Hash } from 'lucide-react';
 import { useDashboardStore } from '@/store/use-dashboard-store';
 import { resolveTableVisualState, TableTone } from '@/lib/dashboard/table-visual-state';
+import { getReservationGuestName } from '@/lib/dashboard/reservation-guest';
 
 interface FloorplanCanvasProps {
   tables: Table[];
@@ -66,7 +67,7 @@ export function FloorplanCanvas({ tables, reservations }: FloorplanCanvasProps) 
               <div>
                 {assignedReservation ? (
                   <div className="truncate space-y-0.5">
-                    <p className="font-bold text-xs truncate">{assignedReservation.guest_name}</p>
+                    <p className="font-bold text-xs truncate">{getReservationGuestName(assignedReservation)}</p>
                     <p className="text-[10px] font-semibold opacity-70 uppercase tracking-wide">
                       {assignedReservation.status}
                     </p>

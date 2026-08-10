@@ -4,6 +4,7 @@ import { Reservation } from '@/lib/types/models';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { useDashboardStore } from '@/store/use-dashboard-store';
 import { getReservationTableNumbers } from '@/lib/dashboard/reservation-tables';
+import { getReservationGuestName } from '@/lib/dashboard/reservation-guest';
 import { Users, Clock, Hash, ChevronRight } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -55,7 +56,7 @@ export function ManifestTable({ reservations, isLoading }: ManifestTableProps) {
           >
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <h4 className="font-bold text-brand-brown text-sm">{res.guest_name || 'Guest'}</h4>
+                <h4 className="font-bold text-brand-brown text-sm">{getReservationGuestName(res)}</h4>
                 <StatusBadge status={res.status} />
               </div>
 

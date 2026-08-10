@@ -6,6 +6,7 @@ import { useModalDismiss } from '@/hooks/use-modal-dismiss';
 import { Reservation, ReservationStatus } from '@/lib/types/models';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { getReservationTableNumbers } from '@/lib/dashboard/reservation-tables';
+import { getReservationGuestName, getReservationGuestEmail, getReservationGuestPhone } from '@/lib/dashboard/reservation-guest';
 import { X, User, Phone, Mail, Clock, Hash, CheckCircle, UserCheck, LogOut, XCircle, AlertCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -73,17 +74,17 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-brand-brown text-base">{res.guest_name || 'Guest'}</h4>
+                  <h4 className="font-bold text-brand-brown text-base">{getReservationGuestName(res)}</h4>
                   <p className="text-xs text-brand-mocha">Party of {res.party_size} Guests</p>
                 </div>
               </div>
 
               <div className="pt-2 border-t border-brand-brown/10 space-y-1.5 text-xs text-brand-mocha">
                 <div className="flex items-center gap-2">
-                  <Mail className="w-3.5 h-3.5 text-brand-mocha" /> {res.guest_email || 'N/A'}
+                  <Mail className="w-3.5 h-3.5 text-brand-mocha" /> {getReservationGuestEmail(res) || 'N/A'}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Phone className="w-3.5 h-3.5 text-brand-mocha" /> {res.guest_phone || 'N/A'}
+                  <Phone className="w-3.5 h-3.5 text-brand-mocha" /> {getReservationGuestPhone(res) || 'N/A'}
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-3.5 h-3.5 text-brand-red" /> {startFormatted}

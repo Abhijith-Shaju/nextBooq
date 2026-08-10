@@ -5,9 +5,7 @@ import { Reservation } from '@/lib/types/models';
 const reservation = (status: Reservation['status'], party_size: number): Reservation => ({
   id: Math.random().toString(),
   cafe_id: 'cafe1',
-  guest_name: 'Guest',
-  guest_email: 'g@example.com',
-  guest_phone: '+919900000000',
+  user_id: { _id: 'u1', name: 'Guest', email: 'g@example.com', phone: '+919900000000' },
   start_time: '2026-08-10T13:30:00.000Z',
   end_time: '2026-08-10T15:00:00.000Z',
   party_size,
