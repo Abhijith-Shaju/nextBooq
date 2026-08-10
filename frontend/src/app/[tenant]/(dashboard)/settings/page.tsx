@@ -1,28 +1,48 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTenant } from '@/components/providers/tenant-provider';
 import { axiosInstance } from '@/hooks/api/axios-instance';
-import { useQueryClient } from '@tanstack/react-query';
 import { Save, Settings as SettingsIcon, Clock, Users, ShieldAlert, Hourglass, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
+const DEFAULT_RULES = {
+  default_turn_time_minutes: 90,
+  max_party_size: 12,
+  booking_lead_time_hours: 24,
+  hold_duration_minutes: 10,
+};
+
 export default function CafeSettingsPage() {
   const { cafe } = useTenant();
-  const queryClient = useQueryClient();
+  const router = useRouter();
 
-  const rules = cafe.reservation_rules || {
-    default_turn_time_minutes: 90,
-    max_party_size: 12,
-    booking_lead_time_hours: 24,
-    hold_duration_minutes: 10,
-  };
+  const rules = cafe.reservation_rules || DEFAULT_RULES;
 
   const [turnTime, setTurnTime] = useState(rules.default_turn_time_minutes || 90);
   const [maxParty, setMaxParty] = useState(rules.max_party_size || 12);
   const [leadTime, setLeadTime] = useState(rules.booking_lead_time_hours || 24);
   const [holdDuration, setHoldDuration] = useState(rules.hold_duration_minutes || 10);
   const [isSaving, setIsSaving] = useState(false);
+
+  // `cafe` is fetched server-side (see [tenant]/layout.tsx) and only changes
+  // when that server data actually refreshes (e.g. via router.refresh()
+  // below) — this component doesn't necessarily unmount when that happens,
+  // so without this sync the form would keep showing whatever was on screen
+  // at first mount instead of picking up newly-saved values.
+  useEffect(() => {
+    setTurnTime(rules.default_turn_time_minutes || 90);
+    setMaxParty(rules.max_party_size || 12);
+    setLeadTime(rules.booking_lead_time_hours || 24);
+    setHoldDuration(rules.hold_duration_minutes || 10);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    rules.default_turn_time_minutes,
+    rules.max_party_size,
+    rules.booking_lead_time_hours,
+    rules.hold_duration_minutes,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +56,11 @@ export default function CafeSettingsPage() {
           hold_duration_minutes: holdDuration,
         },
       });
-      queryClient.invalidateQueries({ queryKey: ['cafe', cafe.slug] });
+      // `cafe` comes from a Server Component fetch (see [tenant]/layout.tsx),
+      // not react-query — router.refresh() re-runs that fetch so the rest of
+      // the app (and this form, on next mount/data-change) sees the saved
+      // values instead of whatever was loaded when the layout first rendered.
+      router.refresh();
       toast.success('Cafe reservation rules updated successfully!');
     } catch (error: any) {
       toast.error(error?.response?.data?.error?.message || 'Failed to update settings');
@@ -67,10 +91,11 @@ export default function CafeSettingsPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
+              <label htmlFor="turn-time" className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
                 <Clock className="w-4 h-4 text-brand-red" /> Default Turn Time (Minutes)
               </label>
               <input
+                id="turn-time"
                 type="number"
                 min={15}
                 max={240}
@@ -83,10 +108,11 @@ export default function CafeSettingsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
+              <label htmlFor="max-party" className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
                 <Users className="w-4 h-4 text-brand-red" /> Maximum Party Size
               </label>
               <input
+                id="max-party"
                 type="number"
                 min={1}
                 max={50}
@@ -99,10 +125,11 @@ export default function CafeSettingsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
+              <label htmlFor="lead-time" className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
                 <ShieldAlert className="w-4 h-4 text-brand-red" /> Booking Lead Time (Hours)
               </label>
               <input
+                id="lead-time"
                 type="number"
                 min={0}
                 max={168}
@@ -115,10 +142,11 @@ export default function CafeSettingsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
+              <label htmlFor="hold-duration" className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
                 <Hourglass className="w-4 h-4 text-brand-red" /> Checkout Hold Duration (Minutes)
               </label>
               <input
+                id="hold-duration"
                 type="number"
                 min={1}
                 max={30}

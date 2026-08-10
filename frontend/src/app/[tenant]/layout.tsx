@@ -31,15 +31,13 @@ export default async function TenantLayout({
 
   return (
     <TenantProvider cafe={cafe}>
-      <div
-        className="min-h-screen bg-background"
-        style={{
-          '--brand-primary': cafe.brand_primary || '220 89% 53%',
-          '--brand-accent': cafe.brand_accent || '24 98% 50%',
-        } as React.CSSProperties}
-      >
-        {children}
-      </div>
+      {/* TenantProvider itself sets --brand-primary/--brand-accent (as hex,
+          via resolveTenantTheme) on its own wrapping div — duplicating that
+          here in a different, CSS-invalid format (bare "H S% L%" triplet
+          instead of hex or hsl(...)) shadowed the correct value for every
+          page, making bg-brand-red-based buttons resolve to a transparent
+          background with white text on top. */}
+      <div className="min-h-screen bg-background">{children}</div>
     </TenantProvider>
   );
 }
