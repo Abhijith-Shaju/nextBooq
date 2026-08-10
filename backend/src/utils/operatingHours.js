@@ -62,6 +62,79 @@ const timeStringToMinutes = (timeString) => {
 };
 
 /**
+ * Resolves the day-of-week name for a plain "YYYY-MM-DD" calendar date.
+ * The date string has no inherent timezone, so this is timezone-independent.
+ */
+const dayOfWeekForDateKey = (dateKey) => DAYS[new Date(`${dateKey}T00:00:00Z`).getUTCDay()];
+
+const DEFAULT_DAY_SCHEDULE = {
+  open_time: '09:00',
+  close_time: '22:00',
+  is_closed: false,
+};
+
+/**
+ * Looks up a cafe's configured hours for a given day of week, falling back to
+ * the default 09:00-22:00 open schedule when the cafe hasn't configured that day.
+ */
+const getDaySchedule = (cafe, dayOfWeek) => {
+  const operatingHoursList = cafe?.operating_hours || [];
+  return (
+    operatingHoursList.find((h) => h.day_of_week === dayOfWeek) || DEFAULT_DAY_SCHEDULE
+  );
+};
+
+/**
+ * Converts a local wall-clock date+time in a given IANA timezone into the
+ * corresponding UTC Date instant. Iterates because the UTC offset itself
+ * depends on the instant being resolved (DST), converging in 1-2 passes.
+ */
+const localTimeToUTC = (dateKey, timeString, timeZone = 'UTC') => {
+  let guess = new Date(`${dateKey}T${timeString}:00Z`);
+  const wantedMinutes = timeStringToMinutes(timeString);
+
+  for (let i = 0; i < 3; i++) {
+    const details = getLocalTimeDetails(guess, timeZone);
+    let diffMinutes = wantedMinutes - timeStringToMinutes(details.timeString);
+
+    if (details.dateKey !== dateKey) {
+      const dayDiff = Math.round(
+        (new Date(`${dateKey}T00:00:00Z`) - new Date(`${details.dateKey}T00:00:00Z`)) /
+          (24 * 60 * 60 * 1000)
+      );
+      diffMinutes += dayDiff * 24 * 60;
+    }
+
+    if (diffMinutes === 0) break;
+    guess = new Date(guess.getTime() + diffMinutes * 60 * 1000);
+  }
+
+  return guess;
+};
+
+/**
+ * Generates candidate "HH:mm" slot start times between a day's open/close
+ * time (stepped every `stepMinutes`), stopping once a slot's duration would
+ * run past closing. Handles schedules that cross midnight (close <= open).
+ */
+const generateSlotTimes = (openTime, closeTime, durationMinutes, stepMinutes = 30) => {
+  const openMinutes = timeStringToMinutes(openTime);
+  let closeMinutes = timeStringToMinutes(closeTime);
+  if (closeMinutes <= openMinutes) {
+    closeMinutes += 24 * 60;
+  }
+
+  const slots = [];
+  for (let m = openMinutes; m + durationMinutes <= closeMinutes; m += stepMinutes) {
+    const wrapped = m % (24 * 60);
+    const hh = String(Math.floor(wrapped / 60)).padStart(2, '0');
+    const mm = String(wrapped % 60).padStart(2, '0');
+    slots.push(`${hh}:${mm}`);
+  }
+  return slots;
+};
+
+/**
  * Validates that requested start_time and end_time fall within the cafe's operating hours.
  */
 const validateOperatingHours = (cafe, startTime, endTime) => {
@@ -74,14 +147,7 @@ const validateOperatingHours = (cafe, startTime, endTime) => {
   const startDetails = getLocalTimeDetails(start, timeZone);
   const endDetails = getLocalTimeDetails(end, timeZone);
 
-  const operatingHoursList = cafe.operating_hours || [];
-  const daySchedule = operatingHoursList.find(
-    (h) => h.day_of_week === startDetails.dayOfWeek
-  ) || {
-    open_time: '09:00',
-    close_time: '22:00',
-    is_closed: false,
-  };
+  const daySchedule = getDaySchedule(cafe, startDetails.dayOfWeek);
 
   if (daySchedule.is_closed) {
     throw new UnprocessableEntityError(
@@ -117,4 +183,9 @@ const validateOperatingHours = (cafe, startTime, endTime) => {
 module.exports = {
   validateOperatingHours,
   getLocalTimeDetails,
+  getDaySchedule,
+  localTimeToUTC,
+  generateSlotTimes,
+  timeStringToMinutes,
+  dayOfWeekForDateKey,
 };

@@ -1,14 +1,12 @@
 const { allocateTables } = require('../../services/allocationEngine');
-const { validateOperatingHours } = require('../../utils/operatingHours');
+const {
+  validateOperatingHours,
+  getDaySchedule,
+  localTimeToUTC,
+  generateSlotTimes,
+  dayOfWeekForDateKey,
+} = require('../../utils/operatingHours');
 const { BadRequestError } = require('../../utils/errors');
-
-const DEFAULT_TIME_SLOTS = [
-  '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-  '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
-  '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
-  '18:00', '18:30', '19:00', '19:30', '20:00', '20:30',
-  '21:00', '21:30', '22:00'
-];
 
 const getAvailableSlots = async (req, res, next) => {
   try {
@@ -25,11 +23,11 @@ const getAvailableSlots = async (req, res, next) => {
     }
 
     const duration = parseInt(durationMinutes || req.cafe?.reservation_rules?.default_turn_time_minutes || 90, 10);
+    const timeZone = req.cafe?.timezone || 'UTC';
 
     // If specific time parameter is provided, check that single slot
     if (time) {
-      const startIso = `${date}T${time}:00Z`;
-      const startTime = new Date(startIso);
+      const startTime = localTimeToUTC(date, time, timeZone);
       if (isNaN(startTime.getTime())) {
         throw new BadRequestError('Invalid date or time format');
       }
@@ -70,12 +68,29 @@ const getAvailableSlots = async (req, res, next) => {
       });
     }
 
-    // Generate full-day slot availability list for requested date
+    // Generate the candidate slot times from the cafe's actual operating hours
+    // for this calendar date's day of week, instead of a fixed 09:00-22:00 list,
+    // so slots line up with whatever the cafe owner has configured.
+    const dayOfWeek = dayOfWeekForDateKey(date);
+    const daySchedule = req.cafe ? getDaySchedule(req.cafe, dayOfWeek) : null;
+
+    if (daySchedule?.is_closed) {
+      return res.status(200).json({
+        status: 'success',
+        data: [],
+      });
+    }
+
+    const candidateSlotTimes = generateSlotTimes(
+      daySchedule?.open_time || '09:00',
+      daySchedule?.close_time || '22:00',
+      duration
+    );
+
     const availableSlots = [];
 
-    for (const slotTime of DEFAULT_TIME_SLOTS) {
-      const startIso = `${date}T${slotTime}:00Z`;
-      const startTime = new Date(startIso);
+    for (const slotTime of candidateSlotTimes) {
+      const startTime = localTimeToUTC(date, slotTime, timeZone);
       const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
 
       let available = false;
