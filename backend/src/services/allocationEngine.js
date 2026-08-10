@@ -1,6 +1,7 @@
 const Reservation = require('../models/Reservation');
 const Table = require('../models/Table');
 const { UnprocessableEntityError } = require('../utils/errors');
+const { getSeatedTableIds } = require('./tableOccupancyService');
 
 /**
  * Finds overlapping active reservations for a given cafe and time window.
@@ -190,9 +191,50 @@ const allocateTables = async (cafeId, startTime, endTime, partySize, session = n
   return selection;
 };
 
+/**
+ * Finds an alternate table (or merge combo) a reservation could be seated at
+ * instead of its currently-assigned one, backing the host-facing "reassign"
+ * option on a seating conflict.
+ *
+ * Excludes tables blocked in two genuinely different ways:
+ *   - schedule overlap: another reservation holds the table during this
+ *     reservation's booked window. This also excludes this reservation's own
+ *     tables (it overlaps itself), which is what we want — the whole point is
+ *     to land on a different table.
+ *   - live occupancy: another party is physically SEATED there right now,
+ *     even if their booked window has already ended.
+ *
+ * Returns null when nothing else fits, so the caller can omit the suggestion
+ * rather than offering the host a dead end.
+ */
+const suggestAlternateTable = async (cafeId, reservation) => {
+  const blockedBySchedule = await getBlockedTableIds(
+    cafeId,
+    reservation.start_time,
+    reservation.end_time
+  );
+  const blockedBySeating = await getSeatedTableIds(cafeId, reservation._id);
+
+  const blockedTableIds = new Set([...blockedBySchedule, ...blockedBySeating]);
+
+  const availableTables = await Table.find({
+    cafe_id: cafeId,
+    status: 'active',
+    is_deleted: false,
+    _id: { $nin: Array.from(blockedTableIds) },
+  }).exec();
+
+  if (!availableTables || availableTables.length === 0) {
+    return null;
+  }
+
+  return selectBestFit(availableTables, reservation.party_size);
+};
+
 module.exports = {
   allocateTables,
   getBlockedTableIds,
   generateMergeCombinations,
   selectBestFit,
+  suggestAlternateTable,
 };

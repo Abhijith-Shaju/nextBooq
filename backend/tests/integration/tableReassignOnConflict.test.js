@@ -4,6 +4,7 @@ const User = require('../../src/models/User');
 const Table = require('../../src/models/Table');
 const Reservation = require('../../src/models/Reservation');
 const { getSeatedTableIds } = require('../../src/services/tableOccupancyService');
+const { suggestAlternateTable } = require('../../src/services/allocationEngine');
 const { setupTestDB } = require('../setup');
 
 setupTestDB();
@@ -53,5 +54,87 @@ describe('getSeatedTableIds', () => {
     expect(ids.has(tableB._id.toString())).toBe(false);
     // CHECKED_IN guests are waiting at the host stand, not occupying a table.
     expect(ids.has(tableC._id.toString())).toBe(false);
+  });
+});
+
+describe('suggestAlternateTable', () => {
+  let cafe;
+  let guest;
+
+  beforeEach(async () => {
+    const org = await Organization.create({ name: 'Suggest Org' });
+    cafe = await Cafe.create({
+      org_id: org._id,
+      name: 'Suggest Cafe',
+      slug: 'suggest-cafe',
+      timezone: 'UTC',
+      subscription_status: 'active',
+    });
+    guest = await User.create({
+      name: 'Guest',
+      email: 'suggest@test.com',
+      phone: '+1555930001',
+      password_hash: 'pass',
+    });
+  });
+
+  const makeRes = (tableIds, status, offsetHours, partySize = 2) =>
+    Reservation.create({
+      cafe_id: cafe._id,
+      user_id: guest._id,
+      table_ids: tableIds,
+      start_time: new Date(Date.now() + offsetHours * 60 * 60 * 1000),
+      end_time: new Date(Date.now() + (offsetHours + 1) * 60 * 60 * 1000),
+      party_size: partySize,
+      reservation_timezone: 'UTC',
+      status,
+    });
+
+  test('suggests a free table when the assigned one is occupied', async () => {
+    const tableA = await Table.create({ cafe_id: cafe._id, table_number: 'A1', capacity: 4 });
+    const tableB = await Table.create({ cafe_id: cafe._id, table_number: 'B1', capacity: 4 });
+
+    await makeRes([tableA._id], 'SEATED', -1);
+    const target = await makeRes([tableA._id], 'CONFIRMED', 2);
+
+    const alternate = await suggestAlternateTable(cafe._id, target);
+
+    expect(alternate).not.toBeNull();
+    expect(alternate.tableIds.map((id) => id.toString())).toEqual([tableB._id.toString()]);
+    expect(alternate.totalCapacity).toBe(4);
+  });
+
+  test('returns null when every other table is physically occupied right now', async () => {
+    const tableA = await Table.create({ cafe_id: cafe._id, table_number: 'A1', capacity: 4 });
+    const tableB = await Table.create({ cafe_id: cafe._id, table_number: 'B1', capacity: 4 });
+
+    await makeRes([tableA._id], 'SEATED', -1);
+    await makeRes([tableB._id], 'SEATED', -1);
+    const target = await makeRes([tableA._id], 'CONFIRMED', 2);
+
+    expect(await suggestAlternateTable(cafe._id, target)).toBeNull();
+  });
+
+  test('returns null when the only other table is booked over the same window', async () => {
+    const tableA = await Table.create({ cafe_id: cafe._id, table_number: 'A1', capacity: 4 });
+    const tableB = await Table.create({ cafe_id: cafe._id, table_number: 'B1', capacity: 4 });
+
+    await makeRes([tableA._id], 'SEATED', -1);
+    // Table B is free right now, but someone else has it booked for the
+    // window this reservation would occupy.
+    await makeRes([tableB._id], 'CONFIRMED', 2);
+    const target = await makeRes([tableA._id], 'CONFIRMED', 2);
+
+    expect(await suggestAlternateTable(cafe._id, target)).toBeNull();
+  });
+
+  test('returns null when the only free table is too small for the party', async () => {
+    const tableA = await Table.create({ cafe_id: cafe._id, table_number: 'A1', capacity: 6 });
+    await Table.create({ cafe_id: cafe._id, table_number: 'B1', capacity: 2 });
+
+    await makeRes([tableA._id], 'SEATED', -1);
+    const target = await makeRes([tableA._id], 'CONFIRMED', 2, 6);
+
+    expect(await suggestAlternateTable(cafe._id, target)).toBeNull();
   });
 });
