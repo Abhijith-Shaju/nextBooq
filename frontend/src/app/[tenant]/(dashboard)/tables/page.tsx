@@ -6,6 +6,7 @@ import { useTables } from '@/hooks/admin/use-tables';
 import { Table } from '@/lib/types/models';
 import { TableEditorModal } from '@/components/dashboard/table-editor-modal';
 import { describeTableStatus } from '@/lib/dashboard/table-status';
+import { getMergePartnerTableNumbers } from '@/lib/dashboard/table-merge';
 import { StatusTone } from '@/lib/booking/reservation-status';
 import { Plus, Edit2, Users, Layers, Hash, Grid } from 'lucide-react';
 
@@ -94,9 +95,10 @@ export default function TablesInventoryPage() {
                       })()}
                     </td>
                     <td className="p-4 text-xs font-mono text-brand-mochaMid tabular-nums">
-                      {table.can_merge_with && table.can_merge_with.length > 0
-                        ? table.can_merge_with.join(', ')
-                        : 'None'}
+                      {(() => {
+                        const partnerNumbers = getMergePartnerTableNumbers(table);
+                        return partnerNumbers.length > 0 ? partnerNumbers.join(', ') : 'None';
+                      })()}
                     </td>
                     <td className="p-4 text-right">
                       <button

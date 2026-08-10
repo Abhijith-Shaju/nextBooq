@@ -23,20 +23,75 @@ const editingTable: Table = {
   status: 'active',
 };
 
-const renderModal = () => {
+const otherTable: Table = {
+  id: 't2',
+  _id: 't2',
+  cafe_id: 'cafe_1',
+  table_number: 'T2',
+  capacity: 6,
+  status: 'out_of_service',
+};
+
+const renderModal = (props: Partial<React.ComponentProps<typeof TableEditorModal>> = {}) => {
   const queryClient = new QueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
       <TableEditorModal
         cafeId="cafe_1"
-        existingTables={[editingTable]}
+        existingTables={[editingTable, otherTable]}
         editingTable={editingTable}
         isOpen
         onClose={vi.fn()}
+        {...props}
       />
     </QueryClientProvider>
   );
 };
+
+describe('TableEditorModal reflects the table being edited', () => {
+  beforeEach(() => {
+    vi.mocked(axiosInstance.put).mockReset().mockResolvedValue({ data: { data: editingTable } });
+  });
+
+  test('pre-fills fields for the table passed in on first open', () => {
+    renderModal();
+
+    expect(screen.getByDisplayValue('T1')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('4')).toBeInTheDocument();
+  });
+
+  test('re-syncs fields when a different table is opened for editing without unmounting', () => {
+    const queryClient = new QueryClient();
+    const { rerender } = render(
+      <QueryClientProvider client={queryClient}>
+        <TableEditorModal
+          cafeId="cafe_1"
+          existingTables={[editingTable, otherTable]}
+          editingTable={editingTable}
+          isOpen
+          onClose={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+
+    expect(screen.getByDisplayValue('T1')).toBeInTheDocument();
+
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <TableEditorModal
+          cafeId="cafe_1"
+          existingTables={[editingTable, otherTable]}
+          editingTable={otherTable}
+          isOpen
+          onClose={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+
+    expect(screen.getByDisplayValue('T2')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('6')).toBeInTheDocument();
+  });
+});
 
 describe('TableEditorModal delete confirmation', () => {
   beforeEach(() => {

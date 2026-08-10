@@ -72,13 +72,18 @@ export interface Reservation {
 
 export type TableStatus = 'active' | 'out_of_service';
 
+// Populated with {_id, table_number} by GET /tables — the same
+// populate-for-reads-but-send-table_number-for-writes contract as
+// table_ids on Reservation. See lib/dashboard/table-merge.ts.
+export type TableMergeRef = string | { _id?: string; id?: string; table_number: string };
+
 export interface Table {
   id: string;
   _id?: string;
   cafe_id: string;
   table_number: string;
   capacity: number;
-  can_merge_with?: string[];
+  can_merge_with?: TableMergeRef[];
   status: TableStatus;
   is_deleted?: boolean;
 }

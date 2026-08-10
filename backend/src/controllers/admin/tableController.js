@@ -72,7 +72,9 @@ const resolveMergeTableIds = async (cafeId, tableNumbers, excludeTableId = null)
 const getTables = async (req, res, next) => {
   try {
     const cafeId = req.tenantId;
-    const tables = await Table.find({ cafe_id: cafeId, is_deleted: false }).sort({ table_number: 1 });
+    const tables = await Table.find({ cafe_id: cafeId, is_deleted: false })
+      .sort({ table_number: 1 })
+      .populate('can_merge_with', 'table_number');
 
     res.status(200).json({
       status: 'success',

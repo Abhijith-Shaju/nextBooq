@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Table, TableStatus } from '@/lib/types/models';
 import { useCreateTable } from '@/hooks/admin/use-create-table';
 import { useEditTable } from '@/hooks/admin/use-edit-table';
 import { useModalDismiss } from '@/hooks/use-modal-dismiss';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { getMergePartnerTableNumbers } from '@/lib/dashboard/table-merge';
 import { X, Plus, Save, Trash2, Hash, Users, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -28,13 +29,27 @@ export function TableEditorModal({
   const [capacity, setCapacity] = useState(editingTable?.capacity || 2);
   const [status, setStatus] = useState<TableStatus>(editingTable?.status || 'active');
   const [canMergeWith, setCanMergeWith] = useState<string[]>(
-    editingTable?.can_merge_with || []
+    editingTable ? getMergePartnerTableNumbers(editingTable) : []
   );
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const createTableMutation = useCreateTable(cafeId);
   const editTableMutation = useEditTable(cafeId);
   const { onBackdropClick } = useModalDismiss(isOpen, onClose);
+
+  // This modal stays mounted between "Add"/"Edit" clicks (it just renders
+  // null while closed), so the useState initializers above only ever run
+  // once — without this, reopening it for a different table (or reopening
+  // the same one after canceling out of an edit) kept showing stale fields
+  // instead of the table actually being edited.
+  useEffect(() => {
+    if (!isOpen) return;
+    setTableNumber(editingTable?.table_number || '');
+    setCapacity(editingTable?.capacity || 2);
+    setStatus(editingTable?.status || 'active');
+    setCanMergeWith(editingTable ? getMergePartnerTableNumbers(editingTable) : []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, editingTable?.id, editingTable?._id]);
 
   if (!isOpen) return null;
 
