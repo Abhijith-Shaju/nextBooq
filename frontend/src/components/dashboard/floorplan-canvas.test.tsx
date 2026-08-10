@@ -34,7 +34,7 @@ const seatedReservation: Reservation = {
   start_time: '2026-09-05T19:00:00.000Z',
   end_time: '2026-09-05T20:00:00.000Z',
   party_size: 2,
-  table_number: 'T1',
+  table_ids: [{ _id: 't1', table_number: 'T1', capacity: 4 }],
   status: 'SEATED',
   __v: 0,
 };

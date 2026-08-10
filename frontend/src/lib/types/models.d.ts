@@ -29,6 +29,13 @@ export type ReservationStatus =
   | 'CANCELLED'
   | 'NO_SHOW';
 
+// A reservation can span multiple tables (merged tables for a large party),
+// so the backend never returns a single flat table_number on a reservation —
+// only table_ids, populated with {_id, table_number, capacity} by the host
+// manifest / customer reservations endpoints. See lib/dashboard/reservation-tables.ts
+// for the helpers that derive display strings / matching from this.
+export type ReservationTableRef = string | { _id?: string; id?: string; table_number: string; capacity?: number };
+
 export interface Reservation {
   id: string;
   _id?: string;
@@ -39,7 +46,7 @@ export interface Reservation {
   start_time: string; // ISO 8601 UTC string
   end_time: string; // ISO 8601 UTC string
   party_size: number;
-  table_number?: string;
+  table_ids?: ReservationTableRef[];
   status: ReservationStatus;
   __v: number; // OCC Version Token
   razorpay_order_id?: string;

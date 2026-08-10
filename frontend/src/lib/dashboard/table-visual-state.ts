@@ -1,4 +1,5 @@
 import { Reservation, Table } from '@/lib/types/models';
+import { isTableAssignedToReservation } from './reservation-tables';
 
 export type TableTone = 'out-of-service' | 'empty' | 'reserved-soon' | 'seated';
 
@@ -21,7 +22,7 @@ export function resolveTableVisualState(table: Table, reservations: Reservation[
 
   const assignedReservation =
     reservations.find(
-      (r) => r.table_number === table.table_number && OCCUPYING_STATUSES.has(r.status)
+      (r) => isTableAssignedToReservation(table, r) && OCCUPYING_STATUSES.has(r.status)
     ) ?? null;
 
   if (!assignedReservation) {

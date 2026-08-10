@@ -4,6 +4,7 @@ import { Reservation, Table } from '@/lib/types/models';
 
 const table = (overrides: Partial<Table> = {}): Table => ({
   id: 't1',
+  _id: 't1',
   cafe_id: 'cafe1',
   table_number: '5',
   capacity: 4,
@@ -20,7 +21,7 @@ const reservation = (overrides: Partial<Reservation> = {}): Reservation => ({
   start_time: '2026-08-10T13:30:00.000Z',
   end_time: '2026-08-10T15:00:00.000Z',
   party_size: 2,
-  table_number: '5',
+  table_ids: [{ _id: 't1', table_number: '5', capacity: 4 }],
   status: 'CONFIRMED',
   __v: 0,
   ...overrides,
@@ -33,7 +34,10 @@ describe('resolveTableVisualState', () => {
   });
 
   test('a table with no matching reservation reads as empty', () => {
-    const result = resolveTableVisualState(table(), [reservation({ table_number: '9' })]);
+    const result = resolveTableVisualState(
+      table(),
+      [reservation({ table_ids: [{ _id: 't9', table_number: '9', capacity: 2 }] })]
+    );
     expect(result).toEqual({ tone: 'empty', assignedReservation: null });
   });
 
@@ -55,5 +59,20 @@ describe('resolveTableVisualState', () => {
       reservation({ status: 'COMPLETED', id: 'r2' }),
     ]);
     expect(result).toEqual({ tone: 'empty', assignedReservation: null });
+  });
+
+  test('a merged-table reservation marks BOTH physical tables as occupied', () => {
+    const partnerTable = table({ id: 't2', _id: 't2', table_number: '6' });
+    const res = reservation({
+      status: 'SEATED',
+      party_size: 6,
+      table_ids: [
+        { _id: 't1', table_number: '5', capacity: 4 },
+        { _id: 't2', table_number: '6', capacity: 2 },
+      ],
+    });
+
+    expect(resolveTableVisualState(table(), [res])).toEqual({ tone: 'seated', assignedReservation: res });
+    expect(resolveTableVisualState(partnerTable, [res])).toEqual({ tone: 'seated', assignedReservation: res });
   });
 });

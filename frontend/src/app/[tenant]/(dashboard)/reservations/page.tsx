@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTenant } from '@/components/providers/tenant-provider';
 import { useManifest } from '@/hooks/host/use-manifest';
 import { StatusBadge } from '@/components/shared/status-badge';
+import { getReservationTableNumbers } from '@/lib/dashboard/reservation-tables';
 import { Calendar, Search, Filter, Users, Hash, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -112,6 +113,7 @@ export default function ReservationsHistoryPage() {
               ) : (
                 filteredReservations.map((res, idx) => {
                   const resKey = String(res._id || res.id || `res_${idx}`);
+                  const tableNumbers = getReservationTableNumbers(res).join(', ');
                   return (
                     <tr key={resKey} className="hover:bg-brand-tan/20 transition-colors">
                       <td className="p-4">
@@ -123,7 +125,7 @@ export default function ReservationsHistoryPage() {
                       </td>
                       <td className="p-4 font-mono font-semibold text-xs tabular-nums">{res.party_size}</td>
                       <td className="p-4 font-mono font-bold text-xs tabular-nums">
-                        {res.table_number || 'Unassigned'}
+                        {tableNumbers || 'Unassigned'}
                       </td>
                       <td className="p-4">
                         <StatusBadge status={res.status} />

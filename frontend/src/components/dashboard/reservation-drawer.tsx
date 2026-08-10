@@ -5,6 +5,7 @@ import { useUpdateStatus } from '@/hooks/host/use-update-status';
 import { useModalDismiss } from '@/hooks/use-modal-dismiss';
 import { Reservation, ReservationStatus } from '@/lib/types/models';
 import { StatusBadge } from '@/components/shared/status-badge';
+import { getReservationTableNumbers } from '@/lib/dashboard/reservation-tables';
 import { X, User, Phone, Mail, Clock, Hash, CheckCircle, UserCheck, LogOut, XCircle, AlertCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -41,6 +42,7 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
   };
 
   const startFormatted = res.start_time ? format(parseISO(res.start_time), 'HH:mm') : 'N/A';
+  const tableNumbers = getReservationTableNumbers(res).join(', ');
 
   return (
     <div
@@ -86,9 +88,9 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
                 <div className="flex items-center gap-2">
                   <Clock className="w-3.5 h-3.5 text-brand-red" /> {startFormatted}
                 </div>
-                {res.table_number && (
+                {tableNumbers && (
                   <div className="flex items-center gap-2 font-mono font-bold text-brand-brown">
-                    <Hash className="w-3.5 h-3.5" /> Assigned Table: T-{res.table_number}
+                    <Hash className="w-3.5 h-3.5" /> Assigned Table: T-{tableNumbers}
                   </div>
                 )}
               </div>

@@ -3,6 +3,7 @@
 import { Reservation } from '@/lib/types/models';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { useDashboardStore } from '@/store/use-dashboard-store';
+import { getReservationTableNumbers } from '@/lib/dashboard/reservation-tables';
 import { Users, Clock, Hash, ChevronRight } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -38,6 +39,7 @@ export function ManifestTable({ reservations, isLoading }: ManifestTableProps) {
         const resId = res._id || res.id;
         const isSelected = selectedReservationId === resId;
         const timeFormatted = res.start_time ? format(parseISO(res.start_time), 'HH:mm') : 'N/A';
+        const tableNumbers = getReservationTableNumbers(res).join(', ');
 
         return (
           <button
@@ -64,9 +66,9 @@ export function ManifestTable({ reservations, isLoading }: ManifestTableProps) {
                 <span className="flex items-center gap-1">
                   <Users className="w-3.5 h-3.5" /> {res.party_size}
                 </span>
-                {res.table_number && (
+                {tableNumbers && (
                   <span className="flex items-center gap-1 font-semibold text-brand-brown">
-                    <Hash className="w-3.5 h-3.5 text-brand-mochaMid" /> {res.table_number}
+                    <Hash className="w-3.5 h-3.5 text-brand-mochaMid" /> {tableNumbers}
                   </span>
                 )}
               </div>
