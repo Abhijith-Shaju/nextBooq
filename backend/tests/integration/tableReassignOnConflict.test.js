@@ -317,4 +317,57 @@ describe('PUT /reservations/:resId/status — alternate table suggestion', () =>
     expect(res.status).toBe(409);
     expect(res.body.alternate).toBeUndefined();
   });
+
+  test('reassign:true seats the party at the suggested table and updates table_ids', async () => {
+    await makeRes(guestA, [tableA._id], 'SEATED', -1);
+    const target = await makeRes(guestB, [tableA._id], 'CONFIRMED', 2);
+
+    const res = await putStatus(target._id, { status: 'SEATED', version: 0, reassign: true });
+
+    expect(res.status).toBe(200);
+
+    const updated = await Reservation.findById(target._id);
+    expect(updated.status).toBe('SEATED');
+    expect(updated.table_ids.map((id) => id.toString())).toEqual([tableB._id.toString()]);
+  });
+
+  test('reassign:true returns a fresh 409 when the suggested table was taken in the meantime', async () => {
+    await makeRes(guestA, [tableA._id], 'SEATED', -1);
+    const target = await makeRes(guestB, [tableA._id], 'CONFIRMED', 2);
+
+    // Host is shown B1 as the alternate...
+    const first = await putStatus(target._id, { status: 'SEATED', version: 0 });
+    expect(first.body.alternate.tableNumbers).toEqual(['B1']);
+
+    // ...but another party takes B1 before the host confirms.
+    const guestC = await User.create({
+      name: 'Guest C',
+      email: 'gc2-endpoint@test.com',
+      phone: '+1555950005',
+      password_hash: 'pass',
+    });
+    await makeRes(guestC, [tableB._id], 'SEATED', -1);
+
+    const res = await putStatus(target._id, { status: 'SEATED', version: 0, reassign: true });
+
+    expect(res.status).toBe(409);
+    expect(res.body.alternate).toBeUndefined();
+
+    const stillConfirmed = await Reservation.findById(target._id);
+    expect(stillConfirmed.status).toBe('CONFIRMED');
+  });
+
+  test('reassign:true seats on the original table when the conflict has already cleared', async () => {
+    const occupying = await makeRes(guestA, [tableA._id], 'SEATED', -1);
+    const target = await makeRes(guestB, [tableA._id], 'CONFIRMED', 2);
+
+    // The occupying party leaves before the host confirms the reassignment.
+    await Reservation.updateOne({ _id: occupying._id }, { $set: { status: 'COMPLETED' } });
+
+    const res = await putStatus(target._id, { status: 'SEATED', version: 0, reassign: true });
+
+    expect(res.status).toBe(200);
+    const updated = await Reservation.findById(target._id);
+    expect(updated.table_ids.map((id) => id.toString())).toEqual([tableA._id.toString()]);
+  });
 });

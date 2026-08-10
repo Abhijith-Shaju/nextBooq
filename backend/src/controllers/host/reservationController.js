@@ -84,7 +84,7 @@ const updateReservationStatus = async (req, res, next) => {
   try {
     const cafeId = req.tenantId;
     const { resId } = req.params;
-    const { status, version, force } = req.body;
+    const { status, version, force, reassign } = req.body;
 
     if (!resId || resId === 'undefined' || !mongoose.Types.ObjectId.isValid(resId)) {
       throw new BadRequestError('Invalid or missing reservation ID');
@@ -96,8 +96,11 @@ const updateReservationStatus = async (req, res, next) => {
 
     // Seating is the moment a table becomes physically occupied — warn (but
     // don't hard-block, per product decision) if another reservation is
-    // already SEATED at a table this one is about to use. `force: true` lets
-    // the host proceed anyway after seeing the warning.
+    // already SEATED at a table this one is about to use. From that warning
+    // the host can either force through (`force: true`) or move this party to
+    // a free table the system picks for them (`reassign: true`).
+    let tableIdsUpdate = null;
+
     if (status === 'SEATED' && !force) {
       const reservation = await Reservation.findOne({ _id: resId, cafe_id: cafeId });
       if (!reservation) {
@@ -105,11 +108,28 @@ const updateReservationStatus = async (req, res, next) => {
       }
 
       const conflict = await findSeatedOccupancyConflict(cafeId, reservation.table_ids, resId);
+
       if (conflict) {
-        return res.status(409).json(
-          await buildOccupancyConflictPayload(cafeId, reservation, conflict)
-        );
+        if (!reassign) {
+          return res.status(409).json(
+            await buildOccupancyConflictPayload(cafeId, reservation, conflict)
+          );
+        }
+
+        // Re-resolve the alternate at confirm time rather than trusting the
+        // one shown in the dialog — another host may have taken it while this
+        // one was deciding.
+        const alternate = await suggestAlternateTable(cafeId, reservation);
+        if (!alternate) {
+          return res.status(409).json(
+            await buildOccupancyConflictPayload(cafeId, reservation, conflict)
+          );
+        }
+
+        tableIdsUpdate = alternate.tableIds;
       }
+      // No conflict: seat on the originally assigned tables, even when the
+      // host asked to reassign — whatever was blocking the table has cleared.
     }
 
     const updatedReservation = await transitionState({
@@ -118,6 +138,7 @@ const updateReservationStatus = async (req, res, next) => {
       targetStatus: status,
       expectedVersion: version,
       updatedByUserId: req.user._id,
+      tableIdsUpdate,
     });
 
     res.status(200).json({
