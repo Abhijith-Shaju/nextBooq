@@ -77,7 +77,7 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
       className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs flex justify-end"
       onClick={onBackdropClick}
     >
-      <div className="w-full max-w-md bg-white h-full shadow-2xl p-6 flex flex-col justify-between overflow-y-auto animate-fade-in border-l border-brand-brown/10">
+      <div className="w-full max-w-md bg-white h-full shadow-brand-lg p-6 flex flex-col justify-between overflow-y-auto animate-fade-in border-l border-brand-brown/10">
         <div>
           {/* Header */}
           <div className="flex items-center justify-between pb-4 mb-6 border-b border-brand-brown/10">
@@ -87,7 +87,7 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
             </div>
             <button
               onClick={closeDrawer}
-              className="p-2 rounded-full text-brand-mocha hover:bg-brand-tan/30 transition-all"
+              className="p-2 rounded-full text-brand-mocha hover:bg-brand-tan/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               <X className="w-5 h-5" />
             </button>

@@ -68,8 +68,8 @@ export function CustomerAuthModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[420px] p-6 rounded-3xl">
         <DialogHeader className="text-center">
-          <div className="mx-auto w-10 h-10 bg-brand-red rounded-xl flex items-center justify-center mb-2 shadow-brand-md">
-            <Coffee className="w-5 h-5 text-white" />
+          <div className="mx-auto w-12 h-12 bg-brand-red/10 text-brand-red rounded-2xl flex items-center justify-center mb-1 shadow-brand-sm">
+            <Coffee className="w-6 h-6" />
           </div>
           <DialogTitle className="text-2xl font-bold font-display text-brand-brown">
             {tab === 'login' ? 'Customer Log In' : 'Create Guest Account'}

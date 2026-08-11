@@ -85,7 +85,12 @@
   --accent: 350 79% 41%;
   --accent-foreground: 0 0% 100%;
 
-  --destructive: 350 79% 41%;
+  /* Deliberately NOT brand-red: --primary/--accent already use that hue for
+     everyday actions, so a same-colored "destructive" button (seat-anyway
+     overriding a conflict, deleting a table) would be indistinguishable from
+     a safe default one. A distinct burnt-amber reads as "caution" while
+     staying in the same warm family as the rest of the palette. */
+  --destructive: 22 85% 38%;
   --destructive-foreground: 0 0% 100%;
 
   --border: 39 48% 74%;

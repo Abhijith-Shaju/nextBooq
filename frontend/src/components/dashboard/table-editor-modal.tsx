@@ -120,17 +120,24 @@ export function TableEditorModal({
       className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs flex items-center justify-center p-4"
       onClick={onBackdropClick}
     >
-      <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 border border-brand-brown/10 space-y-6 animate-scale-in">
-        <div className="flex items-center justify-between border-b border-brand-brown/10 pb-4">
-          <h3 className="text-xl font-bold font-display text-brand-brown">
-            {isEditing ? `Edit Table ${editingTable.table_number}` : 'Add New Physical Table'}
-          </h3>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full text-brand-mocha hover:bg-brand-tan/30 transition-all"
-          >
-            <X className="w-5 h-5" />
-          </button>
+      <div className="w-full max-w-lg bg-white rounded-3xl shadow-brand-lg p-6 border border-brand-brown/10 space-y-6 animate-scale-in">
+        <div className="border-b border-brand-brown/10 pb-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold font-display text-brand-brown">
+              {isEditing ? `Edit Table ${editingTable.table_number}` : 'Add New Physical Table'}
+            </h3>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-full text-brand-mocha hover:bg-brand-tan/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <p className="mt-1 text-xs text-brand-mocha">
+            {isEditing
+              ? "Update this table's number, seating capacity, service status, or merge partners."
+              : "Set a number and how many guests it seats — optionally, pick nearby tables it can merge with for larger parties."}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -178,9 +185,13 @@ export function TableEditorModal({
 
           {/* Mergeable Tables */}
           <div>
-            <label className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1">
+            <label className="block text-sm font-semibold text-brand-brown mb-1 flex items-center gap-1">
               <Layers className="w-4 h-4 text-brand-mocha" /> Mergeable With (Adjacent Tables)
             </label>
+            <p className="text-[11px] text-brand-mocha mb-1.5">
+              Check any tables physically next to this one. When a party is too big for a single
+              table, the booking engine can seat them across this table plus a checked partner.
+            </p>
             <div className="p-3 bg-brand-cream rounded-xl border border-brand-brown/10 max-h-32 overflow-y-auto space-y-2 text-xs">
               {existingTables
                 .filter((t) => t.table_number !== tableNumber)
