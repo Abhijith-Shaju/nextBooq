@@ -1,20 +1,36 @@
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk, Space_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["500", "700"],
-  variable: "--font-display",
+// Self-hosted (not next/font/google) so dev/build never depends on reaching
+// fonts.gstatic.com over the network — that dependency was causing
+// `Module not found` / connection-refused failures on networks that can't
+// reach Google's font CDN (corporate proxies, offline dev, flaky DNS).
+// Files are the latin-subset woff2s Google itself serves for these
+// families/weights; re-fetch via `frontend/scripts/fetch-fonts.sh` if a
+// family/weight changes.
+const inter = localFont({
+  src: "./fonts/inter-variable.woff2",
+  weight: "100 900",
+  variable: "--font-inter",
+  display: "swap",
 });
-const spaceMono = Space_Mono({
-  subsets: ["latin"],
-  weight: ["400", "700"],
+const spaceGrotesk = localFont({
+  src: "./fonts/space-grotesk-variable.woff2",
+  weight: "500 700",
+  variable: "--font-display",
+  display: "swap",
+});
+const spaceMono = localFont({
+  src: [
+    { path: "./fonts/space-mono-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/space-mono-700.woff2", weight: "700", style: "normal" },
+  ],
   variable: "--font-mono",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
