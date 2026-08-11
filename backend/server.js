@@ -4,8 +4,10 @@ const config = require('./src/config/env');
 const { connectDB } = require('./src/config/database');
 const { initSocket } = require('./src/services/socketService');
 const { expireStalePendingPayments, expireStaleHolds } = require('./src/services/reservationExpiryService');
+const { expireLapsedSubscriptions } = require('./src/services/subscriptionExpiryService');
 
 const RESERVATION_EXPIRY_SWEEP_INTERVAL_MS = 60 * 1000;
+const SUBSCRIPTION_EXPIRY_SWEEP_INTERVAL_MS = 60 * 60 * 1000; // hourly
 
 const startServer = async () => {
   await connectDB();
@@ -26,9 +28,16 @@ const startServer = async () => {
     });
   }, RESERVATION_EXPIRY_SWEEP_INTERVAL_MS);
 
+  const subscriptionSweepInterval = setInterval(() => {
+    expireLapsedSubscriptions().catch((error) => {
+      console.error('[SUBSCRIPTION EXPIRY SWEEP FAILED]', error);
+    });
+  }, SUBSCRIPTION_EXPIRY_SWEEP_INTERVAL_MS);
+
   const handleShutdown = (signal) => {
     console.log(`\nRECEIVED ${signal}. Shutting down gracefully...`);
     clearInterval(sweepInterval);
+    clearInterval(subscriptionSweepInterval);
     server.close(() => {
       console.log('HTTP Server closed.');
       process.exit(0);
