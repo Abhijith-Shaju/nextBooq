@@ -11,7 +11,6 @@ const subscriptionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Cafe',
       required: true,
-      index: true,
     },
     term_months: {
       type: Number,
