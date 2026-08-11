@@ -142,6 +142,36 @@ describe('suggestAlternateTable', () => {
 
     expect(await suggestAlternateTable(cafe._id, target)).toBeNull();
   });
+
+  test('does not suggest a table booked for the window the party will actually occupy when seated late', async () => {
+    const tableA = await Table.create({ cafe_id: cafe._id, table_number: 'A1', capacity: 4 });
+    const tableB = await Table.create({ cafe_id: cafe._id, table_number: 'B1', capacity: 4 });
+
+    // Someone is physically SEATED at table A right now — the conflict this
+    // party is trying to escape.
+    await makeRes([tableA._id], 'SEATED', -1);
+
+    // The target reservation's booked window is already in the past (it's
+    // being seated late), so a naive check against its own [start, end)
+    // window sees table B's booking below as non-overlapping.
+    const target = await makeRes([tableA._id], 'CONFIRMED', -2);
+
+    // Table B is free right now on paper, but it's booked for the next two
+    // hours — exactly the window this party will actually be sitting there
+    // once seated. It must NOT be offered as the alternate.
+    await Reservation.create({
+      cafe_id: cafe._id,
+      user_id: guest._id,
+      table_ids: [tableB._id],
+      start_time: new Date(Date.now()),
+      end_time: new Date(Date.now() + 2 * 60 * 60 * 1000),
+      party_size: 2,
+      reservation_timezone: 'UTC',
+      status: 'CONFIRMED',
+    });
+
+    expect(await suggestAlternateTable(cafe._id, target)).toBeNull();
+  });
 });
 
 describe('transitionState tableIdsUpdate', () => {

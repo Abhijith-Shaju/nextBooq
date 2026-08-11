@@ -197,22 +197,40 @@ const allocateTables = async (cafeId, startTime, endTime, partySize, session = n
  * option on a seating conflict.
  *
  * Excludes tables blocked in two genuinely different ways:
- *   - schedule overlap: another reservation holds the table during this
- *     reservation's booked window. This also excludes this reservation's own
- *     tables (it overlaps itself), which is what we want — the whole point is
- *     to land on a different table.
+ *   - schedule overlap: another reservation holds the table during the
+ *     window this reservation will actually occupy. This also excludes this
+ *     reservation's own tables (it overlaps itself), which is what we want —
+ *     the whole point is to land on a different table.
  *   - live occupancy: another party is physically SEATED there right now,
  *     even if their booked window has already ended.
+ *
+ * The schedule-overlap check does NOT simply reuse `[start_time, end_time)`.
+ * Nothing in this app constrains WHEN a reservation may be moved to SEATED —
+ * a host can seat a party late (arriving after `end_time` has already
+ * passed) or early (before `start_time`). If we only checked the booked
+ * window, a table that's free on paper but booked by someone else for the
+ * hours the party will actually be sitting there would look free and get
+ * suggested — seating two real parties at one table, exactly what this
+ * feature exists to prevent. So the window checked here is widened to the
+ * union of the booked window and the window starting now (spanning the same
+ * duration), i.e. the earlier of `now`/`start_time` through the later of
+ * `end_time`/`now + duration`. This is deliberately conservative: it can
+ * exclude a table that would in fact have been free, but failing to offer a
+ * suggestion only costs the host a manual decision, whereas suggesting an
+ * occupied table double-books it.
  *
  * Returns null when nothing else fits, so the caller can omit the suggestion
  * rather than offering the host a dead end.
  */
 const suggestAlternateTable = async (cafeId, reservation) => {
-  const blockedBySchedule = await getBlockedTableIds(
-    cafeId,
-    reservation.start_time,
-    reservation.end_time
-  );
+  const now = new Date();
+  const duration = reservation.end_time.getTime() - reservation.start_time.getTime();
+  const nowWindowEnd = new Date(now.getTime() + duration);
+
+  const windowStart = now < reservation.start_time ? now : reservation.start_time;
+  const windowEnd = reservation.end_time > nowWindowEnd ? reservation.end_time : nowWindowEnd;
+
+  const blockedBySchedule = await getBlockedTableIds(cafeId, windowStart, windowEnd);
   const blockedBySeating = await getSeatedTableIds(cafeId, reservation._id);
 
   const blockedTableIds = new Set([...blockedBySchedule, ...blockedBySeating]);
