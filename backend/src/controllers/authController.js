@@ -198,6 +198,7 @@ const getMe = async (req, res, next) => {
         email: user.email,
         phone: user.phone,
         staff_memberships: user.staff_memberships,
+        is_platform_admin: user.is_platform_admin,
       },
     });
   } catch (error) {
