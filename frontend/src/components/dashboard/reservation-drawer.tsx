@@ -194,6 +194,7 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
         onOpenChange={(open) => !open && setOccupancyConflict(null)}
         onForceSeat={() => handleStatusChange('SEATED', { force: true })}
         onReassign={() => handleStatusChange('SEATED', { reassign: true })}
+        isPending={updateStatusMutation.isPending}
       />
     </div>
   );

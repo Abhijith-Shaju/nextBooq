@@ -71,4 +71,29 @@ describe('SeatingConflictDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: /seat anyway/i }));
     expect(props.onForceSeat).toHaveBeenCalledTimes(1);
   });
+
+  test('disables Seat Anyway while pending, but leaves Cancel enabled', () => {
+    renderDialog(baseConflict, { isPending: true });
+
+    expect(screen.getByRole('button', { name: /seat anyway/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /cancel/i })).toBeEnabled();
+  });
+
+  test('disables Confirm while pending, but leaves Back enabled', () => {
+    renderDialog(
+      { ...baseConflict, alternate: { tableNumbers: ['7'], totalCapacity: 4 } },
+      { isPending: true }
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^reassign$/i }));
+
+    expect(screen.getByRole('button', { name: /^confirm$/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^back$/i })).toBeEnabled();
+  });
+
+  test('committing actions are enabled when not pending', () => {
+    renderDialog(baseConflict, { isPending: false });
+
+    expect(screen.getByRole('button', { name: /seat anyway/i })).toBeEnabled();
+  });
 });

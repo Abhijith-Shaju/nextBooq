@@ -27,6 +27,7 @@ interface SeatingConflictDialogProps {
   onOpenChange: (open: boolean) => void;
   onForceSeat: () => void;
   onReassign: () => void;
+  isPending?: boolean;
 }
 
 export function SeatingConflictDialog({
@@ -34,6 +35,7 @@ export function SeatingConflictDialog({
   onOpenChange,
   onForceSeat,
   onReassign,
+  isPending = false,
 }: SeatingConflictDialogProps) {
   const [showReassignStep, setShowReassignStep] = useState(false);
 
@@ -67,7 +69,7 @@ export function SeatingConflictDialog({
               <Button type="button" variant="outline" onClick={() => setShowReassignStep(false)}>
                 Back
               </Button>
-              <Button type="button" onClick={onReassign}>
+              <Button type="button" onClick={onReassign} disabled={isPending}>
                 Confirm
               </Button>
             </DialogFooter>
@@ -89,7 +91,7 @@ export function SeatingConflictDialog({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="button" variant="destructive" onClick={onForceSeat}>
+              <Button type="button" variant="destructive" onClick={onForceSeat} disabled={isPending}>
                 Seat Anyway
               </Button>
               {alternate && (
