@@ -86,4 +86,76 @@ describe('ReservationDrawer table-occupancy conflict on seating', () => {
     await waitFor(() => expect(axiosInstance.put).toHaveBeenCalledTimes(2));
     expect(vi.mocked(axiosInstance.put).mock.calls[1][1]).toMatchObject({ status: 'SEATED', force: true });
   });
+
+  test('offers a Reassign option when the backend suggests a free alternate table', async () => {
+    vi.mocked(axiosInstance.put).mockRejectedValue({
+      response: {
+        status: 409,
+        data: {
+          error: { code: 'TABLE_OCCUPIED', message: 'occupied' },
+          conflict: { reservationId: 'res_other', guestName: 'Grace Hopper', tableNumbers: ['3'], seatedAt: null },
+          alternate: { tableNumbers: ['7'], totalCapacity: 4 },
+        },
+      },
+    });
+
+    renderDrawer();
+    fireEvent.click(screen.getByRole('button', { name: /seat guest at table/i }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /^reassign$/i })).toBeInTheDocument()
+    );
+  });
+
+  test('hides the Reassign option when the backend suggests no alternate', async () => {
+    vi.mocked(axiosInstance.put).mockRejectedValue({
+      response: {
+        status: 409,
+        data: {
+          error: { code: 'TABLE_OCCUPIED', message: 'occupied' },
+          conflict: { reservationId: 'res_other', guestName: 'Grace Hopper', tableNumbers: ['3'], seatedAt: null },
+        },
+      },
+    });
+
+    renderDrawer();
+    fireEvent.click(screen.getByRole('button', { name: /seat guest at table/i }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /seat anyway/i })).toBeInTheDocument()
+    );
+    expect(screen.queryByRole('button', { name: /^reassign$/i })).not.toBeInTheDocument();
+  });
+
+  test('confirming a reassignment retries the seat request with reassign:true', async () => {
+    vi.mocked(axiosInstance.put)
+      .mockRejectedValueOnce({
+        response: {
+          status: 409,
+          data: {
+            error: { code: 'TABLE_OCCUPIED', message: 'occupied' },
+            conflict: { reservationId: 'res_other', guestName: 'Grace Hopper', tableNumbers: ['3'], seatedAt: null },
+            alternate: { tableNumbers: ['7'], totalCapacity: 4 },
+          },
+        },
+      })
+      .mockResolvedValueOnce({ data: { data: { ...reservation, status: 'SEATED' } } });
+
+    renderDrawer();
+    fireEvent.click(screen.getByRole('button', { name: /seat guest at table/i }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /^reassign$/i })).toBeInTheDocument()
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^reassign$/i }));
+
+    expect(screen.getByText(/move to table 7/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^confirm$/i }));
+
+    await waitFor(() => expect(axiosInstance.put).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(axiosInstance.put).mock.calls[1][1]).toMatchObject({
+      status: 'SEATED',
+      reassign: true,
+    });
+  });
 });
