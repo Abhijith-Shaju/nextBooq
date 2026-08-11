@@ -5,6 +5,7 @@ import { useAdminOverview } from '@/hooks/admin/use-admin-overview';
 import { useAdminOrgs } from '@/hooks/admin/use-admin-orgs';
 import { CafeWithSubscription } from '@/lib/types/models';
 import { format } from 'date-fns';
+import { SubscriptionDrawer } from '@/components/admin/subscription-drawer';
 
 const STAT_LABELS: { key: 'org_count' | 'cafe_count' | 'pending_count' | 'revenue'; label: string }[] = [
   { key: 'org_count', label: 'Organizations' },
@@ -34,6 +35,8 @@ export default function AdminOverviewPage() {
   const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null);
 
   const handleSelectCafe = (cafeId: string) => setSelectedCafeId(cafeId);
+
+  const selectedOrg = orgs.find((org) => org.cafes.some((cafe) => cafe._id === selectedCafeId));
 
   return (
     <div className="space-y-8">
@@ -97,6 +100,12 @@ export default function AdminOverviewPage() {
           </tbody>
         </table>
       </div>
+
+      <SubscriptionDrawer
+        cafeId={selectedCafeId}
+        orgId={selectedOrg?._id}
+        onClose={() => setSelectedCafeId(null)}
+      />
     </div>
   );
 }
