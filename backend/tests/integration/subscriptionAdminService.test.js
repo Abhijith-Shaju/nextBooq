@@ -258,4 +258,50 @@ describe('getOverviewStats', () => {
     const before = await getOverviewStats();
     expect(before.pending_count).toBeGreaterThanOrEqual(1);
   });
+
+  test('excludes a non-active is_current subscription (trial/past_due/inactive) from revenue', async () => {
+    const { org, cafe } = await makeOrgCafe('Non-Active Org', 'Non-Active Cafe', 'non-active-cafe');
+
+    await Subscription.create({
+      org_id: org._id,
+      cafe_id: cafe._id,
+      term_months: 12,
+      price_per_month: 7000,
+      current_period_end: new Date(Date.now() + 200 * 24 * 60 * 60 * 1000),
+      status: 'trial',
+      is_current: true,
+    });
+
+    const stats = await getOverviewStats();
+
+    // A bug that summed revenue over all is_current subs regardless of
+    // status would include this trial's 7000*12 = 84000 here; it must not.
+    expect(stats.status_counts.trial).toBeGreaterThanOrEqual(1);
+    const trialCafeContribution = 7000 * 12;
+    // Can't assert an exact total (other tests' fixtures may also exist in
+    // this describe block's own test runs), but this trial's own contribution
+    // must not appear: revenue should not be inflated by trial-status subs.
+    // Re-derive expected revenue by checking status_counts.active count stays
+    // unaffected by this trial-only fixture.
+    expect(stats.status_counts.active).toBe(0);
+    expect(stats.revenue).toBe(0);
+  });
+
+  test('a subscription whose current_period_end has already passed also counts as pending', async () => {
+    const { org, cafe } = await makeOrgCafe('Overdue Org', 'Overdue Cafe', 'overdue-cafe');
+
+    await Subscription.create({
+      org_id: org._id,
+      cafe_id: cafe._id,
+      term_months: 1,
+      price_per_month: 9000,
+      status: 'active',
+      is_current: true,
+      current_period_end: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days overdue
+    });
+
+    const stats = await getOverviewStats();
+
+    expect(stats.pending_count).toBeGreaterThanOrEqual(1);
+  });
 });
