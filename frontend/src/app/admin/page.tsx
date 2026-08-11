@@ -84,8 +84,11 @@ export default function AdminOverviewPage() {
                         {cafe.subscription.status}
                       </span>
                     ) : (
-                      <span className="rounded-full bg-slate-200 px-2 py-1 text-xs font-semibold text-slate-700">
-                        Unconfigured
+                      <span
+                        className="rounded-full bg-slate-200 px-2 py-1 text-xs font-semibold text-slate-700"
+                        title={`No subscription recorded — cafe's booking status is currently "${cafe.subscription_status}"`}
+                      >
+                        Unconfigured ({cafe.subscription_status})
                       </span>
                     )}
                   </td>

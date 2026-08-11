@@ -127,4 +127,50 @@ describe('SubscriptionDrawer', () => {
     await waitFor(() => expect(screen.getByLabelText(/note/i)).toBeInTheDocument());
     expect(screen.getByLabelText(/note/i)).toHaveValue('');
   });
+
+  test('disables the Active status button and shows a hint when the current term has already lapsed', async () => {
+    vi.mocked(axiosInstance.get).mockResolvedValue({
+      data: {
+        data: [
+          {
+            _id: 's1',
+            term_months: 1,
+            price_per_month: 9000,
+            status: 'past_due',
+            period_start: '2026-01-01T00:00:00.000Z',
+            current_period_end: '2026-02-01T00:00:00.000Z', // in the past
+          },
+        ],
+      },
+    });
+
+    renderDrawer();
+
+    await waitFor(() => expect(screen.getByRole('button', { name: /^active$/i })).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /^active$/i })).toBeDisabled();
+    expect(screen.getByText(/already ended/i)).toBeInTheDocument();
+  });
+
+  test('leaves the Active status button enabled when the current term has not lapsed', async () => {
+    vi.mocked(axiosInstance.get).mockResolvedValue({
+      data: {
+        data: [
+          {
+            _id: 's1',
+            term_months: 12,
+            price_per_month: 7000,
+            status: 'active',
+            period_start: '2026-01-01T00:00:00.000Z',
+            current_period_end: '2099-01-01T00:00:00.000Z', // far future
+          },
+        ],
+      },
+    });
+
+    renderDrawer();
+
+    await waitFor(() => expect(screen.getByRole('button', { name: /^active$/i })).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /^active$/i })).not.toBeDisabled();
+    expect(screen.queryByText(/already ended/i)).not.toBeInTheDocument();
+  });
 });

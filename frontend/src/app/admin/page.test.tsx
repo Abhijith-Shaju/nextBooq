@@ -66,7 +66,7 @@ describe('AdminOverviewPage', () => {
               {
                 _id: 'org1',
                 name: 'Unconfigured Org',
-                cafes: [{ _id: 'cafe1', name: 'Unconfigured Cafe', slug: 'unconf', subscription: null }],
+                cafes: [{ _id: 'cafe1', name: 'Unconfigured Cafe', slug: 'unconf', subscription: null, subscription_status: 'active' }],
               },
             ],
           },
@@ -78,10 +78,8 @@ describe('AdminOverviewPage', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByText('Unconfigured Cafe')).toBeInTheDocument());
-    // Exact match (not the /unconfigured/i regex from the brief): the regex
-    // also matches the "Unconfigured Cafe" cell text itself, causing a
-    // "multiple elements found" error unrelated to whether the badge renders.
-    expect(screen.getByText('Unconfigured')).toBeInTheDocument();
+    expect(screen.getByText('Unconfigured Cafe')).toBeInTheDocument();
+    expect(screen.getByText(/unconfigured \(active\)/i)).toBeInTheDocument();
   });
 
   test('clicking a cafe row selects it', async () => {

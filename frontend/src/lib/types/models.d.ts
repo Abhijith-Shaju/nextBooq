@@ -56,6 +56,7 @@ export interface CafeWithSubscription {
   name: string;
   slug: string;
   timezone: string;
+  subscription_status: string;
   subscription: Subscription | null;
 }
 

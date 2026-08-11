@@ -20,6 +20,9 @@ const STATUS_ACTIONS: { value: SubscriptionStatus; label: string }[] = [
   { value: 'inactive', label: 'Disable' },
 ];
 
+const isLapsed = (sub: { current_period_end: string } | null): boolean =>
+  !!sub && new Date(sub.current_period_end).getTime() <= Date.now();
+
 interface SubscriptionDrawerProps {
   cafeId: string | null;
   orgId: string | undefined;
@@ -74,17 +77,32 @@ export function SubscriptionDrawer({ cafeId, orgId, onClose }: SubscriptionDrawe
               Current: {current.term_months} mo @ ₹{current.price_per_month}/mo — status {current.status}
             </p>
             <div className="flex gap-2">
-              {STATUS_ACTIONS.map((action) => (
-                <button
-                  key={action.value}
-                  onClick={() => setStatus.mutate({ status: action.value })}
-                  disabled={setStatus.isPending}
-                  className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold hover:bg-slate-50"
-                >
-                  {action.label}
-                </button>
-              ))}
+              {STATUS_ACTIONS.map((action) => {
+                const disabledForLapsedTerm = action.value === 'active' && isLapsed(current);
+                return (
+                  <button
+                    key={action.value}
+                    onClick={() => setStatus.mutate({ status: action.value })}
+                    disabled={setStatus.isPending || disabledForLapsedTerm}
+                    title={
+                      disabledForLapsedTerm
+                        ? 'This term has already lapsed — record a new payment below instead of reactivating it directly.'
+                        : undefined
+                    }
+                    className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {action.label}
+                  </button>
+                );
+              })}
             </div>
+            {isLapsed(current) && (
+              <p className="text-xs text-amber-700">
+                This subscription&apos;s term has already ended. Use &quot;Record payment / renew&quot;
+                below to reactivate it with a new term — clicking &quot;Active&quot; without renewing
+                will be automatically reverted.
+              </p>
+            )}
           </div>
         )}
 
