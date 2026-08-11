@@ -55,6 +55,13 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
     staff_memberships: [staffMembershipSchema],
+    // Cross-tenant nextBooq operator access, entirely separate from
+    // per-cafe staff_memberships roles. Never settable through any HTTP
+    // endpoint — only a one-off script (scripts/grantPlatformAdmin.js).
+    is_platform_admin: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
