@@ -12,19 +12,23 @@ export interface UpdateStatusPayload {
   // reservation onto a table another party is currently SEATED at — set
   // after the host confirms an occupancy-conflict dialog.
   force?: boolean;
+  // Moves this reservation to a free table the backend picks, instead of
+  // force-seating onto the occupied one. Mutually exclusive with `force`.
+  reassign?: boolean;
 }
 
 export const useUpdateStatus = (cafeId: string | undefined) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ reservationId, status, version, force }: UpdateStatusPayload) => {
+    mutationFn: async ({ reservationId, status, version, force, reassign }: UpdateStatusPayload) => {
       const { data } = await axiosInstance.put<ApiResponse<Reservation>>(
         `/api/v1/cafes/${cafeId}/reservations/${reservationId}/status`,
         {
           status,
           version,
           force,
+          reassign,
         }
       );
       return data.data;

@@ -113,12 +113,23 @@ move and the status change atomic *for this document*.
 It does not serialize two *different* reservations being reassigned onto the
 same free table in the same instant. The re-check immediately before the
 write closes the realistic window (host leaves the dialog open for seconds
-or minutes while another host takes the table); a genuine sub-millisecond
-double-reassign remains possible. Closing that fully would mean threading a
-session through `transitionState`, which is also called by the payment
-flows — more blast radius than this feature warrants. If it ever matters in
-practice, the host still sees the resulting occupancy conflict the next time
-they seat, which is the same failure mode as today's force-seat.
+or minutes while another host takes the table); what remains is the gap
+between the `suggestAlternateTable` re-check and the `transitionState`
+write — at least two more DB round trips (`Table.find`, then
+`transitionState`'s own `Reservation.findOne`), so realistically single-digit
+milliseconds on a hosted database, not sub-millisecond. Closing that fully
+would mean threading a session through `transitionState`, which is also
+called by the payment flows — more blast radius than this feature warrants.
+
+If two hosts do land in that window simultaneously, both reservations end up
+`SEATED` on the same table and nothing alerts either host — there is no
+notification on write, and the next `findSeatedOccupancyConflict` check uses
+`findOne`, so it surfaces only one of the two conflicting reservations even
+after the fact. This is the same failure mode as today's force-seat (which
+deliberately allows two `SEATED` reservations to share a table as a product
+feature, which also rules out a unique partial index as an alternative), just
+reached by a narrower, race-triggered path instead of an explicit host
+choice.
 
 ## Frontend design
 

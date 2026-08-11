@@ -1,6 +1,7 @@
 const Reservation = require('../models/Reservation');
 const Table = require('../models/Table');
 const { UnprocessableEntityError } = require('../utils/errors');
+const { getSeatedTableIds } = require('./tableOccupancyService');
 
 /**
  * Finds overlapping active reservations for a given cafe and time window.
@@ -99,31 +100,12 @@ const generateMergeCombinations = (tables, partySize, maxDepth = 3) => {
 };
 
 /**
- * Best-Fit Table Allocation Engine
+ * Picks the best-fit table (or connected merge combo) for a party from an
+ * already-filtered list of available tables. Returns null when nothing fits,
+ * leaving the choice of error message (or of not erroring at all) to the caller.
  */
-const allocateTables = async (cafeId, startTime, endTime, partySize, session = null) => {
-  // Step 1: Overlap exclusion query
-  const blockedTableIds = await getBlockedTableIds(cafeId, startTime, endTime, session);
-
-  // Step 2: Fetch available active tables
-  const tableQuery = Table.find({
-    cafe_id: cafeId,
-    status: 'active',
-    is_deleted: false,
-    _id: { $nin: Array.from(blockedTableIds) },
-  });
-
-  if (session) {
-    tableQuery.session(session);
-  }
-
-  const availableTables = await tableQuery.exec();
-
-  if (!availableTables || availableTables.length === 0) {
-    throw new UnprocessableEntityError('No available tables for the requested time slot');
-  }
-
-  // Step 3: Single Table Fit
+const selectBestFit = (availableTables, partySize) => {
+  // Single Table Fit
   const singleFitTables = availableTables
     .filter((t) => t.capacity >= partySize)
     .sort((a, b) => {
@@ -143,13 +125,11 @@ const allocateTables = async (cafeId, startTime, endTime, partySize, session = n
     };
   }
 
-  // Step 4: Multi-Table Merge Fallback (maxDepth = 3)
+  // Multi-Table Merge Fallback (maxDepth = 3)
   const mergeCombinations = generateMergeCombinations(availableTables, partySize, 3);
 
   if (mergeCombinations.length === 0) {
-    throw new UnprocessableEntityError(
-      `No available table layout can accommodate a party of ${partySize}`
-    );
+    return null;
   }
 
   // Sort combinations deterministically:
@@ -175,8 +155,104 @@ const allocateTables = async (cafeId, startTime, endTime, partySize, session = n
   };
 };
 
+/**
+ * Best-Fit Table Allocation Engine
+ */
+const allocateTables = async (cafeId, startTime, endTime, partySize, session = null) => {
+  // Step 1: Overlap exclusion query
+  const blockedTableIds = await getBlockedTableIds(cafeId, startTime, endTime, session);
+
+  // Step 2: Fetch available active tables
+  const tableQuery = Table.find({
+    cafe_id: cafeId,
+    status: 'active',
+    is_deleted: false,
+    _id: { $nin: Array.from(blockedTableIds) },
+  });
+
+  if (session) {
+    tableQuery.session(session);
+  }
+
+  const availableTables = await tableQuery.exec();
+
+  if (!availableTables || availableTables.length === 0) {
+    throw new UnprocessableEntityError('No available tables for the requested time slot');
+  }
+
+  const selection = selectBestFit(availableTables, partySize);
+
+  if (!selection) {
+    throw new UnprocessableEntityError(
+      `No available table layout can accommodate a party of ${partySize}`
+    );
+  }
+
+  return selection;
+};
+
+/**
+ * Finds an alternate table (or merge combo) a reservation could be seated at
+ * instead of its currently-assigned one, backing the host-facing "reassign"
+ * option on a seating conflict.
+ *
+ * Excludes tables blocked in two genuinely different ways:
+ *   - schedule overlap: another reservation holds the table during the
+ *     window this reservation will actually occupy. This also excludes this
+ *     reservation's own tables (it overlaps itself), which is what we want —
+ *     the whole point is to land on a different table.
+ *   - live occupancy: another party is physically SEATED there right now,
+ *     even if their booked window has already ended.
+ *
+ * The schedule-overlap check does NOT simply reuse `[start_time, end_time)`.
+ * Nothing in this app constrains WHEN a reservation may be moved to SEATED —
+ * a host can seat a party late (arriving after `end_time` has already
+ * passed) or early (before `start_time`). If we only checked the booked
+ * window, a table that's free on paper but booked by someone else for the
+ * hours the party will actually be sitting there would look free and get
+ * suggested — seating two real parties at one table, exactly what this
+ * feature exists to prevent. So the window checked here is widened to the
+ * union of the booked window and the window starting now (spanning the same
+ * duration), i.e. the earlier of `now`/`start_time` through the later of
+ * `end_time`/`now + duration`. This is deliberately conservative: it can
+ * exclude a table that would in fact have been free, but failing to offer a
+ * suggestion only costs the host a manual decision, whereas suggesting an
+ * occupied table double-books it.
+ *
+ * Returns null when nothing else fits, so the caller can omit the suggestion
+ * rather than offering the host a dead end.
+ */
+const suggestAlternateTable = async (cafeId, reservation) => {
+  const now = new Date();
+  const duration = reservation.end_time.getTime() - reservation.start_time.getTime();
+  const nowWindowEnd = new Date(now.getTime() + duration);
+
+  const windowStart = now < reservation.start_time ? now : reservation.start_time;
+  const windowEnd = reservation.end_time > nowWindowEnd ? reservation.end_time : nowWindowEnd;
+
+  const blockedBySchedule = await getBlockedTableIds(cafeId, windowStart, windowEnd);
+  const blockedBySeating = await getSeatedTableIds(cafeId, reservation._id);
+
+  const blockedTableIds = new Set([...blockedBySchedule, ...blockedBySeating]);
+
+  const availableTables = await Table.find({
+    cafe_id: cafeId,
+    status: 'active',
+    is_deleted: false,
+    _id: { $nin: Array.from(blockedTableIds) },
+  }).exec();
+
+  if (!availableTables || availableTables.length === 0) {
+    return null;
+  }
+
+  return selectBestFit(availableTables, reservation.party_size);
+};
+
 module.exports = {
   allocateTables,
   getBlockedTableIds,
   generateMergeCombinations,
+  selectBestFit,
+  suggestAlternateTable,
 };

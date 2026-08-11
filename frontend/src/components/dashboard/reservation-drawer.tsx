@@ -6,7 +6,8 @@ import { useUpdateStatus } from '@/hooks/host/use-update-status';
 import { useModalDismiss } from '@/hooks/use-modal-dismiss';
 import { Reservation, ReservationStatus } from '@/lib/types/models';
 import { StatusBadge } from '@/components/shared/status-badge';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { toast } from 'sonner';
+import { SeatingConflictDialog, SeatingConflict } from '@/components/dashboard/seating-conflict-dialog';
 import { getReservationTableNumbers } from '@/lib/dashboard/reservation-tables';
 import { getReservationGuestName, getReservationGuestEmail, getReservationGuestPhone } from '@/lib/dashboard/reservation-guest';
 import { X, User, Phone, Mail, Clock, Hash, CheckCircle, UserCheck, LogOut, XCircle, AlertCircle } from 'lucide-react';
@@ -17,16 +18,11 @@ interface ReservationDrawerProps {
   reservations: Reservation[];
 }
 
-interface OccupancyConflict {
-  guestName: string;
-  tableNumbers: string[];
-}
-
 export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerProps) {
   const { isDrawerOpen, selectedReservationId, closeDrawer } = useDashboardStore();
   const updateStatusMutation = useUpdateStatus(cafeId);
   const { onBackdropClick } = useModalDismiss(isDrawerOpen, closeDrawer);
-  const [occupancyConflict, setOccupancyConflict] = useState<OccupancyConflict | null>(null);
+  const [occupancyConflict, setOccupancyConflict] = useState<SeatingConflict | null>(null);
 
   const res = reservations.find((r) => r._id === selectedReservationId || r.id === selectedReservationId);
 
@@ -34,14 +30,18 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
 
   const resId = res._id || res.id;
 
-  const handleStatusChange = (newStatus: ReservationStatus, force = false) => {
+  const handleStatusChange = (
+    newStatus: ReservationStatus,
+    options: { force?: boolean; reassign?: boolean } = {}
+  ) => {
     if (!resId) return;
     updateStatusMutation.mutate(
       {
         reservationId: resId,
         status: newStatus,
         version: res.__v || 0, // OCC version token
-        force,
+        force: options.force ?? false,
+        reassign: options.reassign ?? false,
       },
       {
         onSuccess: () => {
@@ -51,7 +51,18 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
         onError: (error: any) => {
           const conflict = error?.response?.data?.conflict;
           if (error?.response?.status === 409 && error?.response?.data?.error?.code === 'TABLE_OCCUPIED' && conflict) {
-            setOccupancyConflict({ guestName: conflict.guestName, tableNumbers: conflict.tableNumbers || [] });
+            const alternate = error.response.data.alternate;
+            // The host confirmed a move to a specific table and the backend
+            // came back with nothing — say so, otherwise the Reassign button
+            // silently disappearing reads as a glitch.
+            if (options.reassign && !alternate) {
+              toast.error('That table was just taken — no free table is available right now.');
+            }
+            setOccupancyConflict({
+              guestName: conflict.guestName,
+              tableNumbers: conflict.tableNumbers || [],
+              alternate,
+            });
           }
         },
       }
@@ -132,7 +143,7 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
 
             {res.status !== 'SEATED' && res.status !== 'COMPLETED' && (
               <button
-                onClick={() => handleStatusChange('SEATED', false)}
+                onClick={() => handleStatusChange('SEATED')}
                 disabled={updateStatusMutation.isPending}
                 className="tone-success w-full py-3 px-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:opacity-80 transition-opacity text-sm"
               >
@@ -178,14 +189,12 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
         </div>
       </div>
 
-      <ConfirmDialog
-        open={!!occupancyConflict}
+      <SeatingConflictDialog
+        conflict={occupancyConflict}
         onOpenChange={(open) => !open && setOccupancyConflict(null)}
-        title={`Table ${occupancyConflict?.tableNumbers.join(', ')} is already occupied`}
-        description={`${occupancyConflict?.guestName} is currently seated there. You can seat this party anyway if you know the table is actually free.`}
-        confirmLabel="Seat Anyway"
-        variant="destructive"
-        onConfirm={() => handleStatusChange('SEATED', true)}
+        onForceSeat={() => handleStatusChange('SEATED', { force: true })}
+        onReassign={() => handleStatusChange('SEATED', { reassign: true })}
+        isPending={updateStatusMutation.isPending}
       />
     </div>
   );
