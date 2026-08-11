@@ -99,4 +99,32 @@ describe('SubscriptionDrawer', () => {
     await waitFor(() => expect(screen.getByText(/no plan set/i)).toBeInTheDocument());
     expect(screen.queryByRole('button', { name: /disable/i })).not.toBeInTheDocument();
   });
+
+  test('typed form values do not leak when the component remounts for a different cafe (simulating a key change)', async () => {
+    vi.mocked(axiosInstance.get).mockResolvedValue({ data: { data: [] } });
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { rerender } = render(
+      <QueryClientProvider client={queryClient}>
+        <SubscriptionDrawer key="cafe1" cafeId="cafe1" orgId="org1" onClose={vi.fn()} />
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => expect(screen.getByLabelText(/note/i)).toBeInTheDocument());
+    fireEvent.change(screen.getByLabelText(/note/i), { target: { value: 'Note for cafe1' } });
+    expect(screen.getByLabelText(/note/i)).toHaveValue('Note for cafe1');
+
+    // Simulate page.tsx's `key={selectedCafeId}` forcing a remount when the
+    // admin selects a different cafe, by rendering a new element with a
+    // different key (React Testing Library's rerender respects key changes
+    // the same way a real re-render would, unmounting the old instance).
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <SubscriptionDrawer key="cafe2" cafeId="cafe2" orgId="org1" onClose={vi.fn()} />
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => expect(screen.getByLabelText(/note/i)).toBeInTheDocument());
+    expect(screen.getByLabelText(/note/i)).toHaveValue('');
+  });
 });

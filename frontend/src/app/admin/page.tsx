@@ -102,6 +102,7 @@ export default function AdminOverviewPage() {
       </div>
 
       <SubscriptionDrawer
+        key={selectedCafeId}
         cafeId={selectedCafeId}
         orgId={selectedOrg?._id}
         onClose={() => setSelectedCafeId(null)}
