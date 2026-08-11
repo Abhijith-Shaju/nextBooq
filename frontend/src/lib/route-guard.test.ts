@@ -42,6 +42,17 @@ describe('resolveRedirect', () => {
   test('returns null for the public tenant storefront route with no session', () => {
     expect(resolveRedirect('/mycafe', null)).toBeNull();
   });
+
+  test('redirects /admin to login when there is no session', () => {
+    expect(resolveRedirect('/admin', null)).toEqual({
+      redirectTo: '/auth/login',
+      callbackUrl: '/admin',
+    });
+  });
+
+  test('returns null for /admin when a session cookie is present', () => {
+    expect(resolveRedirect('/admin', validSessionCookie())).toBeNull();
+  });
 });
 
 describe('isDashboardRoute', () => {
@@ -61,5 +72,9 @@ describe('isDashboardRoute', () => {
 
   test('the customer booking checkout route is not a dashboard route', () => {
     expect(isDashboardRoute('/mycafe/checkout')).toBe(false);
+  });
+
+  test.each(['/admin', '/admin/cafes/123'])('%s is a protected route', (path) => {
+    expect(isDashboardRoute(path)).toBe(true);
   });
 });

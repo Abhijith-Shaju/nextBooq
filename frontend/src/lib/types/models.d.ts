@@ -28,6 +28,51 @@ export interface Cafe {
   operating_hours?: OperatingHourEntry[];
 }
 
+export type SubscriptionTermMonths = 1 | 6 | 12 | 18;
+export type SubscriptionStatus = 'trial' | 'active' | 'past_due' | 'inactive';
+
+export interface Subscription {
+  _id: string;
+  org_id: string;
+  cafe_id: string;
+  term_months: SubscriptionTermMonths;
+  price_per_month: number;
+  period_start: string;
+  current_period_end: string;
+  status: SubscriptionStatus;
+  is_current: boolean;
+  note?: string;
+  created_at: string;
+}
+
+// Deliberately NOT `extends Cafe`: the admin list/overview endpoints read
+// with Mongoose's `.lean()` (plain objects, no virtuals), so the response
+// only ever has `_id`, never the `id` virtual the main `Cafe` interface
+// declares as required. Extending `Cafe` here would claim a field that
+// never actually arrives over the wire.
+export interface CafeWithSubscription {
+  _id: string;
+  org_id: string;
+  name: string;
+  slug: string;
+  timezone: string;
+  subscription: Subscription | null;
+}
+
+export interface OrgWithCafes {
+  _id: string;
+  name: string;
+  cafes: CafeWithSubscription[];
+}
+
+export interface AdminOverviewStats {
+  org_count: number;
+  cafe_count: number;
+  status_counts: Record<SubscriptionStatus, number>;
+  pending_count: number;
+  revenue: number;
+}
+
 export type ReservationStatus =
   | 'HOLD'
   | 'PENDING_PAYMENT'
@@ -116,5 +161,6 @@ export interface User {
   phone?: string;
   staff_memberships: StaffMembership[];
   created_at?: string;
+  is_platform_admin?: boolean;
 }
 
