@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useOrgCafes } from '@/hooks/org/use-org-cafes';
 import { useAssignStaff, AssignStaffPayload } from '@/hooks/org/use-assign-staff';
 import { OrgCafe } from '@/lib/types/org';
@@ -26,12 +26,15 @@ function statusBadgeClass(status: string): string {
 function AssignStaffForm({ cafeId, onDone }: { cafeId: string; onDone: () => void }) {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<AssignStaffPayload['role']>('manager');
-  const { mutate, isPending } = useAssignStaff(cafeId);
+  const { mutate, isPending, isSuccess } = useAssignStaff(cafeId);
+
+  useEffect(() => {
+    if (isSuccess) onDone();
+  }, [isSuccess, onDone]);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     mutate({ email, role });
-    onDone();
   };
 
   return (
