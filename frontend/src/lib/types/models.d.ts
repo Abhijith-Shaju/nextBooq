@@ -172,5 +172,6 @@ export interface User {
   staff_memberships: StaffMembership[];
   created_at?: string;
   is_platform_admin: boolean;
+  owner_org_id: string | null;
 }
 

@@ -7,6 +7,7 @@ import type { AuthUser } from '@/lib/types/auth';
  */
 
 const ADMIN_ROUTE = /^\/admin(?:\/|$)/;
+const ORG_ROUTE = /^\/org(?:\/|$)/;
 const STAFF_ROUTE = /^\/([^/?#]+)\/(dashboard|reservations|settings|tables|staff)(?=\/|\?|#|$)/;
 const CUSTOMER_ROUTE = /^\/[^/?#]+\/my-reservations(?=\/|\?|#|$)/;
 const STAFF_ROLES = new Set(['owner', 'manager', 'host', 'staff']);
@@ -47,6 +48,10 @@ export function resolvePostAuthDestination(user: AuthUser | null | undefined, ra
   const callbackUrl = normalizeSafePath(rawCallbackUrl);
   if (user.is_platform_admin) {
     return callbackUrl && ADMIN_ROUTE.test(callbackUrl) ? callbackUrl : '/admin';
+  }
+
+  if (user.owner_org_id) {
+    return callbackUrl && ORG_ROUTE.test(callbackUrl) ? callbackUrl : '/org/dashboard';
   }
 
   const memberSlugs = validMembershipSlugs(user);

@@ -7,6 +7,7 @@ const customer = {
   email: 'customer@example.com',
   staff_memberships: [],
   is_platform_admin: false,
+  owner_org_id: null,
 };
 
 const staffUser = {
@@ -68,5 +69,22 @@ describe('resolvePostAuthDestination', () => {
     const admin = { ...customer, is_platform_admin: true };
     expect(resolvePostAuthDestination(admin, '/admin/onboard-cafe')).toBe('/admin/onboard-cafe');
     expect(resolvePostAuthDestination(admin, '/cafe-one/dashboard')).toBe('/admin');
+  });
+
+  test('routes an org owner to the org dashboard even with only one cafe', () => {
+    const orgOwner = { ...staffUser, owner_org_id: 'org-1' };
+    expect(resolvePostAuthDestination(orgOwner)).toBe('/org/dashboard');
+  });
+
+  test('org owner takes priority over cafe-specific callback urls, but not over platform admin', () => {
+    const orgOwner = { ...staffUser, owner_org_id: 'org-1' };
+    expect(resolvePostAuthDestination(orgOwner, '/cafe-one/dashboard')).toBe('/org/dashboard');
+
+    const orgOwnerAdmin = { ...orgOwner, is_platform_admin: true };
+    expect(resolvePostAuthDestination(orgOwnerAdmin)).toBe('/admin');
+  });
+
+  test('a manager-only user (owner_org_id null) is unaffected and still goes to their cafe', () => {
+    expect(resolvePostAuthDestination({ ...staffUser, owner_org_id: null })).toBe('/cafe-one/dashboard');
   });
 });
