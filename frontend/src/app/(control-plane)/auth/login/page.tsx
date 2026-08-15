@@ -55,9 +55,14 @@ function LoginForm() {
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-brand-brown mb-1.5">
-          Password
-        </label>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="block text-sm font-semibold text-brand-brown">
+            Password
+          </label>
+          <Link href="/auth/forgot-password" className="text-xs font-medium text-brand-red hover:underline">
+            Forgot password?
+          </Link>
+        </div>
         <div className="relative" suppressHydrationWarning>
           <Lock className="w-5 h-5 text-brand-mocha absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
