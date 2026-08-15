@@ -6,13 +6,14 @@ export interface RedirectDecision {
 }
 
 const DASHBOARD_ROUTE_PATTERN = /^\/[^/]+\/(dashboard|reservations|settings|tables|staff)/;
-// The platform-admin surface is a top-level route (not tenant-scoped like
-// the pattern above), so it needs its own match — same protection policy
-// (redirect to login without a session), different URL shape.
+// The platform-admin and org-owner surfaces are top-level routes (not
+// tenant-scoped like the pattern above), so they need their own match — same
+// protection policy (redirect to login without a session), different URL shape.
 const ADMIN_ROUTE_PATTERN = /^\/admin(\/|$)/;
+const ORG_ROUTE_PATTERN = /^\/org(\/|$)/;
 
 const isProtectedRoute = (pathname: string): boolean =>
-  DASHBOARD_ROUTE_PATTERN.test(pathname) || ADMIN_ROUTE_PATTERN.test(pathname);
+  DASHBOARD_ROUTE_PATTERN.test(pathname) || ADMIN_ROUTE_PATTERN.test(pathname) || ORG_ROUTE_PATTERN.test(pathname);
 
 // The single source of truth for "is this a protected staff-dashboard route" —
 // reused by the axios 401 interceptor so its redirect allowlist can't drift
