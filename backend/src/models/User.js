@@ -62,6 +62,18 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // Single-use, hashed, time-limited password reset token. Never stores
+    // the raw token — only its SHA-256 hash (see backend/src/utils/passwordReset.js).
+    // Cleared on successful reset, or overwritten by a newer forgot-password
+    // request (only the most recent request's token is ever valid).
+    password_reset_token_hash: {
+      type: String,
+      default: null,
+    },
+    password_reset_expires_at: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
