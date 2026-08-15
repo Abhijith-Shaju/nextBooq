@@ -11,5 +11,6 @@ export const useOrgCafes = () => {
       return data.data || [];
     },
     staleTime: 30 * 1000,
+    retry: false,
   });
 };

@@ -103,7 +103,7 @@ function CafeCard({ cafe }: { cafe: OrgCafe }) {
 }
 
 export default function OrgDashboardPage() {
-  const { data: cafes = [] } = useOrgCafes();
+  const { data: cafes = [], isLoading, isError } = useOrgCafes();
 
   return (
     <div className="space-y-6">
@@ -112,7 +112,11 @@ export default function OrgDashboardPage() {
         <p className="text-sm text-slate-600">All cafes under your organization.</p>
       </div>
 
-      {cafes.length === 0 ? (
+      {isLoading ? (
+        <p className="text-sm text-slate-500">Loading your cafes…</p>
+      ) : isError ? (
+        <p className="text-sm text-red-600">Couldn&apos;t load your cafes. Please try again.</p>
+      ) : cafes.length === 0 ? (
         <p className="text-sm text-slate-500">No cafes found for your organization yet.</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
