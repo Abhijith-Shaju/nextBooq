@@ -102,4 +102,106 @@ describe('Org routes', () => {
       today_reservation_count: 0,
     });
   });
+
+  describe('staff assignment', () => {
+    let staffTarget;
+
+    beforeEach(async () => {
+      staffTarget = await User.create({
+        name: 'Assignable Person',
+        email: 'org-routes-assignable@test.com',
+        phone: '+15559930010',
+        password_hash: 'pass',
+      });
+    });
+
+    test('assigns a manager role to an existing account by email', async () => {
+      const res = await request(app)
+        .post(`/api/v1/org/cafes/${cafeA._id}/staff`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ email: 'org-routes-assignable@test.com', role: 'manager' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toMatchObject({
+        email: 'org-routes-assignable@test.com',
+        cafe_id: cafeA._id.toString(),
+        role: 'manager',
+      });
+
+      const updated = await User.findById(staffTarget._id);
+      expect(updated.staff_memberships).toHaveLength(1);
+      expect(updated.staff_memberships[0].role).toBe('manager');
+    });
+
+    test('updates the role in place if the user already has a membership on that cafe', async () => {
+      staffTarget.staff_memberships.push({ cafe_id: cafeA._id, role: 'staff', permissions: [] });
+      await staffTarget.save();
+
+      const res = await request(app)
+        .post(`/api/v1/org/cafes/${cafeA._id}/staff`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ email: 'org-routes-assignable@test.com', role: 'host' });
+
+      expect(res.status).toBe(200);
+      const updated = await User.findById(staffTarget._id);
+      expect(updated.staff_memberships).toHaveLength(1);
+      expect(updated.staff_memberships[0].role).toBe('host');
+    });
+
+    test('rejects an unknown email with 404 and makes no changes', async () => {
+      const res = await request(app)
+        .post(`/api/v1/org/cafes/${cafeA._id}/staff`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ email: 'no-such-account@test.com', role: 'manager' });
+
+      expect(res.status).toBe(404);
+    });
+
+    test('rejects an invalid role with 400', async () => {
+      const res = await request(app)
+        .post(`/api/v1/org/cafes/${cafeA._id}/staff`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ email: 'org-routes-assignable@test.com', role: 'ceo' });
+
+      expect(res.status).toBe(400);
+    });
+
+    test('rejects a cafe id that does not belong to the caller\'s org with 403', async () => {
+      const otherOrg = await Organization.create({ name: 'Other Org' });
+      const otherCafe = await Cafe.create({
+        org_id: otherOrg._id,
+        name: 'Other Cafe',
+        slug: 'org-routes-other-cafe',
+        timezone: 'UTC',
+      });
+
+      const res = await request(app)
+        .post(`/api/v1/org/cafes/${otherCafe._id}/staff`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ email: 'org-routes-assignable@test.com', role: 'manager' });
+
+      expect(res.status).toBe(403);
+    });
+
+    test('removes an existing staff membership', async () => {
+      staffTarget.staff_memberships.push({ cafe_id: cafeA._id, role: 'staff', permissions: [] });
+      await staffTarget.save();
+
+      const res = await request(app)
+        .delete(`/api/v1/org/cafes/${cafeA._id}/staff/${staffTarget._id}`)
+        .set('Authorization', `Bearer ${ownerToken}`);
+
+      expect(res.status).toBe(200);
+      const updated = await User.findById(staffTarget._id);
+      expect(updated.staff_memberships).toHaveLength(0);
+    });
+
+    test('returns 404 when removing a membership that does not exist', async () => {
+      const res = await request(app)
+        .delete(`/api/v1/org/cafes/${cafeA._id}/staff/${staffTarget._id}`)
+        .set('Authorization', `Bearer ${ownerToken}`);
+
+      expect(res.status).toBe(404);
+    });
+  });
 });

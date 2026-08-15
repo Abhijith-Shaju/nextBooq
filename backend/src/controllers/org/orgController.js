@@ -1,7 +1,10 @@
 const Cafe = require('../../models/Cafe');
 const Reservation = require('../../models/Reservation');
+const User = require('../../models/User');
+const { BadRequestError, NotFoundError, ForbiddenError } = require('../../utils/errors');
 
 const NON_COUNTED_STATUSES = ['CANCELLED', 'EXPIRED'];
+const ASSIGNABLE_ROLES = ['owner', 'manager', 'host', 'staff'];
 
 const getCafes = async (req, res, next) => {
   try {
@@ -41,4 +44,85 @@ const getCafes = async (req, res, next) => {
   }
 };
 
-module.exports = { getCafes };
+const assertCafeInOwnedOrg = async (cafeId, ownerOrgId) => {
+  const cafe = await Cafe.findOne({ _id: cafeId, is_deleted: false });
+  if (!cafe || cafe.org_id.toString() !== ownerOrgId.toString()) {
+    throw new ForbiddenError('Cafe does not belong to your organization');
+  }
+  return cafe;
+};
+
+const postAssignStaff = async (req, res, next) => {
+  try {
+    const { cafeId } = req.params;
+    const { email, role } = req.body;
+
+    if (typeof email !== 'string' || !email.trim()) {
+      throw new BadRequestError('email is required');
+    }
+    if (!ASSIGNABLE_ROLES.includes(role)) {
+      throw new BadRequestError(`role must be one of ${ASSIGNABLE_ROLES.join(', ')}`);
+    }
+
+    await assertCafeInOwnedOrg(cafeId, req.ownerOrgId);
+
+    const cleanEmail = email.trim().toLowerCase();
+    const targetUser = await User.findOne({ email: cleanEmail });
+    if (!targetUser) {
+      throw new NotFoundError('No account found with that email');
+    }
+
+    const existingMembership = targetUser.staff_memberships.find(
+      (membership) => membership.cafe_id.toString() === cafeId
+    );
+    if (existingMembership) {
+      existingMembership.role = role;
+    } else {
+      targetUser.staff_memberships.push({ cafe_id: cafeId, role, permissions: [] });
+    }
+    await targetUser.save();
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        user_id: targetUser._id.toString(),
+        email: targetUser.email,
+        cafe_id: cafeId,
+        role,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteStaff = async (req, res, next) => {
+  try {
+    const { cafeId, userId } = req.params;
+
+    await assertCafeInOwnedOrg(cafeId, req.ownerOrgId);
+
+    const targetUser = await User.findById(userId);
+    if (!targetUser) {
+      throw new NotFoundError('User not found');
+    }
+
+    const beforeCount = targetUser.staff_memberships.length;
+    targetUser.staff_memberships = targetUser.staff_memberships.filter(
+      (membership) => membership.cafe_id.toString() !== cafeId
+    );
+    if (targetUser.staff_memberships.length === beforeCount) {
+      throw new NotFoundError('User has no staff membership on this cafe');
+    }
+    await targetUser.save();
+
+    res.status(200).json({
+      status: 'success',
+      data: { user_id: userId, cafe_id: cafeId },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getCafes, postAssignStaff, deleteStaff };
