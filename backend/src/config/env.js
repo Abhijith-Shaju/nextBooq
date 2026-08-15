@@ -26,6 +26,16 @@ const envSchema = z
     // trivially spoofable/collapse to one IP. "0"/unset means "don't trust
     // any proxy" (safe default for direct-exposure deployments).
     TRUST_PROXY: z.string().optional().default('0'),
+    // Optional: if unset, emailService logs the reset link to the console
+    // instead of calling Resend — keeps local dev and tests working without
+    // a real API key.
+    RESEND_API_KEY: z.string().optional(),
+    // Resend's shared sandbox sender — safe default for local/test; override
+    // in production with a domain you've verified with Resend.
+    FROM_EMAIL: z.string().optional().default('nextBooq <onboarding@resend.dev>'),
+    // Used to build absolute links (e.g. password reset) in emails, since the
+    // backend has no other way to know the frontend's public origin.
+    FRONTEND_URL: z.string().optional().default('http://localhost:3000'),
   })
   .superRefine((data, ctx) => {
     // RAZORPAY_WEBHOOK_SECRET gates the HMAC signature check that authorizes
