@@ -3,11 +3,12 @@
 import { createContext, useContext, ReactNode } from 'react';
 import { AuthUser } from '@/lib/types/auth';
 import { axiosInstance } from '@/hooks/api/axios-instance';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useBookingStore } from '@/store/use-booking-store';
 import { useDashboardStore } from '@/store/use-dashboard-store';
+import { useMe } from '@/hooks/auth/use-me';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -22,19 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['me'],
-    queryFn: async () => {
-      try {
-        const response = await axiosInstance.get('/api/v1/auth/me');
-        return response.data?.data as AuthUser;
-      } catch (error) {
-        return null;
-      }
-    },
-    retry: false,
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data, isLoading } = useMe();
 
   const logout = async () => {
     try {

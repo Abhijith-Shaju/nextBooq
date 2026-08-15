@@ -33,7 +33,8 @@ axiosInstance.interceptors.response.use(
             // routes — shares the same route list the dashboard middleware
             // itself protects (lib/route-guard.ts), so this can't drift stale.
             if (isDashboardRoute(path)) {
-              window.location.href = '/auth/login';
+              const callbackUrl = `${path}${window.location.search}${window.location.hash}`;
+              window.location.href = `/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`;
             }
           }
           break;

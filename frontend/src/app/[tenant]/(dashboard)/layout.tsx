@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useTenant } from '@/components/providers/tenant-provider';
 import { useQueryClient } from '@tanstack/react-query';
 import { io } from 'socket.io-client';
@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 
 export default function TenantDashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { cafe } = useTenant();
   const { user, isLoading: isAuthLoading, logout } = useAuth();
@@ -27,11 +28,17 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
   // dashboard shell (and firing every query on the page) before that 403s.
   useEffect(() => {
     if (isAuthLoading) return;
-    if (!user || !hasStaffMembershipForCafe(user, cafe.id)) {
-      toast.error("You don't have staff access to this cafe.");
-      router.replace('/auth/login');
+    if (!user) {
+      const query = searchParams.toString();
+      const callbackUrl = `${pathname}${query ? `?${query}` : ''}`;
+      router.replace(`/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+      return;
     }
-  }, [isAuthLoading, user, cafe.id, router]);
+    if (!hasStaffMembershipForCafe(user, cafe.id)) {
+      toast.error("You don't have staff access to this cafe.");
+      router.replace('/');
+    }
+  }, [isAuthLoading, user, cafe.id, pathname, router, searchParams]);
 
   // WebSocket Connection Lifecycle
   useEffect(() => {

@@ -51,7 +51,6 @@ export function applyAuthResult(queryClient: QueryClient, authData: AuthResult |
   // seeds the client-side user cache from the response body.
   if (authData?.user) {
     queryClient.setQueryData(['me'], authData.user);
-    queryClient.invalidateQueries({ queryKey: ['me'] });
   }
   return authData?.user;
 }

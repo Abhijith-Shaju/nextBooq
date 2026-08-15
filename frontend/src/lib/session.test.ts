@@ -32,13 +32,13 @@ describe('session', () => {
     expect(queryClient.getQueryData(['me'])).toEqual(user);
   });
 
-  test('applyAuthResult invalidates the ["me"] query', () => {
+  test('applyAuthResult keeps the response-seeded ["me"] query fresh', () => {
     const queryClient = new QueryClient();
     const user = { id: 'u1', name: 'Jane', email: 'jane@example.com' } as any;
 
     applyAuthResult(queryClient, { token: 'jwt-abc123', user });
 
-    expect(queryClient.getQueryState(['me'])?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(['me'])?.isInvalidated).toBe(false);
   });
 
   test('applyAuthResult returns undefined and does not throw when authData is undefined', () => {

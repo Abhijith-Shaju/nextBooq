@@ -5,6 +5,10 @@ import React from 'react';
 import AdminOverviewPage from './page';
 import { axiosInstance } from '@/hooks/api/axios-instance';
 
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock('@/hooks/api/axios-instance', () => ({
   axiosInstance: { get: vi.fn() },
 }));

@@ -21,15 +21,11 @@ export function isDashboardRoute(pathname: string): boolean {
   return isProtectedRoute(pathname);
 }
 
-export function resolveRedirect(pathname: string, cookieHeader: string | null): RedirectDecision | null {
+export function resolveRedirect(pathname: string, cookieHeader: string | null, search = ''): RedirectDecision | null {
   const hasSession = hasValidSessionCookie(cookieHeader);
 
-  if (pathname === '/onboarding' && !hasSession) {
-    return { redirectTo: '/auth/login', callbackUrl: '/onboarding' };
-  }
-
   if (isProtectedRoute(pathname) && !hasSession) {
-    return { redirectTo: '/auth/login', callbackUrl: pathname };
+    return { redirectTo: '/auth/login', callbackUrl: `${pathname}${search}` };
   }
 
   return null;

@@ -6,9 +6,80 @@ const {
   setSubscriptionStatus,
 } = require('../../services/subscriptionAdminService');
 const { BadRequestError } = require('../../utils/errors');
+const User = require('../../models/User');
+const { provisionCafe } = require('../../services/cafeProvisioningService');
 
 const VALID_TERM_MONTHS = [1, 6, 12, 18];
 const VALID_STATUSES = ['trial', 'active', 'past_due', 'inactive'];
+
+const normalizeLookupEmail = (email) => {
+  if (typeof email !== 'string' || !email.trim()) {
+    throw new BadRequestError('email is required');
+  }
+  return email.trim().toLowerCase();
+};
+
+const getOwnerLookup = async (req, res, next) => {
+  try {
+    const email = normalizeLookupEmail(req.query.email);
+    const user = await User.findOne({ email })
+      .populate({
+        path: 'staff_memberships.cafe_id',
+        match: { is_deleted: false },
+        select: 'name slug timezone org_id',
+        populate: { path: 'org_id', select: 'name' },
+      });
+    if (!user) {
+      const { NotFoundError } = require('../../utils/errors');
+      throw new NotFoundError('User not found');
+    }
+
+    const memberships = user.staff_memberships
+      .filter((membership) => membership.cafe_id)
+      .map((membership) => ({
+        role: membership.role,
+        cafe: {
+          id: membership.cafe_id._id.toString(),
+          name: membership.cafe_id.name,
+          slug: membership.cafe_id.slug,
+          organization: membership.cafe_id.org_id ? {
+            id: membership.cafe_id.org_id._id.toString(),
+            name: membership.cafe_id.org_id.name,
+          } : null,
+        },
+      }));
+    const organizations = new Map();
+    for (const membership of memberships) {
+      if (membership.role === 'owner' && membership.cafe.organization) {
+        organizations.set(membership.cafe.organization.id, membership.cafe.organization);
+      }
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        user: {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          staff_memberships: memberships,
+          owned_organizations: [...organizations.values()],
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const postProvisionCafe = async (req, res, next) => {
+  try {
+    const data = await provisionCafe({ ...req.body, adminUserId: req.user._id });
+    res.status(201).json({ status: 'success', data });
+  } catch (error) {
+    next(error);
+  }
+};
 
 const getOverview = async (req, res, next) => {
   try {
@@ -46,12 +117,18 @@ const postCafeSubscription = async (req, res, next) => {
     if (!org_id) {
       throw new BadRequestError('org_id is required');
     }
-    const termMonths = Number(term_months);
+    if (typeof term_months !== 'number' || !Number.isFinite(term_months)) {
+      throw new BadRequestError('term_months must be a JSON number');
+    }
+    const termMonths = term_months;
     if (!VALID_TERM_MONTHS.includes(termMonths)) {
       throw new BadRequestError(`term_months must be one of ${VALID_TERM_MONTHS.join(', ')}`);
     }
-    const pricePerMonth = Number(price_per_month);
-    if (!Number.isFinite(pricePerMonth) || pricePerMonth < 0) {
+    if (typeof price_per_month !== 'number' || !Number.isFinite(price_per_month)) {
+      throw new BadRequestError('price_per_month must be a JSON number');
+    }
+    const pricePerMonth = price_per_month;
+    if (pricePerMonth < 0) {
       throw new BadRequestError('price_per_month must be a non-negative number');
     }
 
@@ -93,6 +170,8 @@ const patchCafeSubscriptionStatus = async (req, res, next) => {
 };
 
 module.exports = {
+  getOwnerLookup,
+  postProvisionCafe,
   getOverview,
   getOrgs,
   getCafeSubscriptions,

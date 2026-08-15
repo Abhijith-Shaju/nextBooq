@@ -12,7 +12,8 @@ import { resolveRedirect } from "@/lib/route-guard";
 export function middleware(request: NextRequest) {
   const decision = resolveRedirect(
     request.nextUrl.pathname,
-    request.headers.get("cookie")
+    request.headers.get("cookie"),
+    request.nextUrl.search
   );
 
   if (!decision) {

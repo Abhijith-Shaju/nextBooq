@@ -4,6 +4,7 @@ const User = require('../models/User');
 const config = require('../config/env');
 const { BadRequestError, UnauthorizedError } = require('../utils/errors');
 const { logAuditEvent } = require('../services/auditService');
+const { ACTIVE_STAFF_MEMBERSHIP_POPULATE, buildAuthUserPayload } = require('../utils/authUserResponse');
 
 const SESSION_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MIN_PASSWORD_LENGTH = 8;
@@ -98,12 +99,7 @@ const registerUser = async (req, res, next) => {
       status: 'success',
       data: {
         token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-        },
+        user: buildAuthUserPayload(user),
       },
     });
   } catch (error) {
@@ -121,17 +117,15 @@ const loginUser = async (req, res, next) => {
       throw new BadRequestError('email and password must be strings');
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() }).populate({
-      path: 'staff_memberships.cafe_id',
-      select: 'name slug timezone org_id',
-    });
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: cleanEmail }).populate(ACTIVE_STAFF_MEMBERSHIP_POPULATE);
     if (!user) {
       await logAuditEvent({
         cafeId: null,
         entityType: 'User',
         entityId: null,
         action: 'LOGIN_FAILED',
-        afterState: { attempted_email: email.toLowerCase(), ip: req.ip },
+        afterState: { attempted_email: cleanEmail, ip: req.ip },
         performedByUserId: null,
       });
       throw new UnauthorizedError('Invalid credentials');
@@ -165,13 +159,7 @@ const loginUser = async (req, res, next) => {
       status: 'success',
       data: {
         token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          staff_memberships: user.staff_memberships,
-        },
+        user: buildAuthUserPayload(user),
       },
     });
   } catch (error) {
@@ -181,10 +169,7 @@ const loginUser = async (req, res, next) => {
 
 const getMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id).populate({
-      path: 'staff_memberships.cafe_id',
-      select: 'name slug timezone org_id',
-    });
+    const user = await User.findById(req.user._id).populate(ACTIVE_STAFF_MEMBERSHIP_POPULATE);
 
     if (!user) {
       throw new UnauthorizedError('User not found');
@@ -192,14 +177,7 @@ const getMe = async (req, res, next) => {
 
     res.status(200).json({
       status: 'success',
-      data: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        staff_memberships: user.staff_memberships,
-        is_platform_admin: user.is_platform_admin,
-      },
+      data: buildAuthUserPayload(user),
     });
   } catch (error) {
     next(error);
@@ -272,6 +250,8 @@ const customerQuickAuth = async (req, res, next) => {
     const token = generateToken(user._id);
     setAuthCookie(res, token);
 
+    await user.populate(ACTIVE_STAFF_MEMBERSHIP_POPULATE);
+
     await logAuditEvent({
       cafeId: null,
       entityType: 'User',
@@ -284,13 +264,7 @@ const customerQuickAuth = async (req, res, next) => {
       status: 'success',
       data: {
         token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          staff_memberships: user.staff_memberships,
-        },
+        user: buildAuthUserPayload(user),
       },
     });
   } catch (error) {

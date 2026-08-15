@@ -6,6 +6,8 @@ import AdminLayout from './layout';
 const replaceMock = vi.fn();
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: replaceMock }),
+  usePathname: () => '/admin',
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock('sonner', () => ({ toast: { error: vi.fn() } }));
@@ -20,7 +22,7 @@ describe('AdminLayout', () => {
     replaceMock.mockReset();
   });
 
-  test('redirects to login when the user is not a platform admin', async () => {
+  test('redirects a non-admin user home instead of into a login loop', async () => {
     useAuthMock.mockReturnValue({
       user: { id: 'u1', name: 'Regular', is_platform_admin: false },
       isAuthenticated: true,
@@ -29,7 +31,7 @@ describe('AdminLayout', () => {
 
     render(<AdminLayout>{'child content'}</AdminLayout>);
 
-    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/auth/login'));
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/'));
   });
 
   test('redirects to login when there is no authenticated user at all', async () => {
@@ -37,7 +39,7 @@ describe('AdminLayout', () => {
 
     render(<AdminLayout>{'child content'}</AdminLayout>);
 
-    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/auth/login'));
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/auth/login?callbackUrl=%2Fadmin'));
   });
 
   test('renders children without redirecting for a platform admin', async () => {

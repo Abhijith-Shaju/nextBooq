@@ -100,6 +100,30 @@ describe('Platform admin routes', () => {
     expect(res.status).toBe(400);
   });
 
+  test.each([
+    ['term null', 'term_months', null],
+    ['term string', 'term_months', '12'],
+    ['term boolean', 'term_months', false],
+    ['term empty string', 'term_months', ''],
+    ['price null', 'price_per_month', null],
+    ['price string', 'price_per_month', '7000'],
+    ['price boolean', 'price_per_month', false],
+    ['price empty string', 'price_per_month', ''],
+  ])('POST /cafes/:cafeId/subscriptions rejects non-numeric JSON %s', async (_label, field, invalidValue) => {
+    const res = await request(app)
+      .post(`/api/v1/platform-admin/cafes/${cafe._id}/subscriptions`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        org_id: org._id.toString(),
+        term_months: field === 'term_months' ? invalidValue : 12,
+        price_per_month: field === 'price_per_month' ? invalidValue : 7000,
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe(`${field} must be a JSON number`);
+    expect(await Subscription.countDocuments({ cafe_id: cafe._id })).toBe(0);
+  });
+
   test('GET /cafes/:cafeId/subscriptions returns history newest-first', async () => {
     await Subscription.create({
       org_id: org._id,

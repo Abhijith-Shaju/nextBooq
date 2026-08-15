@@ -2,16 +2,8 @@
 
 import Link from 'next/link';
 import { Check, Sparkles } from 'lucide-react';
-import { useOnboardingStore } from '@/store/use-onboarding-store';
-import { useRouter } from 'next/navigation';
 
-interface PricingCardsProps {
-  interactive?: boolean;
-}
-
-export function PricingCards({ interactive = false }: PricingCardsProps) {
-  const router = useRouter();
-  const { selectedPlan, setSelectedPlan, setStep } = useOnboardingStore();
+export function PricingCards() {
 
   const plans = [
     {
@@ -62,19 +54,9 @@ export function PricingCards({ interactive = false }: PricingCardsProps) {
     },
   ];
 
-  const handleSelectPlan = (planId: 'starter' | 'pro' | 'enterprise') => {
-    setSelectedPlan(planId);
-    if (interactive) {
-      setStep(3);
-    } else {
-      router.push('/auth/register');
-    }
-  };
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto px-4">
       {plans.map((plan) => {
-        const isSelected = selectedPlan === plan.id;
         return (
           <div
             key={plan.id}
@@ -93,15 +75,6 @@ export function PricingCards({ interactive = false }: PricingCardsProps) {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold font-display">{plan.name}</h3>
-                {interactive && (
-                  <input
-                    type="radio"
-                    name="plan"
-                    checked={isSelected}
-                    onChange={() => handleSelectPlan(plan.id as any)}
-                    className="w-5 h-5 accent-brand-red cursor-pointer"
-                  />
-                )}
               </div>
 
               <p
@@ -139,16 +112,16 @@ export function PricingCards({ interactive = false }: PricingCardsProps) {
               </ul>
             </div>
 
-            <button
-              onClick={() => handleSelectPlan(plan.id as any)}
+            <Link
+              href="/auth/register"
               className={`w-full py-3.5 px-6 rounded-full font-semibold transition-all duration-200 shadow-md ${
                 plan.highlight
                   ? 'bg-brand-red hover:bg-red-700 text-white'
                   : 'bg-brand-brown hover:bg-stone-900 text-white'
               }`}
             >
-              {interactive ? (isSelected ? 'Selected' : 'Select Plan') : 'Choose Plan'}
-            </button>
+              Create account
+            </Link>
           </div>
         );
       })}

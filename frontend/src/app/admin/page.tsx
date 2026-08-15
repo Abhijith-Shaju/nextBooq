@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAdminOverview } from '@/hooks/admin/use-admin-overview';
 import { useAdminOrgs } from '@/hooks/admin/use-admin-orgs';
 import { CafeWithSubscription } from '@/lib/types/models';
@@ -33,6 +35,14 @@ export default function AdminOverviewPage() {
   const { data: stats } = useAdminOverview();
   const { data: orgs = [] } = useAdminOrgs();
   const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const requestedCafeId = searchParams.get('cafeId');
+
+  useEffect(() => {
+    if (requestedCafeId && orgs.some((org) => org.cafes.some((cafe) => cafe._id === requestedCafeId))) {
+      setSelectedCafeId(requestedCafeId);
+    }
+  }, [requestedCafeId, orgs]);
 
   const handleSelectCafe = (cafeId: string) => setSelectedCafeId(cafeId);
 
@@ -40,6 +50,10 @@ export default function AdminOverviewPage() {
 
   return (
     <div className="space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div><h2 className="text-2xl font-bold">Platform overview</h2><p className="text-sm text-slate-600">Organizations, cafes, and subscriptions.</p></div>
+        <Link href="/admin/onboard-cafe" className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Onboard Cafe</Link>
+      </div>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {STAT_LABELS.map(({ key, label }) => (
           <div key={key} className="rounded-lg border border-slate-200 bg-white p-4">

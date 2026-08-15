@@ -124,6 +124,7 @@ const setSubscriptionStatus = async ({ cafeId, status, adminUserId, note }) => {
 };
 
 module.exports = {
+  computeCurrentPeriodEnd,
   getOverviewStats,
   listOrgsWithCafes,
   getCafeSubscriptionHistory,

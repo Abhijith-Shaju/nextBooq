@@ -7,6 +7,7 @@ import { Menu, X, Coffee, LogOut, LayoutDashboard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/components/providers/auth-provider'
+import { resolvePostAuthDestination } from '@/lib/auth/post-auth-destination'
 
 const navLinks = [
   { label: 'Features', href: '#features' },
@@ -25,10 +26,9 @@ export default function MarketingHeader() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const firstMembership = user?.staff_memberships?.[0]
-  const cafeObj = firstMembership?.cafe_id
-  const cafeSlug = typeof cafeObj === 'object' && cafeObj?.slug ? cafeObj.slug : null
-  const dashboardHref = cafeSlug ? `/${cafeSlug}/dashboard` : '/onboarding'
+  const dashboardHref = user ? resolvePostAuthDestination(user) : null
+  const hasDashboardLink = dashboardHref !== null && dashboardHref !== '/'
+  const dashboardLabel = user?.is_platform_admin ? 'Admin' : 'Dashboard'
 
   return (
     <header
@@ -74,12 +74,14 @@ export default function MarketingHeader() {
           <div className="hidden md:flex items-center gap-3">
             {isAuthenticated ? (
               <>
-                <Button variant="brand" size="default" asChild>
-                  <Link href={dashboardHref} className="flex items-center gap-1.5">
-                    <LayoutDashboard className="w-4 h-4" />
-                    Dashboard
-                  </Link>
-                </Button>
+                {hasDashboardLink && (
+                  <Button variant="brand" size="default" asChild>
+                    <Link href={dashboardHref} className="flex items-center gap-1.5">
+                      <LayoutDashboard className="w-4 h-4" />
+                      {dashboardLabel}
+                    </Link>
+                  </Button>
+                )}
                 <button
                   onClick={() => logout()}
                   className="p-2 rounded-xl text-brand-mocha hover:text-brand-red hover:bg-brand-tan/50 transition-colors"
@@ -141,11 +143,13 @@ export default function MarketingHeader() {
               <div className="flex flex-col gap-3 pt-2 border-t border-brand-tan">
                 {isAuthenticated ? (
                   <>
-                    <Button variant="brand" size="lg" asChild className="w-full">
-                      <Link href={dashboardHref} onClick={() => setMobileOpen(false)}>
-                        Go to Dashboard
-                      </Link>
-                    </Button>
+                    {hasDashboardLink && (
+                      <Button variant="brand" size="lg" asChild className="w-full">
+                        <Link href={dashboardHref} onClick={() => setMobileOpen(false)}>
+                          Go to {dashboardLabel}
+                        </Link>
+                      </Button>
+                    )}
                     <button
                       onClick={() => {
                         setMobileOpen(false)

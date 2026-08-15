@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { toast } from 'sonner';
 
@@ -17,15 +17,22 @@ import { toast } from 'sonner';
  */
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user, isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
     if (isLoading) return;
-    if (!isAuthenticated || !user?.is_platform_admin) {
-      toast.error("You don't have access to this area.");
-      router.replace('/auth/login');
+    if (!isAuthenticated) {
+      const callbackUrl = `${pathname}${searchParams.size ? `?${searchParams.toString()}` : ''}`;
+      router.replace(`/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+      return;
     }
-  }, [isLoading, isAuthenticated, user, router]);
+    if (!user?.is_platform_admin) {
+      toast.error("You don't have access to this area.");
+      router.replace('/');
+    }
+  }, [isLoading, isAuthenticated, user, router, pathname, searchParams]);
 
   if (isLoading || !isAuthenticated || !user?.is_platform_admin) {
     return null;

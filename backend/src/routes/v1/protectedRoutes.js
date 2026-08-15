@@ -14,13 +14,10 @@ const {
   createTable,
   updateTable,
 } = require('../../controllers/admin/tableController');
-const { createCafe, updateCafe } = require('../../controllers/admin/cafeController');
+const { updateCafe } = require('../../controllers/admin/cafeController');
 
 // Global Auth required for all protected routes
 router.use(authenticate);
-
-// Create Cafe & Organization
-router.post('/cafes', createCafe);
 
 // Update Cafe Settings / Reservation Rules (edit_settings permission required)
 router.put(

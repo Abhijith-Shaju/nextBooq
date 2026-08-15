@@ -148,9 +148,18 @@ export interface AvailableSlot {
   reason?: string;
 }
 
+export interface StaffMembershipCafe {
+  id?: string;
+  _id?: string;
+  name: string;
+  slug: string;
+  timezone?: string;
+  reservation_rules?: Partial<ReservationRules>;
+}
+
 export interface StaffMembership {
-  cafe_id: string | Cafe;
-  role: 'owner' | 'manager' | 'host';
+  cafe_id: string | StaffMembershipCafe;
+  role: 'owner' | 'manager' | 'host' | 'staff';
   permissions: string[];
 }
 
@@ -162,6 +171,6 @@ export interface User {
   phone?: string;
   staff_memberships: StaffMembership[];
   created_at?: string;
-  is_platform_admin?: boolean;
+  is_platform_admin: boolean;
 }
 

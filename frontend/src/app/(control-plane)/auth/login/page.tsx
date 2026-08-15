@@ -6,6 +6,7 @@ import { Coffee, ArrowRight, Loader2, Lock, Mail } from 'lucide-react';
 import { useLogin } from '@/hooks/auth/use-login';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { resolvePostAuthDestination } from '@/lib/auth/post-auth-destination';
 
 function LoginForm() {
   const router = useRouter();
@@ -27,24 +28,7 @@ function LoginForm() {
       { email, password },
       {
         onSuccess: (user) => {
-          if (callbackUrl) {
-            router.push(callbackUrl);
-            return;
-          }
-
-          if (user?.staff_memberships && user.staff_memberships.length > 0) {
-            const firstMembership = user.staff_memberships[0];
-            const cafeObj = firstMembership?.cafe_id;
-            const slug = typeof cafeObj === 'object' && cafeObj?.slug ? cafeObj.slug : null;
-
-            if (slug) {
-              router.push(`/${slug}/dashboard`);
-            } else {
-              router.push('/onboarding');
-            }
-          } else {
-            router.push('/onboarding');
-          }
+          router.push(resolvePostAuthDestination(user, callbackUrl));
         },
       }
     );
@@ -122,7 +106,7 @@ export default function LoginPage() {
           <div className="text-center">
             <h1 className="font-display text-3xl font-bold text-brand-brown">Welcome back</h1>
             <p className="font-sans text-brand-mocha text-sm mt-1">
-              Log in to your nextBooq operator dashboard
+              Log in to your nextBooq account
             </p>
           </div>
 

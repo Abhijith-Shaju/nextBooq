@@ -31,7 +31,7 @@ export default function RegisterPage() {
       { name, email, phone, password },
       {
         onSuccess: () => {
-          router.push('/onboarding');
+          router.push('/');
         },
       }
     );
@@ -53,7 +53,7 @@ export default function RegisterPage() {
           <div className="text-center">
             <h1 className="font-display text-3xl font-bold text-brand-brown">Create Account</h1>
             <p className="font-sans text-brand-mocha text-sm mt-1">
-              Start your 14-day free trial for nextBooq
+              Create your nextBooq account to book and manage reservations.
             </p>
           </div>
 
@@ -138,7 +138,7 @@ export default function RegisterPage() {
                 </>
               ) : (
                 <>
-                  Continue to Onboarding <ArrowRight className="w-4 h-4 ml-1" />
+                  Create Account <ArrowRight className="w-4 h-4 ml-1" />
                 </>
               )}
             </button>
