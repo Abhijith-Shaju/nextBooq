@@ -6,6 +6,8 @@ const { BadRequestError, UnauthorizedError } = require('../utils/errors');
 const { logAuditEvent } = require('../services/auditService');
 const { ACTIVE_STAFF_MEMBERSHIP_POPULATE, buildAuthUserPayload } = require('../utils/authUserResponse');
 const { getOwnedOrgId } = require('../services/orgOwnershipService');
+const { generateResetToken, hashResetToken } = require('../utils/passwordReset');
+const { sendPasswordResetEmail } = require('../services/emailService');
 
 const SESSION_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MIN_PASSWORD_LENGTH = 8;
@@ -201,6 +203,87 @@ const logoutUser = async (req, res, next) => {
   }
 };
 
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email || typeof email !== 'string') {
+      throw new BadRequestError('Email is required');
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: cleanEmail });
+
+    if (user) {
+      const { rawToken, tokenHash, expiresAt } = generateResetToken();
+      user.password_reset_token_hash = tokenHash;
+      user.password_reset_expires_at = expiresAt;
+      await user.save();
+
+      const resetUrl = `${config.FRONTEND_URL}/auth/reset-password?token=${rawToken}`;
+      await sendPasswordResetEmail({ to: user.email, resetUrl });
+
+      await logAuditEvent({
+        cafeId: null,
+        entityType: 'User',
+        entityId: user._id,
+        action: 'PASSWORD_RESET_REQUESTED',
+        performedByUserId: user._id,
+      });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      message: 'If an account exists for that email, a reset link has been sent.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || typeof token !== 'string') {
+      throw new BadRequestError('Reset token is required');
+    }
+    if (!password || typeof password !== 'string') {
+      throw new BadRequestError('New password is required');
+    }
+    assertPasswordStrength(password);
+
+    const tokenHash = hashResetToken(token);
+    const user = await User.findOne({
+      password_reset_token_hash: tokenHash,
+      password_reset_expires_at: { $gt: new Date() },
+    });
+
+    if (!user) {
+      throw new BadRequestError('This reset link is invalid or has expired.');
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password_hash = await bcrypt.hash(password, salt);
+    user.password_reset_token_hash = null;
+    user.password_reset_expires_at = null;
+    await user.save();
+
+    await logAuditEvent({
+      cafeId: null,
+      entityType: 'User',
+      entityId: user._id,
+      action: 'PASSWORD_RESET',
+      performedByUserId: user._id,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Password updated. You can now log in.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const customerQuickAuth = async (req, res, next) => {
   try {
     const { name, email, phone, password } = req.body;
@@ -301,6 +384,8 @@ module.exports = {
   loginUser,
   getMe,
   logoutUser,
+  forgotPassword,
+  resetPassword,
   customerQuickAuth,
   getSocketToken,
 };
