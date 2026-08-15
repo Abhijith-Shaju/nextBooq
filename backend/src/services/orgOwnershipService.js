@@ -7,7 +7,7 @@ const Cafe = require('../models/Cafe');
 // non-deleted cafes (see ACTIVE_STAFF_MEMBERSHIP_POPULATE in
 // authUserResponse.js) — unpopulated (ObjectId) entries are skipped.
 const getOwnedOrgId = async (user) => {
-  const ownedCafeCountByOrgId = new Map();
+  const ownedCafeIdsByOrgId = new Map();
 
   for (const membership of user.staff_memberships) {
     if (membership.role !== 'owner') continue;
@@ -15,12 +15,16 @@ const getOwnedOrgId = async (user) => {
     if (!cafe || typeof cafe !== 'object' || !cafe.org_id) continue;
 
     const orgIdStr = cafe.org_id.toString();
-    ownedCafeCountByOrgId.set(orgIdStr, (ownedCafeCountByOrgId.get(orgIdStr) || 0) + 1);
+    const cafeIdStr = cafe._id.toString();
+    if (!ownedCafeIdsByOrgId.has(orgIdStr)) {
+      ownedCafeIdsByOrgId.set(orgIdStr, new Set());
+    }
+    ownedCafeIdsByOrgId.get(orgIdStr).add(cafeIdStr);
   }
 
-  for (const [orgIdStr, ownedCount] of ownedCafeCountByOrgId) {
+  for (const [orgIdStr, ownedCafeIds] of ownedCafeIdsByOrgId) {
     const totalCafeCount = await Cafe.countDocuments({ org_id: orgIdStr, is_deleted: false });
-    if (totalCafeCount > 0 && totalCafeCount === ownedCount) {
+    if (totalCafeCount > 0 && totalCafeCount === ownedCafeIds.size) {
       return orgIdStr;
     }
   }

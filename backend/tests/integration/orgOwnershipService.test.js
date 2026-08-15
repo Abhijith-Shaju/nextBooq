@@ -111,4 +111,24 @@ describe('getOwnedOrgId', () => {
 
     await expect(getOwnedOrgId(populated)).resolves.toBe(org._id.toString());
   });
+
+  test('returns null when duplicate owner memberships point at the same cafe in a 2-cafe org', async () => {
+    const org = await Organization.create({ name: 'Duplicate Membership Org' });
+    const cafeA = await Cafe.create({ org_id: org._id, name: 'A', slug: 'org-dup-a', timezone: 'UTC' });
+    await Cafe.create({ org_id: org._id, name: 'B', slug: 'org-dup-b', timezone: 'UTC' });
+
+    const user = await User.create({
+      name: 'Duplicate Owner',
+      email: 'owner-duplicate@example.com',
+      phone: '+15550200007',
+      password_hash: 'hash',
+      staff_memberships: [
+        { cafe_id: cafeA._id, role: 'owner', permissions: [] },
+        { cafe_id: cafeA._id, role: 'owner', permissions: [] },
+      ],
+    });
+    const populated = await User.findById(user._id).populate(ACTIVE_STAFF_MEMBERSHIP_POPULATE);
+
+    await expect(getOwnedOrgId(populated)).resolves.toBeNull();
+  });
 });
