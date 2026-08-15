@@ -2,7 +2,7 @@
 
 import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { Coffee, ArrowRight, Loader2, Lock, Mail } from 'lucide-react';
+import { Coffee, ArrowRight, Loader2, Lock, Mail, Eye, EyeOff } from 'lucide-react';
 import { useLogin } from '@/hooks/auth/use-login';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ function LoginForm() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const loginMutation = useLogin();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -60,13 +61,21 @@ function LoginForm() {
         <div className="relative" suppressHydrationWarning>
           <Lock className="w-5 h-5 text-brand-mocha absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             required
             placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 rounded-xl border border-brand-brown/20 bg-white/80 focus:bg-white focus:ring-2 focus:ring-brand-red focus:outline-none transition-all text-sm"
+            className="w-full pl-10 pr-10 py-3 rounded-xl border border-brand-brown/20 bg-white/80 focus:bg-white focus:ring-2 focus:ring-brand-red focus:outline-none transition-all text-sm"
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-brand-mocha hover:text-brand-brown"
+          >
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
         </div>
       </div>
 

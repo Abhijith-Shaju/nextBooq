@@ -11,8 +11,6 @@ import { resolvePostAuthDestination } from '@/lib/auth/post-auth-destination'
 
 const navLinks = [
   { label: 'Features', href: '#features' },
-  { label: 'Menu', href: '#menu' },
-  { label: 'Pricing', href: '/pricing' },
 ]
 
 export default function MarketingHeader() {

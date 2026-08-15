@@ -92,18 +92,10 @@ export default function LandingHero() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <Button variant="brand" size="xl" asChild>
                 <Link href="/auth/register" className="flex items-center gap-2">
-                  View Menu
+                  Get Started
                   <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
-              <Link
-                href="/pricing"
-                className="text-brand-mocha hover:text-brand-brown font-medium text-base
-                           underline underline-offset-4 decoration-brand-mocha/40 hover:decoration-brand-brown
-                           transition-colors"
-              >
-                See pricing →
-              </Link>
             </div>
 
             {/* Feature pills */}
@@ -168,7 +160,6 @@ export default function LandingHero() {
                 <p className="font-display font-semibold text-brand-brown text-sm leading-tight">
                   Dark Chocolate Mocha
                 </p>
-                <p className="text-brand-red font-bold text-sm mt-0.5">₹379</p>
               </div>
 
               {/* Small floating secondary card #2 — top right */}
@@ -191,7 +182,6 @@ export default function LandingHero() {
                 <p className="font-display font-semibold text-brand-brown text-xs leading-tight">
                   Canadian Cappuccino
                 </p>
-                <p className="text-brand-red font-bold text-xs mt-0.5">₹319</p>
               </div>
 
               {/* Stat bubbles */}

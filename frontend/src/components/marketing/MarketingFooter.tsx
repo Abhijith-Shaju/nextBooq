@@ -5,7 +5,6 @@ import { Coffee, Twitter, Instagram, Linkedin, Github } from 'lucide-react'
 const footerLinks = {
   Product: [
     { label: 'Features', href: '#features' },
-    { label: 'Pricing', href: '/pricing' },
     { label: 'Demo', href: '/auth/register' },
     { label: 'Changelog', href: '#' },
   ],
