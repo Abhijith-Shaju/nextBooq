@@ -9,13 +9,15 @@ vi.mock('@/hooks/org/use-org-cafes', () => ({
 }));
 
 const assignMutateMock = vi.fn();
+let assignHookState = { mutate: assignMutateMock, isPending: false, isSuccess: false };
 vi.mock('@/hooks/org/use-assign-staff', () => ({
-  useAssignStaff: () => ({ mutate: assignMutateMock, isPending: false }),
+  useAssignStaff: () => assignHookState,
 }));
 
 describe('OrgDashboardPage', () => {
   beforeEach(() => {
     assignMutateMock.mockReset();
+    assignHookState = { mutate: assignMutateMock, isPending: false, isSuccess: false };
   });
 
   test('lists every cafe with its subscription status and reservation count', () => {
@@ -68,5 +70,42 @@ describe('OrgDashboardPage', () => {
     render(<OrgDashboardPage />);
 
     expect(screen.getByText(/no cafes/i)).toBeInTheDocument();
+  });
+
+  test('keeps the assign-staff form open with the typed input intact when the mutation has not succeeded', async () => {
+    cafesMock.mockReturnValue({
+      data: [{ _id: 'cafe-1', name: 'Cafe One', slug: 'cafe-one', subscription_status: 'active', today_reservation_count: 0 }],
+    });
+
+    render(<OrgDashboardPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /assign staff/i }));
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'new-manager@example.com' } });
+    fireEvent.change(screen.getByLabelText(/role/i), { target: { value: 'manager' } });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => expect(assignMutateMock).toHaveBeenCalled());
+
+    expect(screen.getByLabelText(/email/i)).toHaveValue('new-manager@example.com');
+  });
+
+  test('closes the assign-staff form when the mutation succeeds', async () => {
+    cafesMock.mockReturnValue({
+      data: [{ _id: 'cafe-1', name: 'Cafe One', slug: 'cafe-one', subscription_status: 'active', today_reservation_count: 0 }],
+    });
+
+    const { rerender } = render(<OrgDashboardPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /assign staff/i }));
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'new-manager@example.com' } });
+    fireEvent.change(screen.getByLabelText(/role/i), { target: { value: 'manager' } });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => expect(assignMutateMock).toHaveBeenCalled());
+
+    assignHookState = { mutate: assignMutateMock, isPending: false, isSuccess: true };
+    rerender(<OrgDashboardPage />);
+
+    await waitFor(() => expect(screen.queryByLabelText(/email/i)).not.toBeInTheDocument());
   });
 });
