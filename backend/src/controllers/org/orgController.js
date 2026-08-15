@@ -6,6 +6,15 @@ const { BadRequestError, NotFoundError, ForbiddenError } = require('../../utils/
 const NON_COUNTED_STATUSES = ['CANCELLED', 'EXPIRED'];
 const ASSIGNABLE_ROLES = ['owner', 'manager', 'host', 'staff'];
 
+// Owner gets [] because rbac.js short-circuits the owner role before ever
+// checking `permissions` — kept here for consistency across roles.
+const DEFAULT_PERMISSIONS_BY_ROLE = {
+  owner: [],
+  manager: ['edit_tables', 'edit_settings', 'view_reservations', 'edit_reservations', 'cancel_reservations'],
+  host: ['view_reservations', 'edit_reservations', 'cancel_reservations'],
+  staff: ['view_reservations'],
+};
+
 const getCafes = async (req, res, next) => {
   try {
     const cafes = await Cafe.find({ org_id: req.ownerOrgId, is_deleted: false })
@@ -64,7 +73,8 @@ const postAssignStaff = async (req, res, next) => {
       throw new BadRequestError(`role must be one of ${ASSIGNABLE_ROLES.join(', ')}`);
     }
 
-    await assertCafeInOwnedOrg(cafeId, req.ownerOrgId);
+    const cafe = await assertCafeInOwnedOrg(cafeId, req.ownerOrgId);
+    const resolvedCafeId = cafe._id.toString();
 
     const cleanEmail = email.trim().toLowerCase();
     const targetUser = await User.findOne({ email: cleanEmail });
@@ -72,13 +82,22 @@ const postAssignStaff = async (req, res, next) => {
       throw new NotFoundError('No account found with that email');
     }
 
+    if (targetUser._id.toString() === req.user._id.toString()) {
+      throw new BadRequestError('You cannot change your own staff role or remove yourself from a cafe');
+    }
+
     const existingMembership = targetUser.staff_memberships.find(
-      (membership) => membership.cafe_id.toString() === cafeId
+      (membership) => membership.cafe_id.toString() === resolvedCafeId
     );
     if (existingMembership) {
       existingMembership.role = role;
+      existingMembership.permissions = DEFAULT_PERMISSIONS_BY_ROLE[role];
     } else {
-      targetUser.staff_memberships.push({ cafe_id: cafeId, role, permissions: [] });
+      targetUser.staff_memberships.push({
+        cafe_id: resolvedCafeId,
+        role,
+        permissions: DEFAULT_PERMISSIONS_BY_ROLE[role],
+      });
     }
     await targetUser.save();
 
@@ -87,7 +106,7 @@ const postAssignStaff = async (req, res, next) => {
       data: {
         user_id: targetUser._id.toString(),
         email: targetUser.email,
-        cafe_id: cafeId,
+        cafe_id: resolvedCafeId,
         role,
       },
     });
@@ -100,7 +119,12 @@ const deleteStaff = async (req, res, next) => {
   try {
     const { cafeId, userId } = req.params;
 
-    await assertCafeInOwnedOrg(cafeId, req.ownerOrgId);
+    const cafe = await assertCafeInOwnedOrg(cafeId, req.ownerOrgId);
+    const resolvedCafeId = cafe._id.toString();
+
+    if (userId === req.user._id.toString()) {
+      throw new BadRequestError('You cannot change your own staff role or remove yourself from a cafe');
+    }
 
     const targetUser = await User.findById(userId);
     if (!targetUser) {
@@ -109,7 +133,7 @@ const deleteStaff = async (req, res, next) => {
 
     const beforeCount = targetUser.staff_memberships.length;
     targetUser.staff_memberships = targetUser.staff_memberships.filter(
-      (membership) => membership.cafe_id.toString() !== cafeId
+      (membership) => membership.cafe_id.toString() !== resolvedCafeId
     );
     if (targetUser.staff_memberships.length === beforeCount) {
       throw new NotFoundError('User has no staff membership on this cafe');

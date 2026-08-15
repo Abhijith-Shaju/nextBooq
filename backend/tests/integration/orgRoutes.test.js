@@ -203,5 +203,41 @@ describe('Org routes', () => {
 
       expect(res.status).toBe(404);
     });
+
+    test('assigns default permissions for the role', async () => {
+      const res = await request(app)
+        .post(`/api/v1/org/cafes/${cafeA._id}/staff`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ email: 'org-routes-assignable@test.com', role: 'manager' });
+
+      expect(res.status).toBe(200);
+      const updated = await User.findById(staffTarget._id);
+      expect(updated.staff_memberships[0].permissions).toEqual([
+        'edit_tables',
+        'edit_settings',
+        'view_reservations',
+        'edit_reservations',
+        'cancel_reservations',
+      ]);
+    });
+
+    test('rejects an owner assigning a role to themself with 400', async () => {
+      const res = await request(app)
+        .post(`/api/v1/org/cafes/${cafeA._id}/staff`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ email: 'org-routes-owner@test.com', role: 'staff' });
+
+      expect(res.status).toBe(400);
+    });
+
+    test('rejects an owner removing their own staff membership with 400', async () => {
+      const ownerRecord = await User.findOne({ email: 'org-routes-owner@test.com' });
+
+      const res = await request(app)
+        .delete(`/api/v1/org/cafes/${cafeA._id}/staff/${ownerRecord._id}`)
+        .set('Authorization', `Bearer ${ownerToken}`);
+
+      expect(res.status).toBe(400);
+    });
   });
 });
