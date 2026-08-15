@@ -21,6 +21,7 @@ const expectedAuthUserKeys = [
   'id',
   'is_platform_admin',
   'name',
+  'owner_org_id',
   'phone',
   'staff_memberships',
 ].sort();
@@ -59,6 +60,61 @@ describe('normal account semantics', () => {
       is_platform_admin: true,
       staff_memberships: [],
     });
+  });
+
+  test('an org owner (owner role on every cafe in their org) gets owner_org_id on login and me', async () => {
+    const Organization = require('../../src/models/Organization');
+    const Cafe = require('../../src/models/Cafe');
+    const org = await Organization.create({ name: 'Owner Semantics Org' });
+    const cafe = await Cafe.create({ org_id: org._id, name: 'Cafe', slug: 'owner-semantics-cafe', timezone: 'UTC' });
+
+    const password_hash = await bcrypt.hash('OrgOwnerPassword1!', 10);
+    await User.create({
+      name: 'Org Owner',
+      email: 'org-owner-login@example.com',
+      phone: '+15550100005',
+      password_hash,
+      staff_memberships: [{ cafe_id: cafe._id, role: 'owner', permissions: [] }],
+    });
+
+    const login = await request(app).post('/api/v1/auth/login').send({
+      email: 'org-owner-login@example.com',
+      password: 'OrgOwnerPassword1!',
+    });
+
+    expect(login.status).toBe(200);
+    expect(login.body.data.user.owner_org_id).toBe(org._id.toString());
+
+    const me = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${login.body.data.token}`);
+
+    expect(me.status).toBe(200);
+    expect(me.body.data.owner_org_id).toBe(org._id.toString());
+  });
+
+  test('a manager (not owner of every cafe) gets owner_org_id null', async () => {
+    const Organization = require('../../src/models/Organization');
+    const Cafe = require('../../src/models/Cafe');
+    const org = await Organization.create({ name: 'Manager Semantics Org' });
+    const cafe = await Cafe.create({ org_id: org._id, name: 'Cafe', slug: 'manager-semantics-cafe', timezone: 'UTC' });
+
+    const password_hash = await bcrypt.hash('ManagerPassword1!', 10);
+    await User.create({
+      name: 'Manager',
+      email: 'manager-semantics-login@example.com',
+      phone: '+15550100006',
+      password_hash,
+      staff_memberships: [{ cafe_id: cafe._id, role: 'manager', permissions: [] }],
+    });
+
+    const login = await request(app).post('/api/v1/auth/login').send({
+      email: 'manager-semantics-login@example.com',
+      password: 'ManagerPassword1!',
+    });
+
+    expect(login.status).toBe(200);
+    expect(login.body.data.user.owner_org_id).toBeNull();
   });
 
   test('registration creates only a normal account and returns the normalized auth user', async () => {

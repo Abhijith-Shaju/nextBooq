@@ -5,6 +5,7 @@ const config = require('../config/env');
 const { BadRequestError, UnauthorizedError } = require('../utils/errors');
 const { logAuditEvent } = require('../services/auditService');
 const { ACTIVE_STAFF_MEMBERSHIP_POPULATE, buildAuthUserPayload } = require('../utils/authUserResponse');
+const { getOwnedOrgId } = require('../services/orgOwnershipService');
 
 const SESSION_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MIN_PASSWORD_LENGTH = 8;
@@ -147,6 +148,8 @@ const loginUser = async (req, res, next) => {
     const token = generateToken(user._id);
     setAuthCookie(res, token);
 
+    const ownerOrgId = await getOwnedOrgId(user);
+
     await logAuditEvent({
       cafeId: null,
       entityType: 'User',
@@ -159,7 +162,7 @@ const loginUser = async (req, res, next) => {
       status: 'success',
       data: {
         token,
-        user: buildAuthUserPayload(user),
+        user: buildAuthUserPayload(user, { ownerOrgId }),
       },
     });
   } catch (error) {
@@ -175,9 +178,11 @@ const getMe = async (req, res, next) => {
       throw new UnauthorizedError('User not found');
     }
 
+    const ownerOrgId = await getOwnedOrgId(user);
+
     res.status(200).json({
       status: 'success',
-      data: buildAuthUserPayload(user),
+      data: buildAuthUserPayload(user, { ownerOrgId }),
     });
   } catch (error) {
     next(error);

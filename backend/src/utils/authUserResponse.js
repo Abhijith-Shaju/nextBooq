@@ -4,12 +4,13 @@ const ACTIVE_STAFF_MEMBERSHIP_POPULATE = {
   match: { is_deleted: false },
 };
 
-const buildAuthUserPayload = (user) => ({
+const buildAuthUserPayload = (user, { ownerOrgId = null } = {}) => ({
   id: user._id,
   name: user.name,
   email: user.email,
   phone: user.phone,
   is_platform_admin: Boolean(user.is_platform_admin),
+  owner_org_id: ownerOrgId,
   staff_memberships: Array.isArray(user.staff_memberships)
     ? user.staff_memberships.filter((membership) => membership?.cafe_id)
     : [],
