@@ -74,6 +74,23 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // 6-digit code, hashed (SHA-256) and time-limited, sent via email at
+    // registration (see backend/src/utils/emailVerification.js). Cleared on
+    // successful verification, or overwritten by a newer code request (only
+    // the most recently issued code is ever valid). Non-blocking: nothing
+    // in the app currently gates on is_email_verified.
+    is_email_verified: {
+      type: Boolean,
+      default: false,
+    },
+    email_verification_code_hash: {
+      type: String,
+      default: null,
+    },
+    email_verification_expires_at: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
