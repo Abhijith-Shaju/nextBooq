@@ -401,10 +401,21 @@ const customerQuickAuth = async (req, res, next) => {
     }
 
     const cleanEmail = email.toLowerCase().trim();
+    const cleanPhone = phone.trim();
     let user = await User.findOne({ email: cleanEmail });
 
     if (!user) {
-      user = await User.findOne({ phone: phone.trim() });
+      // Phone is a unique field on User, so creating a new account with a
+      // phone number already tied to a different email would otherwise fail
+      // with a raw duplicate-key error. Surface that conflict clearly instead
+      // of silently logging the guest into the other account under a
+      // password prompt that gives no indication *why* it's asking.
+      const phoneOwner = await User.findOne({ phone: cleanPhone });
+      if (phoneOwner) {
+        throw new BadRequestError(
+          'This phone number is already registered under a different email. Please sign in with that email instead, or use a different phone number.'
+        );
+      }
     }
 
     if (!user) {
@@ -416,7 +427,7 @@ const customerQuickAuth = async (req, res, next) => {
       user = new User({
         name: name.trim(),
         email: cleanEmail,
-        phone: phone.trim(),
+        phone: cleanPhone,
         password_hash,
         staff_memberships: [],
       });

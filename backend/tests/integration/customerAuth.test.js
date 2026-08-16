@@ -218,4 +218,33 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
     expect(res.body.data.token).toBeDefined();
     expect(res.body.data.user.email).toEqual('frank2@example.com');
   });
+
+  test('customer-quick-auth rejects a new signup whose phone number is already registered under a different email', async () => {
+    await request(app)
+      .post('/api/v1/auth/customer-quick-auth')
+      .send({
+        name: 'Grace Guest',
+        email: 'grace@example.com',
+        phone: '+18885555555',
+        password: 'GracesPassword1!',
+      });
+
+    const res = await request(app)
+      .post('/api/v1/auth/customer-quick-auth')
+      .send({
+        name: 'Someone New',
+        email: 'someone-new@example.com',
+        phone: '+18885555555',
+        password: 'ADifferentPassword1!',
+      });
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.data).toBeUndefined();
+    expect(res.body.message).toMatch(/phone number is already registered/i);
+
+    // Confirms no account was silently created or logged into under the
+    // caller's own submitted identity.
+    const newAccount = await User.findOne({ email: 'someone-new@example.com' });
+    expect(newAccount).toBeNull();
+  });
 });
