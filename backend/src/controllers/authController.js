@@ -7,7 +7,7 @@ const { logAuditEvent } = require('../services/auditService');
 const { ACTIVE_STAFF_MEMBERSHIP_POPULATE, buildAuthUserPayload } = require('../utils/authUserResponse');
 const { getOwnedOrgId } = require('../services/orgOwnershipService');
 const { generateResetToken, hashResetToken } = require('../utils/passwordReset');
-const { generateVerificationCode } = require('../utils/emailVerification');
+const { generateVerificationCode, hashVerificationCode } = require('../utils/emailVerification');
 const { sendPasswordResetEmail, sendVerificationEmail } = require('../services/emailService');
 
 const SESSION_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -301,6 +301,90 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+const verifyEmail = async (req, res, next) => {
+  try {
+    if (req.user.is_email_verified) {
+      return res.status(200).json({
+        status: 'success',
+        message: 'Your email is already verified.',
+      });
+    }
+
+    const { code } = req.body;
+    if (!code || typeof code !== 'string') {
+      throw new BadRequestError('Verification code is required');
+    }
+
+    const codeHash = hashVerificationCode(code);
+    const user = await User.findOne({
+      _id: req.user._id,
+      email_verification_code_hash: codeHash,
+      email_verification_expires_at: { $gt: new Date() },
+    });
+
+    if (!user) {
+      throw new BadRequestError('Invalid or expired code.');
+    }
+
+    user.is_email_verified = true;
+    user.email_verification_code_hash = null;
+    user.email_verification_expires_at = null;
+    await user.save();
+
+    await logAuditEvent({
+      cafeId: null,
+      entityType: 'User',
+      entityId: user._id,
+      action: 'EMAIL_VERIFIED',
+      performedByUserId: user._id,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Email verified.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resendVerificationEmail = async (req, res, next) => {
+  try {
+    if (req.user.is_email_verified) {
+      return res.status(200).json({
+        status: 'success',
+        message: 'Your email is already verified.',
+      });
+    }
+
+    const { code, codeHash, expiresAt } = generateVerificationCode();
+
+    const user = await User.findById(req.user._id);
+    user.email_verification_code_hash = codeHash;
+    user.email_verification_expires_at = expiresAt;
+    await user.save();
+
+    sendVerificationEmail({ to: user.email, code }).catch((err) => {
+      console.error('[resendVerificationEmail] Failed to send verification email:', err);
+    });
+
+    await logAuditEvent({
+      cafeId: null,
+      entityType: 'User',
+      entityId: user._id,
+      action: 'EMAIL_VERIFICATION_RESENT',
+      performedByUserId: user._id,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Verification code sent.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const customerQuickAuth = async (req, res, next) => {
   try {
     const { name, email, phone, password } = req.body;
@@ -403,6 +487,8 @@ module.exports = {
   logoutUser,
   forgotPassword,
   resetPassword,
+  verifyEmail,
+  resendVerificationEmail,
   customerQuickAuth,
   getSocketToken,
 };

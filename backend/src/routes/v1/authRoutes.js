@@ -7,6 +7,8 @@ const {
   logoutUser,
   forgotPassword,
   resetPassword,
+  verifyEmail,
+  resendVerificationEmail,
   customerQuickAuth,
   getSocketToken,
 } = require('../../controllers/authController');
@@ -17,6 +19,8 @@ router.post('/register', authRateLimiter, registerUser);
 router.post('/login', authRateLimiter, loginUser);
 router.post('/forgot-password', authRateLimiter, forgotPassword);
 router.post('/reset-password', authRateLimiter, resetPassword);
+router.post('/verify-email', authenticate, authRateLimiter, verifyEmail);
+router.post('/resend-verification-email', authenticate, authRateLimiter, resendVerificationEmail);
 router.post('/customer-quick-auth', authRateLimiter, customerQuickAuth);
 router.get('/me', authenticate, getMe);
 router.post('/logout', logoutUser);
