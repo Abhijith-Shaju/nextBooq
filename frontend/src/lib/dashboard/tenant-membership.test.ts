@@ -9,6 +9,7 @@ const makeUser = (staff_memberships: User['staff_memberships']): User => ({
   staff_memberships,
   is_platform_admin: false,
   owner_org_id: null,
+  is_email_verified: true,
 });
 
 describe('hasStaffMembershipForCafe', () => {
