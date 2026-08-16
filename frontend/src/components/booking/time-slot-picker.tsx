@@ -23,7 +23,7 @@ export function TimeSlotPicker({ onSelect }: { onSelect: () => void }) {
     }
   }, [date, setDate, leadTimeHours]);
 
-  const { data: slots = [], isLoading } = useAvailability(cafe?.id, date, partySize);
+  const { data: slots = [], isLoading, isError } = useAvailability(cafe?.id, date, partySize);
 
   if (!date) {
     return (
@@ -43,6 +43,18 @@ export function TimeSlotPicker({ onSelect }: { onSelect: () => void }) {
             <div key={i} className="h-14 animate-pulse rounded-xl bg-white/60" />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-56 text-center rounded-2xl border border-red-200 bg-red-50 p-6">
+        <Clock className="mx-auto mb-2 h-7 w-7 text-red-400" />
+        <p className="text-sm font-bold text-red-700">Couldn&rsquo;t load time slots</p>
+        <p className="mx-auto mt-1 max-w-xs text-xs text-red-600">
+          Please try again in a moment.
+        </p>
       </div>
     );
   }
