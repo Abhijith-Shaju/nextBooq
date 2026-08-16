@@ -220,7 +220,13 @@ const forgotPassword = async (req, res, next) => {
       await user.save();
 
       const resetUrl = `${config.FRONTEND_URL}/auth/reset-password?token=${rawToken}`;
-      await sendPasswordResetEmail({ to: user.email, resetUrl });
+      // Fire-and-forget: awaiting this would make the found-user branch take
+      // measurably longer than the not-found branch (network round-trip to
+      // Resend), letting an attacker use response timing to enumerate valid
+      // accounts even though the response body is identical either way.
+      sendPasswordResetEmail({ to: user.email, resetUrl }).catch((err) => {
+        console.error('[forgotPassword] Failed to send password reset email:', err);
+      });
 
       await logAuditEvent({
         cafeId: null,
