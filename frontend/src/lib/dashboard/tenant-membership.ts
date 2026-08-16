@@ -20,3 +20,23 @@ export function hasStaffMembershipForCafe(
   if (!user || !cafeId) return false;
   return user.staff_memberships.some((membership) => staffMembershipCafeId(membership) === cafeId);
 }
+
+/**
+ * Client-side defense-in-depth (see hasStaffMembershipForCafe above): the
+ * backend independently enforces this on every write via requirePermission
+ * in backend/src/middleware/rbac.js. This just avoids showing nav links and
+ * action buttons for things the signed-in user's role can't do, before the
+ * request 403s. An 'owner' membership bypasses the permissions array
+ * entirely on the backend, so it does here too.
+ */
+export function hasCafePermission(
+  user: Pick<User, 'staff_memberships'> | null | undefined,
+  cafeId: string | undefined,
+  permission: string
+): boolean {
+  if (!user || !cafeId) return false;
+  const membership = user.staff_memberships.find((m) => staffMembershipCafeId(m) === cafeId);
+  if (!membership) return false;
+  if (membership.role === 'owner') return true;
+  return membership.permissions.includes(permission);
+}

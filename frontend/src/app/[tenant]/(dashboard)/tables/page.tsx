@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { useTenant } from '@/components/providers/tenant-provider';
+import { useAuth } from '@/components/providers/auth-provider';
 import { useTables } from '@/hooks/admin/use-tables';
 import { Table } from '@/lib/types/models';
 import { TableEditorModal } from '@/components/dashboard/table-editor-modal';
 import { describeTableStatus } from '@/lib/dashboard/table-status';
 import { getMergePartnerTableNumbers } from '@/lib/dashboard/table-merge';
+import { hasCafePermission } from '@/lib/dashboard/tenant-membership';
 import { StatusTone } from '@/lib/booking/reservation-status';
 import { Plus, Edit2, Users, Layers, Hash, Grid } from 'lucide-react';
 
@@ -19,7 +21,9 @@ const TONE_CLASSES: Record<StatusTone, string> = {
 
 export default function TablesInventoryPage() {
   const { cafe } = useTenant();
-  const { data: tables = [], isLoading } = useTables(cafe?.id);
+  const { user } = useAuth();
+  const { data: tables = [], isLoading, isError } = useTables(cafe?.id);
+  const canEditTables = hasCafePermission(user, cafe?.id, 'edit_tables');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTable, setEditingTable] = useState<Table | null>(null);
@@ -43,12 +47,14 @@ export default function TablesInventoryPage() {
           <p className="text-xs text-brand-mochaMid mt-0.5">Manage physical cafe floorplan tables and adjacent merges</p>
         </div>
 
-        <button
-          onClick={handleOpenAdd}
-          className="btn-action py-2.5 px-5 text-sm"
-        >
-          <Plus className="w-4 h-4 mr-1" /> Add table
-        </button>
+        {canEditTables && (
+          <button
+            onClick={handleOpenAdd}
+            className="btn-action py-2.5 px-5 text-sm"
+          >
+            <Plus className="w-4 h-4 mr-1" /> Add table
+          </button>
+        )}
       </div>
 
       {/* Table Data List */}
@@ -71,10 +77,18 @@ export default function TablesInventoryPage() {
                     Loading floorplan tables...
                   </td>
                 </tr>
+              ) : isError ? (
+                <tr>
+                  <td colSpan={5} className="p-8 text-center text-sm font-medium text-red-700">
+                    Couldn&apos;t load tables. Please try again.
+                  </td>
+                </tr>
               ) : tables.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-8 text-center text-brand-mochaMid">
-                    No physical tables created yet. Click &ldquo;Add table&rdquo; to start.
+                    {canEditTables
+                      ? 'No physical tables created yet. Click "Add table" to start.'
+                      : 'No physical tables have been added yet.'}
                   </td>
                 </tr>
               ) : (
@@ -101,12 +115,14 @@ export default function TablesInventoryPage() {
                       })()}
                     </td>
                     <td className="p-4 text-right">
-                      <button
-                        onClick={() => handleOpenEdit(table)}
-                        className="p-2 rounded-xl text-brand-brown hover:bg-brand-tan/50 transition-colors border border-brand-brown/10"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
+                      {canEditTables && (
+                        <button
+                          onClick={() => handleOpenEdit(table)}
+                          className="p-2 rounded-xl text-brand-brown hover:bg-brand-tan/50 transition-colors border border-brand-brown/10"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))

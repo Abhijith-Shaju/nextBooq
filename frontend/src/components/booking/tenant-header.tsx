@@ -28,21 +28,22 @@ export function TenantPublicHeader() {
           </Link>
 
           {/* Navigation Links & Customer Auth */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 sm:gap-3 shrink-0">
             <Link
               href={`/${cafe.slug}/my-reservations`}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-brand-tan hover:text-white hover:bg-white/10 transition-all"
+              title="My Bookings"
+              className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-semibold text-brand-tan hover:text-white hover:bg-white/10 transition-all"
             >
-              <Calendar className="w-3.5 h-3.5" /> My Bookings
+              <Calendar className="w-3.5 h-3.5" /> <span className="hidden sm:inline">My Bookings</span>
             </Link>
 
             {isAuthenticated ? (
-              <div className="flex items-center gap-2 pl-2 border-l border-white/15">
-                <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-xl text-xs">
-                  <div className="w-5 h-5 rounded-full bg-brand-red flex items-center justify-center font-bold text-[10px]">
+              <div className="flex items-center gap-1 sm:gap-2 pl-1 sm:pl-2 border-l border-white/15">
+                <div className="flex items-center gap-2 bg-white/10 px-2 sm:px-3 py-1.5 rounded-xl text-xs">
+                  <div className="w-5 h-5 shrink-0 rounded-full bg-brand-red flex items-center justify-center font-bold text-[10px]">
                     {user?.name?.charAt(0).toUpperCase() || 'U'}
                   </div>
-                  <span className="font-semibold max-w-[100px] truncate">{user?.name}</span>
+                  <span className="hidden sm:inline font-semibold max-w-[100px] truncate">{user?.name}</span>
                 </div>
 
                 <button
@@ -56,9 +57,10 @@ export function TenantPublicHeader() {
             ) : (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
-                className="flex items-center gap-1.5 bg-brand-red hover:bg-brand-red/90 text-white px-4 py-1.5 rounded-xl text-xs font-bold transition-all shadow-brand-sm"
+                title="Guest Sign In"
+                className="flex items-center gap-1.5 bg-brand-red hover:bg-brand-red/90 text-white px-2.5 sm:px-4 py-1.5 rounded-xl text-xs font-bold transition-all shadow-brand-sm"
               >
-                <User className="w-3.5 h-3.5" /> Guest Sign In
+                <User className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Guest Sign In</span>
               </button>
             )}
 
@@ -66,7 +68,7 @@ export function TenantPublicHeader() {
             <Link
               href="/auth/login"
               title="Staff / Operator Login"
-              className="p-1.5 rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors ml-1"
+              className="p-1.5 rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors"
             >
               <Shield className="w-4 h-4" />
             </Link>

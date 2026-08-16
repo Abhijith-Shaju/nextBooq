@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { toast } from 'sonner';
+import { LogOut } from 'lucide-react';
 
 /**
  * Platform-admin shell: nextBooq's own operator surface, not tenant-branded
@@ -19,7 +20,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
 
   useEffect(() => {
     if (isLoading) return;
@@ -40,8 +41,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-      <header className="border-b border-slate-200 bg-white px-6 py-4">
+      <header className="border-b border-slate-200 bg-white px-6 py-4 flex items-center justify-between">
         <h1 className="text-lg font-bold">nextBooq — Platform Admin</h1>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-slate-500">{user?.email}</span>
+          <button
+            onClick={() => logout?.()}
+            className="flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" /> Sign Out
+          </button>
+        </div>
       </header>
       <main className="p-6">{children}</main>
     </div>

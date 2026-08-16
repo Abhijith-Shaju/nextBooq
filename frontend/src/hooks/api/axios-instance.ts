@@ -27,6 +27,14 @@ axiosInstance.interceptors.response.use(
       switch (status) {
         case 401:
           queryClient.setQueryData(['me'], null);
+          // /auth/me is polled silently on every page load to check session
+          // state — an anonymous visitor gets a 401 there constantly, so it's
+          // excluded from the toast to avoid noise. Every other 401 (a failed
+          // login attempt, an expired session hit mid-action, etc.) reflects
+          // something the user actually did, so it gets a message.
+          if (!error.config?.url?.includes('/auth/me')) {
+            toast.error(error.response.data?.error?.message || error.response.data?.message || 'Invalid credentials.');
+          }
           if (typeof window !== 'undefined') {
             const path = window.location.pathname;
             // Only redirect to staff login if visiting protected staff dashboard

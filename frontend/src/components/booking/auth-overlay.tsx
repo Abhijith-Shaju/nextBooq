@@ -86,9 +86,10 @@ export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChang
           },
         }
       );
-    } catch (err: any) {
+    } catch {
+      // The axios interceptor already toasts the specific error (invalid
+      // password, server error, etc.) — this just resets the button state.
       setIsSubmitting(false);
-      toast.error(err?.response?.data?.message || err?.message || 'Authentication failed');
     }
   };
 

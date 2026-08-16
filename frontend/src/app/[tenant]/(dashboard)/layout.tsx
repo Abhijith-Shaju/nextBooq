@@ -10,7 +10,7 @@ import { Coffee, LayoutDashboard, Calendar, Grid, Settings, LogOut, User } from 
 import { useAuth } from '@/components/providers/auth-provider';
 import { isNavItemActive } from '@/lib/dashboard/nav-active';
 import { axiosInstance } from '@/hooks/api/axios-instance';
-import { hasStaffMembershipForCafe } from '@/lib/dashboard/tenant-membership';
+import { hasStaffMembershipForCafe, hasCafePermission } from '@/lib/dashboard/tenant-membership';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -97,11 +97,11 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
   }, [cafe?.id, queryClient]);
 
   const navItems = [
-    { label: 'Host Stand', href: `/${cafe.slug}/dashboard`, icon: LayoutDashboard },
-    { label: 'Reservations', href: `/${cafe.slug}/reservations`, icon: Calendar },
-    { label: 'Tables Inventory', href: `/${cafe.slug}/tables`, icon: Grid },
-    { label: 'Cafe Settings', href: `/${cafe.slug}/settings`, icon: Settings },
-  ];
+    { label: 'Host Stand', href: `/${cafe.slug}/dashboard`, icon: LayoutDashboard, permission: 'view_reservations' },
+    { label: 'Reservations', href: `/${cafe.slug}/reservations`, icon: Calendar, permission: 'view_reservations' },
+    { label: 'Tables Inventory', href: `/${cafe.slug}/tables`, icon: Grid, permission: 'edit_tables' },
+    { label: 'Cafe Settings', href: `/${cafe.slug}/settings`, icon: Settings, permission: 'edit_settings' },
+  ].filter((item) => hasCafePermission(user, cafe.id, item.permission));
 
   return (
     <div className="min-h-screen bg-brand-cream flex flex-col md:flex-row font-sans">

@@ -12,6 +12,7 @@ function summarizeUnavailableReason(reason?: string): string {
   if (/before cafe opening/i.test(reason)) return 'Before opening';
   if (/exceeds cafe closing/i.test(reason)) return 'After closing';
   if (/no available table/i.test(reason) || /accommodate a party/i.test(reason)) return 'Fully booked';
+  if (/at least .* hour/i.test(reason)) return 'Too soon to book';
   return 'Sold out';
 }
 

@@ -25,6 +25,14 @@ const getAvailableSlots = async (req, res, next) => {
     const duration = parseInt(durationMinutes || req.cafe?.reservation_rules?.default_turn_time_minutes || 90, 10);
     const timeZone = req.cafe?.timezone || 'UTC';
 
+    // Mirrors the lead-time check in bookingController.js's createReservation so a
+    // slot shown here as selectable never turns out to be rejected for the same
+    // reason once the diner actually tries to book it.
+    const leadTimeHours = req.cafe?.reservation_rules?.booking_lead_time_hours ?? 24;
+    const leadTimeGraceMs = 60 * 1000;
+    const earliestAllowedStart = new Date(Date.now() + leadTimeHours * 60 * 60 * 1000 - leadTimeGraceMs);
+    const leadTimeReason = `Reservations must be made at least ${leadTimeHours} hour(s) in advance`;
+
     // If specific time parameter is provided, check that single slot
     if (time) {
       const startTime = localTimeToUTC(date, time, timeZone);
@@ -35,6 +43,9 @@ const getAvailableSlots = async (req, res, next) => {
       const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
       let isAvailable = false;
       try {
+        if (startTime < earliestAllowedStart) {
+          throw new Error(leadTimeReason);
+        }
         if (req.cafe) {
           validateOperatingHours(req.cafe, startTime, endTime);
         }
@@ -97,6 +108,9 @@ const getAvailableSlots = async (req, res, next) => {
       let reason = undefined;
 
       try {
+        if (startTime < earliestAllowedStart) {
+          throw new Error(leadTimeReason);
+        }
         if (req.cafe) {
           validateOperatingHours(req.cafe, startTime, endTime);
         }
