@@ -72,4 +72,26 @@ describe('emailService', () => {
     expect(errorSpy).toHaveBeenCalled();
     errorSpy.mockRestore();
   });
+
+  test('resolves without throwing when the Resend SDK itself rejects', async () => {
+    const sendMock = jest.fn().mockRejectedValue(new Error('network exploded'));
+    jest.doMock('../../src/config/env', () => ({
+      RESEND_API_KEY: 'test-key',
+      FROM_EMAIL: 'nextBooq <onboarding@resend.dev>',
+    }));
+    jest.doMock('resend', () => ({
+      Resend: jest.fn().mockImplementation(() => ({ emails: { send: sendMock } })),
+    }));
+    const { sendPasswordResetEmail } = require('../../src/services/emailService');
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await sendPasswordResetEmail({
+      to: 'user@example.com',
+      resetUrl: 'http://localhost:3000/auth/reset-password?token=abc',
+    });
+
+    expect(result).toEqual({ logged: false, data: null, error: { message: 'network exploded' } });
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
 });
