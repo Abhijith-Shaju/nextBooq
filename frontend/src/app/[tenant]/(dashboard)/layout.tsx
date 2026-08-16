@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useTenant } from '@/components/providers/tenant-provider';
@@ -14,7 +14,7 @@ import { hasStaffMembershipForCafe, hasCafePermission } from '@/lib/dashboard/te
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
-export default function TenantDashboardLayout({ children }: { children: React.ReactNode }) {
+function TenantDashboardGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -171,5 +171,13 @@ export default function TenantDashboardLayout({ children }: { children: React.Re
         {children}
       </main>
     </div>
+  );
+}
+
+export default function TenantDashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={null}>
+      <TenantDashboardGuard>{children}</TenantDashboardGuard>
+    </Suspense>
   );
 }

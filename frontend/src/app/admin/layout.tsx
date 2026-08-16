@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { toast } from 'sonner';
@@ -16,7 +16,7 @@ import { LogOut } from 'lucide-react';
  * (requirePlatformAdmin on every /api/v1/platform-admin/* route). This just
  * avoids rendering the shell before that would 403.
  */
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+function AdminGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -55,5 +55,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </header>
       <main className="p-6">{children}</main>
     </div>
+  );
+}
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={null}>
+      <AdminGuard>{children}</AdminGuard>
+    </Suspense>
   );
 }

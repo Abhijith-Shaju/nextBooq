@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Coffee, LogOut } from 'lucide-react';
@@ -18,7 +18,7 @@ import { toast } from 'sonner';
  * unbranded /admin shell — this is the owner's own account surface, not
  * nextBooq's internal operator tool.
  */
-export default function OrgDashboardLayout({ children }: { children: React.ReactNode }) {
+function OrgDashboardGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -75,5 +75,13 @@ export default function OrgDashboardLayout({ children }: { children: React.React
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">{children}</main>
     </div>
+  );
+}
+
+export default function OrgDashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={null}>
+      <OrgDashboardGuard>{children}</OrgDashboardGuard>
+    </Suspense>
   );
 }
