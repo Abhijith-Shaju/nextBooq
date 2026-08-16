@@ -7,7 +7,8 @@ const { logAuditEvent } = require('../services/auditService');
 const { ACTIVE_STAFF_MEMBERSHIP_POPULATE, buildAuthUserPayload } = require('../utils/authUserResponse');
 const { getOwnedOrgId } = require('../services/orgOwnershipService');
 const { generateResetToken, hashResetToken } = require('../utils/passwordReset');
-const { sendPasswordResetEmail } = require('../services/emailService');
+const { generateVerificationCode } = require('../utils/emailVerification');
+const { sendPasswordResetEmail, sendVerificationEmail } = require('../services/emailService');
 
 const SESSION_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MIN_PASSWORD_LENGTH = 8;
@@ -78,17 +79,27 @@ const registerUser = async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
 
+    const { code, codeHash, expiresAt } = generateVerificationCode();
+
     const user = new User({
       name: name.trim(),
       email: email.toLowerCase(),
       phone: phone.trim(),
       password_hash,
       staff_memberships: [],
+      email_verification_code_hash: codeHash,
+      email_verification_expires_at: expiresAt,
     });
 
     await user.save();
     const token = generateToken(user._id);
     setAuthCookie(res, token);
+
+    // Fire-and-forget, same rationale as forgotPassword: verification email
+    // delivery must never block or fail account creation.
+    sendVerificationEmail({ to: user.email, code }).catch((err) => {
+      console.error('[registerUser] Failed to send verification email:', err);
+    });
 
     await logAuditEvent({
       cafeId: null,

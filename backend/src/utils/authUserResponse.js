@@ -11,6 +11,7 @@ const buildAuthUserPayload = (user, { ownerOrgId = null } = {}) => ({
   phone: user.phone,
   is_platform_admin: Boolean(user.is_platform_admin),
   owner_org_id: ownerOrgId,
+  is_email_verified: Boolean(user.is_email_verified),
   staff_memberships: Array.isArray(user.staff_memberships)
     ? user.staff_memberships.filter((membership) => membership?.cafe_id)
     : [],

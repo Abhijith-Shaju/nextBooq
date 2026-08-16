@@ -19,6 +19,7 @@ const registration = {
 const expectedAuthUserKeys = [
   'email',
   'id',
+  'is_email_verified',
   'is_platform_admin',
   'name',
   'owner_org_id',
