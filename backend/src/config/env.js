@@ -52,6 +52,29 @@ const envSchema = z
           });
         }
       }
+
+      // RESEND_API_KEY gates whether password-reset emails actually go out.
+      // If unset, emailService falls back to console.log-ing the RAW reset
+      // token, which is a full account-takeover vector for anyone with log
+      // access — fail startup outright instead.
+      if (!data.RESEND_API_KEY) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'RESEND_API_KEY must be explicitly set to a real value in production (insecure published default detected)',
+          path: ['RESEND_API_KEY'],
+        });
+      }
+
+      // FROM_EMAIL left at Resend's shared sandbox sender only delivers to
+      // the Resend account owner's own verified address, so every real
+      // user's reset email would silently fail to arrive.
+      if (data.FROM_EMAIL === 'nextBooq <onboarding@resend.dev>') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'FROM_EMAIL must be explicitly set to a real value in production (insecure published default detected)',
+          path: ['FROM_EMAIL'],
+        });
+      }
     }
   });
 

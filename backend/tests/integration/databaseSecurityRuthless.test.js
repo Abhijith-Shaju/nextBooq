@@ -273,6 +273,8 @@ describe('Database security audit: production secret hygiene', () => {
       RAZORPAY_KEY_ID: 'rzp_live_real_key',
       RAZORPAY_KEY_SECRET: 'rzp_live_real_secret',
       RAZORPAY_WEBHOOK_SECRET: 'a_real_webhook_secret',
+      RESEND_API_KEY: 're_real_key',
+      FROM_EMAIL: 'nextBooq <noreply@realdomain.com>',
     });
 
     expect(result.success).toBe(true);
