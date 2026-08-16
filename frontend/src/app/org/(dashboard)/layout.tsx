@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Coffee, LogOut } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { toast } from 'sonner';
 
@@ -10,12 +12,17 @@ import { toast } from 'sonner';
  * same pattern as app/admin/layout.tsx: the real gate is server-side
  * (requireOrgOwner on every /api/v1/org/* route). This just avoids rendering
  * the shell before that would 403.
+ *
+ * Styled to match the rest of the org owner's authenticated experience
+ * (login/register/forgot-password/verify-email) rather than the deliberately
+ * unbranded /admin shell — this is the owner's own account surface, not
+ * nextBooq's internal operator tool.
  */
 export default function OrgDashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
 
   useEffect(() => {
     if (isLoading) return;
@@ -35,11 +42,38 @@ export default function OrgDashboardLayout({ children }: { children: React.React
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-      <header className="border-b border-slate-200 bg-white px-6 py-4">
-        <h1 className="text-lg font-bold">Your Organization</h1>
+    <div className="min-h-screen bg-brand-cream">
+      <header className="sticky top-0 z-10 border-b border-brand-brown/10 bg-brand-cream/90 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
+          <Link href="/org/dashboard" className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-red shadow-brand-sm">
+              <Coffee className="h-4 w-4 text-white" />
+            </div>
+            <span className="flex items-baseline gap-2">
+              <span className="font-display text-lg font-bold tracking-tight text-brand-brown">
+                next<span className="text-brand-red">Booq</span>
+              </span>
+              <span className="hidden text-sm font-medium text-brand-mocha sm:inline">Organization</span>
+            </span>
+          </Link>
+
+          <div className="flex items-center gap-3 sm:gap-4">
+            {user?.name && (
+              <span className="hidden max-w-[10rem] truncate text-sm text-brand-mocha sm:inline">{user.name}</span>
+            )}
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="inline-flex items-center gap-1.5 rounded-full border border-brand-brown/15 px-3 py-1.5 text-sm font-medium text-brand-mocha transition-colors hover:border-brand-red/30 hover:text-brand-red"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Sign out</span>
+            </button>
+          </div>
+        </div>
       </header>
-      <main className="p-6">{children}</main>
+
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">{children}</main>
     </div>
   );
 }
