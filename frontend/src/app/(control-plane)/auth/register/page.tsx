@@ -1,14 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { Coffee, ArrowRight, Loader2, Lock, Mail, User as UserIcon, Phone, Eye, EyeOff } from 'lucide-react';
 import { useRegister } from '@/hooks/auth/use-register';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { resolvePostAuthDestination } from '@/lib/auth/post-auth-destination';
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl');
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -31,34 +35,15 @@ export default function RegisterPage() {
     registerMutation.mutate(
       { name, email, phone, password },
       {
-        onSuccess: () => {
-          router.push('/');
+        onSuccess: (user) => {
+          router.push(resolvePostAuthDestination(user, callbackUrl));
         },
       }
     );
   };
 
   return (
-    <div className="min-h-screen bg-brand-cream flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full space-y-8">
-        <div className="flex items-center justify-center gap-2">
-          <div className="w-10 h-10 bg-brand-red rounded-xl flex items-center justify-center shadow-brand-md">
-            <Coffee className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-display font-bold text-2xl text-brand-brown">
-            next<span className="text-brand-red">Booq</span>
-          </span>
-        </div>
-
-        <div className="glass rounded-3xl p-8 space-y-6 shadow-brand-md border border-brand-brown/10">
-          <div className="text-center">
-            <h1 className="font-display text-3xl font-bold text-brand-brown">Create Account</h1>
-            <p className="font-sans text-brand-mocha text-sm mt-1">
-              Create your nextBooq account to book and manage reservations.
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4 text-left">
+    <form onSubmit={handleSubmit} className="space-y-4 text-left">
             <div>
               <label className="block text-sm font-semibold text-brand-brown mb-1.5">
                 Full Name <span className="text-brand-red">*</span>
@@ -152,6 +137,33 @@ export default function RegisterPage() {
               )}
             </button>
           </form>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <div className="min-h-screen bg-brand-cream flex items-center justify-center px-4 py-12">
+      <div className="max-w-md w-full space-y-8">
+        <div className="flex items-center justify-center gap-2">
+          <div className="w-10 h-10 bg-brand-red rounded-xl flex items-center justify-center shadow-brand-md">
+            <Coffee className="w-5 h-5 text-white" />
+          </div>
+          <span className="font-display font-bold text-2xl text-brand-brown">
+            next<span className="text-brand-red">Booq</span>
+          </span>
+        </div>
+
+        <div className="glass rounded-3xl p-8 space-y-6 shadow-brand-md border border-brand-brown/10">
+          <div className="text-center">
+            <h1 className="font-display text-3xl font-bold text-brand-brown">Create Account</h1>
+            <p className="font-sans text-brand-mocha text-sm mt-1">
+              Create your nextBooq account to book and manage reservations.
+            </p>
+          </div>
+
+          <Suspense fallback={<div className="p-8 text-center text-xs text-brand-mocha animate-pulse">Loading form...</div>}>
+            <RegisterForm />
+          </Suspense>
 
           <p className="font-sans text-brand-mocha text-sm text-center">
             Already registered?{' '}
