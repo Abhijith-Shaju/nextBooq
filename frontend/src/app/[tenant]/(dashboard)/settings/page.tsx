@@ -12,6 +12,8 @@ import {
 } from '@/lib/dashboard/operating-hours';
 import { Save, Settings as SettingsIcon, Clock, Users, ShieldAlert, Hourglass, Loader2, CalendarClock } from 'lucide-react';
 import { toast } from 'sonner';
+import { StorefrontEditor } from '@/components/dashboard/storefront-editor';
+import { CafeMenuCategory } from '@/lib/types/models';
 
 const DEFAULT_RULES = {
   default_turn_time_minutes: 90,
@@ -33,6 +35,9 @@ export default function CafeSettingsPage() {
   const [operatingHours, setOperatingHours] = useState<OperatingHourEntry[]>(
     mergeOperatingHours(cafe.operating_hours)
   );
+  const [description, setDescription] = useState(cafe.description || '');
+  const [heroImageUrl, setHeroImageUrl] = useState(cafe.hero_image_url || '');
+  const [menu, setMenu] = useState<CafeMenuCategory[]>(cafe.menu || []);
   const [isSaving, setIsSaving] = useState(false);
 
   // `cafe` is fetched server-side (see [tenant]/layout.tsx) and only changes
@@ -41,12 +46,16 @@ export default function CafeSettingsPage() {
   // so without this sync the form would keep showing whatever was on screen
   // at first mount instead of picking up newly-saved values.
   const operatingHoursKey = JSON.stringify(cafe.operating_hours || []);
+  const menuKey = JSON.stringify(cafe.menu || []);
   useEffect(() => {
     setTurnTime(rules.default_turn_time_minutes || 90);
     setMaxParty(rules.max_party_size || 12);
     setLeadTime(rules.booking_lead_time_hours || 24);
     setHoldDuration(rules.hold_duration_minutes || 10);
     setOperatingHours(mergeOperatingHours(cafe.operating_hours));
+    setDescription(cafe.description || '');
+    setHeroImageUrl(cafe.hero_image_url || '');
+    setMenu(cafe.menu || []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     rules.default_turn_time_minutes,
@@ -54,6 +63,9 @@ export default function CafeSettingsPage() {
     rules.booking_lead_time_hours,
     rules.hold_duration_minutes,
     operatingHoursKey,
+    cafe.description,
+    cafe.hero_image_url,
+    menuKey,
   ]);
 
   const updateDay = (day: OperatingHourEntry['day_of_week'], patch: Partial<OperatingHourEntry>) => {
@@ -79,6 +91,9 @@ export default function CafeSettingsPage() {
           hold_duration_minutes: holdDuration,
         },
         operating_hours: operatingHours,
+        description,
+        hero_image_url: heroImageUrl,
+        menu,
       });
       // `cafe` comes from a Server Component fetch (see [tenant]/layout.tsx),
       // not react-query — router.refresh() re-runs that fetch so the rest of
@@ -237,6 +252,15 @@ export default function CafeSettingsPage() {
               ))}
             </div>
           </div>
+
+          <StorefrontEditor
+            description={description}
+            heroImageUrl={heroImageUrl}
+            menu={menu}
+            onDescriptionChange={setDescription}
+            onHeroImageUrlChange={setHeroImageUrl}
+            onMenuChange={setMenu}
+          />
 
           <div className="pt-6 border-t border-brand-brown/10 flex justify-end">
             <button

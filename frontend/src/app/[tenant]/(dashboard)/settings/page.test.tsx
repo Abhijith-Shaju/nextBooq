@@ -129,3 +129,60 @@ describe('CafeSettingsPage — operating hours', () => {
     await waitFor(() => expect(axiosInstance.put).not.toHaveBeenCalled());
   });
 });
+
+describe('CafeSettingsPage — storefront', () => {
+  beforeEach(() => {
+    refresh.mockReset();
+    vi.mocked(axiosInstance.put).mockReset().mockResolvedValue({ data: { data: {} } });
+  });
+
+  test('shows the cafe\'s existing description and hero image URL', () => {
+    vi.mocked(useTenant).mockReturnValue({
+      cafe: { ...makeCafe(), description: 'Great coffee.', hero_image_url: 'https://example.com/hero.jpg' },
+    } as any);
+    render(<CafeSettingsPage />);
+
+    expect(screen.getByLabelText(/description/i)).toHaveValue('Great coffee.');
+    expect(screen.getByLabelText(/hero photo url/i)).toHaveValue('https://example.com/hero.jpg');
+  });
+
+  test('saving includes description, hero_image_url, and menu in the request body', async () => {
+    vi.mocked(useTenant).mockReturnValue({
+      cafe: {
+        ...makeCafe(),
+        description: 'Great coffee.',
+        hero_image_url: 'https://example.com/hero.jpg',
+        menu: [{ category: 'Coffee', items: [{ name: 'Espresso', price: 120 }] }],
+      },
+    } as any);
+    render(<CafeSettingsPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /save cafe rules/i }));
+
+    await waitFor(() =>
+      expect(axiosInstance.put).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          description: 'Great coffee.',
+          hero_image_url: 'https://example.com/hero.jpg',
+          menu: [{ category: 'Coffee', items: [{ name: 'Espresso', price: 120 }] }],
+        })
+      )
+    );
+  });
+
+  test('editing the description field updates what would be submitted on save', async () => {
+    vi.mocked(useTenant).mockReturnValue({ cafe: makeCafe() } as any);
+    render(<CafeSettingsPage />);
+
+    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Updated description' } });
+    fireEvent.click(screen.getByRole('button', { name: /save cafe rules/i }));
+
+    await waitFor(() =>
+      expect(axiosInstance.put).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ description: 'Updated description' })
+      )
+    );
+  });
+});
