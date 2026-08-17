@@ -21,14 +21,16 @@ function isReservedTopLevelPath(pathname: string): boolean {
 }
 
 /**
- * Given the incoming request's Host header and pathname, returns the
- * rewritten pathname to route to under the [tenant] dynamic segment if this
- * request is for a cafe subdomain (e.g. blackshores.nextbooq.in), or null if
- * the request should be routed normally (apex domain, www, a reserved
- * top-level path, or a host that isn't a subdomain of ROOT_DOMAIN at all —
- * covers localhost dev and Vercel's own *.vercel.app preview URLs).
+ * Given a Host header (or window.location.host, which has the same shape),
+ * returns the cafe slug it identifies, or null if this host isn't a cafe
+ * subdomain at all (apex domain, www, an unrelated host, or a nested
+ * subdomain this app doesn't recognize as a single cafe slug). Shared by
+ * resolveTenantRewrite (middleware, server-side) and anywhere client code
+ * needs the same "is the slug already implied by the Host header" check —
+ * e.g. resolvePostAuthDestination deciding whether a post-login redirect
+ * needs the slug prefixed or not.
  */
-export function resolveTenantRewrite(hostHeader: string | null, pathname: string): string | null {
+export function getTenantSlugFromHost(hostHeader: string | null | undefined): string | null {
   if (!hostHeader) return null;
 
   const host = hostHeader.split(':')[0].toLowerCase();
@@ -39,6 +41,21 @@ export function resolveTenantRewrite(hostHeader: string | null, pathname: string
   // A subdomain slug should be a single label (no dots) — anything else
   // (unexpected nested subdomains) isn't a cafe slug this app recognizes.
   if (!slug || slug.includes('.')) return null;
+
+  return slug;
+}
+
+/**
+ * Given the incoming request's Host header and pathname, returns the
+ * rewritten pathname to route to under the [tenant] dynamic segment if this
+ * request is for a cafe subdomain (e.g. blackshores.nextbooq.in), or null if
+ * the request should be routed normally (apex domain, www, a reserved
+ * top-level path, or a host that isn't a subdomain of ROOT_DOMAIN at all —
+ * covers localhost dev and Vercel's own *.vercel.app preview URLs).
+ */
+export function resolveTenantRewrite(hostHeader: string | null, pathname: string): string | null {
+  const slug = getTenantSlugFromHost(hostHeader);
+  if (!slug) return null;
 
   if (isReservedTopLevelPath(pathname)) return null;
 

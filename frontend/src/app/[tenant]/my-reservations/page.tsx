@@ -16,7 +16,7 @@ import { Calendar, Clock, Users, ArrowLeft, Loader2, AlertCircle, RefreshCw } fr
 
 export default function MyReservationsPage() {
   const { isAuthenticated } = useAuth();
-  const { cafe } = useTenant();
+  const { cafe, tenantPath } = useTenant();
   const router = useRouter();
   const { data: reservations = [], isLoading, refetch } = useCustomerReservations(isAuthenticated);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -47,7 +47,7 @@ export default function MyReservationsPage() {
       setHoldExpiresAt(new Date(expiresAt));
     }
 
-    router.push(`/${cafe.slug}/checkout`);
+    router.push(tenantPath('/checkout'));
   };
 
   return (
@@ -57,7 +57,7 @@ export default function MyReservationsPage() {
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-8 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <Link href={`/${cafe.slug}`} className="inline-flex items-center text-xs font-semibold text-brand-mocha hover:text-brand-brown mb-2 transition-colors">
+            <Link href={tenantPath('/')} className="inline-flex items-center text-xs font-semibold text-brand-mocha hover:text-brand-brown mb-2 transition-colors">
               <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back to Storefront
             </Link>
             <h1 className="text-3xl font-bold font-display text-brand-brown">Your tokens</h1>
@@ -107,7 +107,7 @@ export default function MyReservationsPage() {
               <p className="text-xs text-brand-mocha mt-0.5">You haven't held any tables at {cafe.name} yet.</p>
             </div>
             <Link
-              href={`/${cafe.slug}`}
+              href={tenantPath('/')}
               className="cta-hero py-2.5 px-5 text-xs font-bold shadow-brand-sm inline-flex items-center gap-1.5"
             >
               Book a Table Now

@@ -88,4 +88,49 @@ describe('resolvePostAuthDestination', () => {
   test('a manager-only user (owner_org_id null) is unaffected and still goes to their cafe', () => {
     expect(resolvePostAuthDestination({ ...staffUser, owner_org_id: null })).toBe('/cafe-one/dashboard');
   });
+
+  describe('subdomain access (currentHost identifies a cafe subdomain)', () => {
+    test('omits the slug prefix when logging in from that cafe\'s own subdomain', () => {
+      expect(resolvePostAuthDestination(staffUser, null, 'cafe-one.nextbooq.in')).toBe('/dashboard');
+    });
+
+    test('still prefixes the slug when logging in from a different cafe\'s subdomain', () => {
+      expect(resolvePostAuthDestination(staffUser, null, 'some-other-cafe.nextbooq.in')).toBe('/cafe-one/dashboard');
+    });
+
+    test('still prefixes the slug for path-based access (apex/non-subdomain host)', () => {
+      expect(resolvePostAuthDestination(staffUser, null, 'nextbooq.in')).toBe('/cafe-one/dashboard');
+    });
+
+    test('strips a redundant slug-prefixed staff callback when already on that subdomain', () => {
+      expect(resolvePostAuthDestination(staffUser, '/cafe-one/reservations?date=2026-08-15', 'cafe-one.nextbooq.in'))
+        .toBe('/reservations?date=2026-08-15');
+    });
+
+    test('leaves a staff callback for a different cafe than the current subdomain unchanged', () => {
+      // Not this cafe's own callback and not a recognized membership match for
+      // "cafe-two" via the subdomain either — falls through to the fallback,
+      // which correctly still targets the user's actual (only) cafe.
+      expect(resolvePostAuthDestination(staffUser, '/cafe-one/dashboard', 'some-other-cafe.nextbooq.in'))
+        .toBe('/cafe-one/dashboard');
+    });
+
+    test('strips a redundant slug-prefixed customer callback when already on that subdomain', () => {
+      expect(resolvePostAuthDestination(customer, '/cafe-one/my-reservations', 'cafe-one.nextbooq.in'))
+        .toBe('/my-reservations');
+    });
+
+    test('does not strip a customer callback for a different cafe than the current subdomain', () => {
+      expect(resolvePostAuthDestination(customer, '/cafe-two/my-reservations', 'cafe-one.nextbooq.in'))
+        .toBe('/cafe-two/my-reservations');
+    });
+
+    test('org owner and platform admin destinations are unaffected by a subdomain host', () => {
+      const orgOwner = { ...staffUser, owner_org_id: 'org-1' };
+      expect(resolvePostAuthDestination(orgOwner, null, 'cafe-one.nextbooq.in')).toBe('/org/dashboard');
+
+      const admin = { ...customer, is_platform_admin: true };
+      expect(resolvePostAuthDestination(admin, null, 'cafe-one.nextbooq.in')).toBe('/admin');
+    });
+  });
 });

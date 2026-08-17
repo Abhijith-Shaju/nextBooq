@@ -12,6 +12,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/components/providers/tenant-provider', () => ({
   useTenant: () => ({
     cafe: { id: 'cafe_1', slug: 'demo-cafe', reservation_rules: { hold_duration_minutes: 10 } },
+    tenantPath: (path: string) => `/demo-cafe${path === '/' ? '' : path}`,
   }),
 }));
 

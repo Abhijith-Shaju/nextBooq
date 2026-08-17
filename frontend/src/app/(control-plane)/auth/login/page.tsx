@@ -29,7 +29,7 @@ function LoginForm() {
       { email, password },
       {
         onSuccess: (user) => {
-          router.push(resolvePostAuthDestination(user, callbackUrl));
+          router.push(resolvePostAuthDestination(user, callbackUrl, window.location.host));
         },
       }
     );

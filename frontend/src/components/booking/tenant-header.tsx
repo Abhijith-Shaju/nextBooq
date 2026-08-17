@@ -8,7 +8,7 @@ import { CustomerAuthModal } from '@/components/auth/customer-auth-modal';
 import { Coffee, User, Calendar, LogOut, Shield } from 'lucide-react';
 
 export function TenantPublicHeader() {
-  const { cafe } = useTenant();
+  const { cafe, tenantPath } = useTenant();
   const { isAuthenticated, user, logout } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
@@ -17,7 +17,7 @@ export function TenantPublicHeader() {
       <header className="w-full bg-brand-brown/95 backdrop-blur-md text-white border-b border-white/10 sticky top-0 z-50 px-4 md:px-8 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           {/* Cafe Brand */}
-          <Link href={`/${cafe.slug}`} className="flex items-center gap-2.5 group">
+          <Link href={tenantPath('/')} className="flex items-center gap-2.5 group">
             <div className="w-9 h-9 bg-brand-red rounded-xl flex items-center justify-center text-white shadow-brand-md transition-transform group-hover:scale-105">
               <Coffee className="w-5 h-5" />
             </div>
@@ -30,7 +30,7 @@ export function TenantPublicHeader() {
           {/* Navigation Links & Customer Auth */}
           <div className="flex items-center gap-1 sm:gap-3 shrink-0">
             <Link
-              href={`/${cafe.slug}/my-reservations`}
+              href={tenantPath('/my-reservations')}
               title="My Bookings"
               className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-semibold text-brand-tan hover:text-white hover:bg-white/10 transition-all"
             >

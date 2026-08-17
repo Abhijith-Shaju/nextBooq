@@ -18,7 +18,7 @@ function TenantDashboardGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { cafe } = useTenant();
+  const { cafe, tenantPath } = useTenant();
   const { user, isLoading: isAuthLoading, logout } = useAuth();
   const queryClient = useQueryClient();
 
@@ -97,10 +97,10 @@ function TenantDashboardGuard({ children }: { children: React.ReactNode }) {
   }, [cafe?.id, queryClient]);
 
   const navItems = [
-    { label: 'Host Stand', href: `/${cafe.slug}/dashboard`, icon: LayoutDashboard, permission: 'view_reservations' },
-    { label: 'Reservations', href: `/${cafe.slug}/reservations`, icon: Calendar, permission: 'view_reservations' },
-    { label: 'Tables Inventory', href: `/${cafe.slug}/tables`, icon: Grid, permission: 'edit_tables' },
-    { label: 'Cafe Settings', href: `/${cafe.slug}/settings`, icon: Settings, permission: 'edit_settings' },
+    { label: 'Host Stand', href: tenantPath('/dashboard'), icon: LayoutDashboard, permission: 'view_reservations' },
+    { label: 'Reservations', href: tenantPath('/reservations'), icon: Calendar, permission: 'view_reservations' },
+    { label: 'Tables Inventory', href: tenantPath('/tables'), icon: Grid, permission: 'edit_tables' },
+    { label: 'Cafe Settings', href: tenantPath('/settings'), icon: Settings, permission: 'edit_settings' },
   ].filter((item) => hasCafePermission(user, cafe.id, item.permission));
 
   return (

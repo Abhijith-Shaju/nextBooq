@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { TenantProvider } from './tenant-provider';
+import { TenantProvider, useTenant, buildTenantPath } from './tenant-provider';
 import { useBookingStore } from '@/store/use-booking-store';
 import { useDashboardStore } from '@/store/use-dashboard-store';
 import { Cafe } from '@/lib/types/models';
@@ -65,5 +65,53 @@ describe('TenantProvider resets per-tenant client state on tenant switch', () =>
     );
 
     expect(useBookingStore.getState().partySize).toBe(5);
+  });
+});
+
+describe('buildTenantPath', () => {
+  const cafe = { slug: 'vtcafe' };
+
+  test('prefixes the slug for path-based access', () => {
+    expect(buildTenantPath(cafe, '/dashboard', false)).toBe('/vtcafe/dashboard');
+    expect(buildTenantPath(cafe, '/', false)).toBe('/vtcafe');
+    expect(buildTenantPath(cafe, '', false)).toBe('/vtcafe');
+  });
+
+  test('does not prefix the slug for subdomain access, since it is already implied by the Host header', () => {
+    expect(buildTenantPath(cafe, '/dashboard', true)).toBe('/dashboard');
+    expect(buildTenantPath(cafe, '/', true)).toBe('/');
+    expect(buildTenantPath(cafe, '', true)).toBe('/');
+  });
+
+  test('normalizes a path missing its leading slash the same way in both modes', () => {
+    expect(buildTenantPath(cafe, 'dashboard', false)).toBe('/vtcafe/dashboard');
+    expect(buildTenantPath(cafe, 'dashboard', true)).toBe('/dashboard');
+  });
+});
+
+describe('TenantProvider.tenantPath via useTenant()', () => {
+  function Probe() {
+    const { tenantPath } = useTenant();
+    return <div data-testid="path">{tenantPath('/dashboard')}</div>;
+  }
+
+  test('exposes a slug-prefixed tenantPath by default (path-based access)', () => {
+    render(
+      <TenantProvider cafe={makeCafe('a')}>
+        <Probe />
+      </TenantProvider>
+    );
+
+    expect(screen.getByTestId('path')).toHaveTextContent('/cafe-a/dashboard');
+  });
+
+  test('exposes an unprefixed tenantPath when isSubdomainAccess is true', () => {
+    render(
+      <TenantProvider cafe={makeCafe('a')} isSubdomainAccess>
+        <Probe />
+      </TenantProvider>
+    );
+
+    expect(screen.getByTestId('path')).toHaveTextContent('/dashboard');
   });
 });

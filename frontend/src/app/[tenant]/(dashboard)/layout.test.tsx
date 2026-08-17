@@ -16,7 +16,10 @@ vi.mock('sonner', () => ({ toast: { error: vi.fn() } }));
 vi.mock('socket.io-client', () => ({ io: vi.fn(() => socketMock) }));
 vi.mock('@/hooks/api/axios-instance', () => ({ axiosInstance: { get: vi.fn().mockRejectedValue(new Error('not authenticated')) } }));
 vi.mock('@/components/providers/tenant-provider', () => ({
-  useTenant: () => ({ cafe: { id: 'cafe-1', name: 'Garden Cafe', slug: 'garden-cafe' } }),
+  useTenant: () => ({
+    cafe: { id: 'cafe-1', name: 'Garden Cafe', slug: 'garden-cafe' },
+    tenantPath: (path: string) => `/garden-cafe${path === '/' ? '' : path}`,
+  }),
 }));
 
 const useAuthMock = vi.fn();

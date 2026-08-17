@@ -10,7 +10,7 @@ const HOLD_RING_CIRCUMFERENCE = 2 * Math.PI * 20;
 
 export function CountdownTimer() {
   const { holdExpiresAt, resetBooking } = useBookingStore();
-  const { cafe } = useTenant();
+  const { cafe, tenantPath } = useTenant();
   const totalHoldSeconds = (cafe.reservation_rules?.hold_duration_minutes ?? 10) * 60;
   const [secondsLeft, setSecondsLeft] = useState(() =>
     holdExpiresAt ? secondsUntil(holdExpiresAt, new Date()) : 0
@@ -25,14 +25,14 @@ export function CountdownTimer() {
       setSecondsLeft(secondsUntil(holdExpiresAt, now));
       if (isExpired(holdExpiresAt, now)) {
         resetBooking();
-        router.push(`/${cafe.slug}`);
+        router.push(tenantPath('/'));
       }
     };
 
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [holdExpiresAt, router, resetBooking, cafe.slug]);
+  }, [holdExpiresAt, router, resetBooking, tenantPath]);
 
   if (!holdExpiresAt) return null;
 

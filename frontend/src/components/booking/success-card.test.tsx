@@ -18,6 +18,7 @@ vi.mock('@/components/providers/tenant-provider', () => ({
       reservation_rules: { default_turn_time_minutes: 90 },
       timezone: 'UTC',
     },
+    tenantPath: (path: string) => `/demo-cafe${path === '/' ? '' : path}`,
   }),
 }));
 

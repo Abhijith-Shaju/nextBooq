@@ -50,7 +50,14 @@ export function middleware(request: NextRequest) {
   if (rewrittenPathname) {
     const url = request.nextUrl.clone();
     url.pathname = rewrittenPathname;
-    return NextResponse.rewrite(url);
+    // Tells [tenant]/layout.tsx (via headers()) that the slug came from the
+    // Host header, not the URL — every internal link/redirect built with the
+    // slug prefix (tenantPath() in tenant-provider.tsx) needs to know this,
+    // or a click while already on a cafe's own subdomain double-prefixes the
+    // slug (e.g. vtcafe.localhost/vtcafe/dashboard, which no route matches).
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-tenant-via-subdomain", "1");
+    return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
   }
 
   return NextResponse.next();
