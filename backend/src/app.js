@@ -21,13 +21,25 @@ const allowedOrigins = config.CORS_ALLOWED_ORIGINS.split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+// An allow-list entry containing "*" (e.g. "https://*.nextbooq.in") matches
+// any origin sharing that shape — needed because every cafe gets its own
+// subdomain (see frontend/src/lib/tenant-domain.ts's ROOT_DOMAIN rewrite),
+// so a fixed list can't enumerate every cafe's origin. An entry without "*"
+// is matched exactly, same as before.
+const isOriginAllowed = (origin) =>
+  allowedOrigins.some((pattern) => {
+    if (!pattern.includes('*')) return origin === pattern;
+    const regex = new RegExp(`^${pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^.]+')}$`);
+    return regex.test(origin);
+  });
+
 // Security and Logging Middlewares
 app.use(helmet());
 app.use(cors({
   origin: function (origin, callback) {
     // No Origin header means a non-browser client (server-to-server, curl,
     // mobile) — CORS only governs browser cross-origin requests, so allow it.
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || isOriginAllowed(origin)) {
       return callback(null, origin);
     }
     return callback(new Error(`Origin ${origin} is not allowed by CORS`));
