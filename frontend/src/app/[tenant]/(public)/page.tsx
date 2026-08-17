@@ -1,6 +1,7 @@
 import { TenantPublicHeader } from '@/components/booking/tenant-header';
 import { Hero } from '@/components/booking/hero';
 import { BookingCard } from '@/components/booking/booking-card';
+import { CafeMenuSection } from '@/components/booking/cafe-menu-section';
 import { CafeInfoCard } from '@/components/booking/cafe-info-card';
 import { Coffee } from 'lucide-react';
 
@@ -14,6 +15,8 @@ export default function TenantPublicPage() {
       <div className="container mx-auto px-4 py-12 -mt-16 md:-mt-24 relative z-10">
         <BookingCard />
       </div>
+
+      <CafeMenuSection />
 
       {/* Dynamic Template Info Card */}
       <CafeInfoCard />
