@@ -81,6 +81,13 @@ export default function CafeSettingsPage() {
       return;
     }
 
+    // Silently drop incomplete rows (e.g. a category or item the manager
+    // added and then abandoned) rather than letting the backend 400 and
+    // reject the entire save, including unrelated rules/hours edits.
+    const menuForSubmit = menu
+      .map((cat) => ({ ...cat, items: cat.items.filter((item) => item.name.trim().length > 0) }))
+      .filter((cat) => cat.category.trim().length > 0 && cat.items.length > 0);
+
     setIsSaving(true);
     try {
       await axiosInstance.put(`/api/v1/cafes/${cafe.id}`, {
@@ -93,7 +100,7 @@ export default function CafeSettingsPage() {
         operating_hours: operatingHours,
         description,
         hero_image_url: heroImageUrl,
-        menu,
+        menu: menuForSubmit,
       });
       // `cafe` comes from a Server Component fetch (see [tenant]/layout.tsx),
       // not react-query — router.refresh() re-runs that fetch so the rest of

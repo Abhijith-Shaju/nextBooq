@@ -35,7 +35,7 @@ menu: [
 
 Validation, added alongside the existing `validateOperatingHoursInput`:
 - `description`: if present, must be a string; length is enforced by the schema's `maxlength` (Mongoose validation error surfaces as a 400 via the existing error-handling middleware, same as any other schema validation failure elsewhere in the app).
-- `hero_image_url`: if present and non-empty, must start with `http://` or `https://` — `BadRequestError('hero_image_url must be a valid http(s) URL')` otherwise. No live fetch/HEAD request to verify the image actually loads; that's the same trade-off the rest of the app makes elsewhere (e.g. no verification that a Razorpay webhook URL is reachable).
+- `hero_image_url`: if present and non-empty, must be a valid `https://` URL (checked with `new URL()`, not just a prefix test) — `BadRequestError('hero_image_url must be a valid https URL')` otherwise. Tightened from an original http(s)-prefix rule during final review: `next.config.ts`'s `images.remotePatterns` only allows `https` (plus `http` on `localhost`), so an `http://` URL passed backend validation but then crashed `next/image` at render time on the public page, which has no error boundary to contain it. No live fetch/HEAD request to verify the image actually loads; that's the same trade-off the rest of the app makes elsewhere (e.g. no verification that a Razorpay webhook URL is reachable).
 - `menu`: a new `validateMenuInput(menu)` function, same shape as `validateOperatingHoursInput`:
   - Must be an array.
   - Each category entry must have a non-empty `category` string.
@@ -74,7 +74,7 @@ Reads from `useTenant()`'s `cafe`, matching the existing pattern used by `CafeIn
 
 - Missing/invalid `category`/item `name` in the menu payload → `400 BadRequestError` naming the specific field, mirroring the existing `operating_hours` validation style. The whole save is rejected atomically — no partial menu updates.
 - Negative `price` → `400 BadRequestError`.
-- Malformed `hero_image_url` (doesn't start with `http(s)://`) → `400 BadRequestError`.
+- Malformed `hero_image_url` (not a valid `https://` URL) → `400 BadRequestError`.
 - `description` over 1000 chars → surfaced as a Mongoose validation error through the existing generic error-handling middleware (same as any other schema `maxlength` violation elsewhere in the app), which already produces a client-visible 400.
 - A hero image URL that 404s or otherwise fails to load client-side is not a save-time error — the browser just shows a broken image on the public page (`Hero.tsx`'s existing behavior, unchanged by this spec). This is a conscious trade-off (matches the "no live fetch" decision above) rather than a gap.
 

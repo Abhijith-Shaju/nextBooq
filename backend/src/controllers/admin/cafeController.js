@@ -6,7 +6,19 @@ const NON_NEGATIVE_INT_RULES = ['booking_lead_time_hours'];
 
 const VALID_DAYS_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const TIME_STRING_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
-const HTTP_URL_PATTERN = /^https?:\/\//i;
+
+const isValidHttpsUrl = (value) => {
+  if (!value.startsWith('https://')) {
+    return false;
+  }
+  try {
+    // eslint-disable-next-line no-new
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 const validateOperatingHoursInput = (operatingHours) => {
   if (!Array.isArray(operatingHours)) {
@@ -65,7 +77,7 @@ const validateMenuInput = (menu) => {
       if (typeof name !== 'string' || name.trim().length === 0) {
         throw new BadRequestError(`menu item name is required and must be a non-empty string (category "${categoryName}")`);
       }
-      if (price !== undefined && price !== null && (typeof price !== 'number' || price < 0)) {
+      if (price !== undefined && price !== null && (typeof price !== 'number' || !Number.isFinite(price) || price < 0)) {
         throw new BadRequestError(`menu item price must be a non-negative number (item "${name}")`);
       }
     }
@@ -120,8 +132,8 @@ const updateCafe = async (req, res, next) => {
       if (typeof hero_image_url !== 'string') {
         throw new BadRequestError('hero_image_url must be a string');
       }
-      if (hero_image_url.length > 0 && !HTTP_URL_PATTERN.test(hero_image_url)) {
-        throw new BadRequestError('hero_image_url must be a valid http(s) URL');
+      if (hero_image_url.length > 0 && !isValidHttpsUrl(hero_image_url)) {
+        throw new BadRequestError('hero_image_url must be a valid https URL');
       }
       cafe.hero_image_url = hero_image_url;
     }

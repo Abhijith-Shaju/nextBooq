@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - `description`: max 1000 characters, optional.
-- `hero_image_url`: optional; if set, must start with `http://` or `https://`.
+- `hero_image_url`: optional; if set, must be a valid `https://` URL (tightened from an original http(s) rule during final review, since `next.config.ts`'s image loader can't render arbitrary `http://` URLs and there's no error boundary to contain the resulting crash).
 - `menu`: optional array of `{ category: string, items: [{ name: string, description?: string, price?: number }] }`; `category` and item `name` are required non-empty strings when present at all; `price` if present must be `>= 0`.
 - All three fields default to "unset" — an untouched cafe must render identically to how it does today.
 - Reuse the existing `edit_settings` permission and the existing `PUT /api/v1/cafes/:id` route — no new route, no new permission.

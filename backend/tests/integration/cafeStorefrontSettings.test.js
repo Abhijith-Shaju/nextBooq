@@ -78,8 +78,22 @@ describe('Integration Test: cafe storefront settings (description, hero image, m
     expect(res.body.data.menu).toEqual([]);
   });
 
-  test('rejects a hero_image_url that is not http(s)', async () => {
+  test('rejects a hero_image_url that is not https', async () => {
     const res = await putSettings({ hero_image_url: 'ftp://example.com/hero.jpg' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/hero_image_url/i);
+  });
+
+  test('rejects a hero_image_url that is http (not https)', async () => {
+    const res = await putSettings({ hero_image_url: 'http://example.com/hero.jpg' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/hero_image_url/i);
+  });
+
+  test('rejects a malformed https hero_image_url', async () => {
+    const res = await putSettings({ hero_image_url: 'https://not a valid url' });
 
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/hero_image_url/i);

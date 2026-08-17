@@ -87,7 +87,7 @@ export function StorefrontEditor({
       </div>
 
       <div>
-        <label htmlFor="hero-image-url" className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
+        <label htmlFor="hero-image-url" className="text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
           <ImageIcon className="w-4 h-4 text-brand-red" /> Hero Photo URL
         </label>
         <input
@@ -121,6 +121,7 @@ export function StorefrontEditor({
                   type="text"
                   value={cat.category}
                   placeholder="Category name (e.g. Coffee)"
+                  aria-label={`Category ${categoryIndex + 1} name`}
                   onChange={(e) => updateCategoryName(categoryIndex, e.target.value)}
                   className="flex-1 px-3 py-2 rounded-lg border border-brand-brown/20 bg-white text-sm font-semibold"
                 />
@@ -141,6 +142,7 @@ export function StorefrontEditor({
                       type="text"
                       value={item.name}
                       placeholder="Item name"
+                      aria-label={`Item ${itemIndex + 1} name in ${cat.category || 'category ' + (categoryIndex + 1)}`}
                       onChange={(e) => updateItem(categoryIndex, itemIndex, { name: e.target.value })}
                       className="flex-1 min-w-[8rem] px-3 py-2 rounded-lg border border-brand-brown/20 bg-white text-sm"
                     />
@@ -148,6 +150,7 @@ export function StorefrontEditor({
                       type="text"
                       value={item.description || ''}
                       placeholder="Description (optional)"
+                      aria-label={`Item ${itemIndex + 1} description in ${cat.category || 'category ' + (categoryIndex + 1)}`}
                       onChange={(e) => updateItem(categoryIndex, itemIndex, { description: e.target.value })}
                       className="flex-1 min-w-[8rem] px-3 py-2 rounded-lg border border-brand-brown/20 bg-white text-sm"
                     />
@@ -156,6 +159,7 @@ export function StorefrontEditor({
                       min={0}
                       value={item.price ?? ''}
                       placeholder="Price"
+                      aria-label={`Item ${itemIndex + 1} price in ${cat.category || 'category ' + (categoryIndex + 1)}`}
                       onChange={(e) =>
                         updateItem(categoryIndex, itemIndex, {
                           price: e.target.value === '' ? undefined : Number(e.target.value),

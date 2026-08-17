@@ -171,6 +171,34 @@ describe('CafeSettingsPage — storefront', () => {
     );
   });
 
+  test('drops incomplete menu categories/items from the submitted payload without touching the on-screen menu', async () => {
+    vi.mocked(useTenant).mockReturnValue({
+      cafe: {
+        ...makeCafe(),
+        menu: [
+          { category: 'Coffee', items: [{ name: 'Espresso', price: 120 }] },
+          { category: '', items: [{ name: '', price: undefined }] },
+        ],
+      },
+    } as any);
+    render(<CafeSettingsPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /save cafe rules/i }));
+
+    await waitFor(() =>
+      expect(axiosInstance.put).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          menu: [{ category: 'Coffee', items: [{ name: 'Espresso', price: 120 }] }],
+        })
+      )
+    );
+
+    // The blank category is still shown in the editor afterwards — only the
+    // submitted payload was filtered, not the in-progress form state.
+    expect(screen.getAllByLabelText(/category \d+ name/i)).toHaveLength(2);
+  });
+
   test('editing the description field updates what would be submitted on save', async () => {
     vi.mocked(useTenant).mockReturnValue({ cafe: makeCafe() } as any);
     render(<CafeSettingsPage />);
