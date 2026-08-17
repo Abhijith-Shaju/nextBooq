@@ -42,6 +42,14 @@ describe('resolveTenantRewrite', () => {
     expect(resolveTenantRewrite('blackshores.nextbooq.in', '/onboarding')).toBeNull();
   });
 
+  test('leaves /api requests unprefixed so the backend proxy rewrite in next.config.ts still matches', () => {
+    // Every XHR this app makes — including from a page served on a cafe
+    // subdomain — hits a plain "/api/..." path. Prefixing it with the slug
+    // would 404 every API call made while on a cafe subdomain.
+    expect(resolveTenantRewrite('blackshores.nextbooq.in', '/api/v1/auth/login')).toBeNull();
+    expect(resolveTenantRewrite('blackshores.nextbooq.in', '/api/v1/auth/me')).toBeNull();
+  });
+
   test('does not treat a path merely starting with a reserved prefix as reserved', () => {
     // Guards against a naive startsWith('/auth') check matching something
     // like a hypothetical "/authentic-cafe" tenant slug's own root path.

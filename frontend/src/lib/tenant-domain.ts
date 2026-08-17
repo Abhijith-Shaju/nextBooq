@@ -8,8 +8,13 @@ const ROOT_DOMAIN = (process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'nextbooq.in').toLow
 // cafe's own subdomain — e.g. the "Staff / Operator Login" link on the
 // tenant public header points at plain "/auth/login", which must resolve to
 // the real login page rather than being rewritten into a nonexistent
-// "/<slug>/auth/login" tenant route.
-const RESERVED_TOP_LEVEL_PATHS = ['/auth', '/admin', '/org', '/onboarding'];
+// "/<slug>/auth/login" tenant route. "/api" is the same story but for XHR:
+// every fetch this app makes (including from a tenant subdomain's own pages)
+// hits a plain "/api/..." path that next.config.ts's rewrites() proxies to
+// the backend — prefixing it with the slug turns it into "/<slug>/api/...",
+// which that rewrite rule no longer matches, 404ing every API call made
+// while on a cafe subdomain (login, availability, bookings, all of it).
+const RESERVED_TOP_LEVEL_PATHS = ['/auth', '/admin', '/org', '/onboarding', '/api'];
 
 function isReservedTopLevelPath(pathname: string): boolean {
   return RESERVED_TOP_LEVEL_PATHS.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
