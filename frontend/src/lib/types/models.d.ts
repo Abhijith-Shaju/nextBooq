@@ -12,6 +12,17 @@ export interface OperatingHourEntry {
   is_closed: boolean;
 }
 
+export interface CafeMenuItem {
+  name: string;
+  description?: string;
+  price?: number;
+}
+
+export interface CafeMenuCategory {
+  category: string;
+  items: CafeMenuItem[];
+}
+
 export interface Cafe {
   id: string;
   _id?: string;
@@ -23,6 +34,7 @@ export interface Cafe {
   brand_accent?: string;
   logo_url?: string;
   hero_image_url?: string;
+  menu?: CafeMenuCategory[];
   timezone: string;
   reservation_rules: ReservationRules;
   operating_hours?: OperatingHourEntry[];
