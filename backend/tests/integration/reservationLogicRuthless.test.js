@@ -26,6 +26,20 @@ jest.mock('../../src/config/razorpay', () => ({
 
 setupTestDB();
 
+// The reservation lead-time floor rejects anything less than ~24h out, and
+// the midnight-crossing test below depends on the date landing on a
+// Wednesday — so this computes a safely-future Wednesday instead of a fixed
+// calendar date, which would eventually rot into the past as real time
+// moves on (as happened with the previous hardcoded '2026-08-12').
+function nextWednesdayAtLeast48hOut() {
+  const d = new Date(Date.now() + 48 * 60 * 60 * 1000);
+  const diff = (3 - d.getUTCDay() + 7) % 7; // Wednesday = 3
+  d.setUTCDate(d.getUTCDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
+
+const TEST_DATE = nextWednesdayAtLeast48hOut();
+
 const signWebhook = (payload) =>
   crypto
     .createHmac('sha256', config.RAZORPAY_WEBHOOK_SECRET || 'rzp_test_webhook_secret')
@@ -77,14 +91,14 @@ describe('Ruthless reservation logic audit', () => {
     const overMax = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .send({ start_time: '2026-08-12T12:00:00.000Z', party_size: 20, duration_minutes: 60 });
+      .send({ start_time: `${TEST_DATE}T12:00:00.000Z`, party_size: 20, duration_minutes: 60 });
     expect(overMax.status).toBe(400);
     expect(overMax.body.message).toMatch(/maximum/i);
 
     const atMax = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .send({ start_time: '2026-08-12T12:00:00.000Z', party_size: 12, duration_minutes: 60 });
+      .send({ start_time: `${TEST_DATE}T12:00:00.000Z`, party_size: 12, duration_minutes: 60 });
     expect(atMax.status).toBe(201); // still fits on the size-20 table, and 12 is allowed
   });
 
@@ -94,7 +108,7 @@ describe('Ruthless reservation logic audit', () => {
     const first = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .send({ start_time: '2026-08-12T12:00:00.000Z', party_size: 2, duration_minutes: 60 });
+      .send({ start_time: `${TEST_DATE}T12:00:00.000Z`, party_size: 2, duration_minutes: 60 });
     expect(first.status).toBe(201);
 
     // Same user, same cafe, overlapping window — a second table is physically available,
@@ -102,7 +116,7 @@ describe('Ruthless reservation logic audit', () => {
     const second = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .send({ start_time: '2026-08-12T12:15:00.000Z', party_size: 2, duration_minutes: 60 });
+      .send({ start_time: `${TEST_DATE}T12:15:00.000Z`, party_size: 2, duration_minutes: 60 });
 
     expect(second.status).toBe(409);
 
@@ -113,7 +127,7 @@ describe('Ruthless reservation logic audit', () => {
     const nonOverlapping = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .send({ start_time: '2026-08-12T15:00:00.000Z', party_size: 2, duration_minutes: 60 });
+      .send({ start_time: `${TEST_DATE}T15:00:00.000Z`, party_size: 2, duration_minutes: 60 });
     expect(nonOverlapping.status).toBe(201);
   });
 
@@ -121,7 +135,7 @@ describe('Ruthless reservation logic audit', () => {
     const res = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .send({ start_time: '2026-08-12T12:00:00.000Z', party_size: 2, duration_minutes: 0 });
+      .send({ start_time: `${TEST_DATE}T12:00:00.000Z`, party_size: 2, duration_minutes: 0 });
 
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/duration_minutes/i);
@@ -131,7 +145,7 @@ describe('Ruthless reservation logic audit', () => {
     const res = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .send({ start_time: '2026-08-12T12:00:00.000Z', party_size: 2, duration_minutes: -30 });
+      .send({ start_time: `${TEST_DATE}T12:00:00.000Z`, party_size: 2, duration_minutes: -30 });
 
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/duration_minutes/i);
@@ -141,7 +155,7 @@ describe('Ruthless reservation logic audit', () => {
     const res = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .send({ start_time: '2026-08-12T12:00:00.000Z', party_size: '3abc', duration_minutes: 60 });
+      .send({ start_time: `${TEST_DATE}T12:00:00.000Z`, party_size: '3abc', duration_minutes: 60 });
 
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/party_size/i);
@@ -155,12 +169,12 @@ describe('Ruthless reservation logic audit', () => {
       ],
     });
 
-    // 2026-08-12 is a Wednesday. Start at 23:50 Wed, end at 00:30 Thu — past
+    // TEST_DATE is a Wednesday. Start at 23:50 Wed, end at 00:30 Thu — past
     // Wednesday's 22:00 close once day-rollover is accounted for.
     const res = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .send({ start_time: '2026-08-12T23:50:00.000Z', party_size: 2, duration_minutes: 40 });
+      .send({ start_time: `${TEST_DATE}T23:50:00.000Z`, party_size: 2, duration_minutes: 40 });
 
     expect(res.status).toBe(422);
     expect(res.body.message).toMatch(/closing time/i);
@@ -176,7 +190,7 @@ describe('Ruthless reservation logic audit', () => {
     const res = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .send({ start_time: '2026-08-12T22:50:00.000Z', party_size: 2, duration_minutes: 30 }); // ends 23:20, same day
+      .send({ start_time: `${TEST_DATE}T22:50:00.000Z`, party_size: 2, duration_minutes: 30 }); // ends 23:20, same day
 
     expect(res.status).toBe(201);
   });
@@ -186,14 +200,14 @@ describe('Ruthless reservation logic audit', () => {
     const exactClose = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .send({ start_time: '2026-08-12T21:30:00.000Z', party_size: 2, duration_minutes: 30 }); // ends exactly 22:00
+      .send({ start_time: `${TEST_DATE}T21:30:00.000Z`, party_size: 2, duration_minutes: 30 }); // ends exactly 22:00
 
     expect(exactClose.status).toBe(201); // end === close_time is allowed (endDetails.timeString > closeTime is false) — expected & fine
 
     const pastClose = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .send({ start_time: '2026-08-12T21:31:00.000Z', party_size: 2, duration_minutes: 30 }); // ends 22:01
+      .send({ start_time: `${TEST_DATE}T21:31:00.000Z`, party_size: 2, duration_minutes: 30 }); // ends 22:01
 
     expect(pastClose.status).toBe(422); // sanity check: one minute past close is correctly rejected
   });
@@ -202,7 +216,7 @@ describe('Ruthless reservation logic audit', () => {
     const bookingRes = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .send({ start_time: '2026-08-12T12:00:00.000Z', party_size: 2, duration_minutes: 60 });
+      .send({ start_time: `${TEST_DATE}T12:00:00.000Z`, party_size: 2, duration_minutes: 60 });
     expect(bookingRes.status).toBe(201);
 
     // Force the reservation back to HOLD to simulate the payment-order-creation-failed
@@ -234,7 +248,7 @@ describe('Ruthless reservation logic audit', () => {
     const rebook = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .send({ start_time: '2026-08-12T12:00:00.000Z', party_size: 2, duration_minutes: 60 });
+      .send({ start_time: `${TEST_DATE}T12:00:00.000Z`, party_size: 2, duration_minutes: 60 });
     expect(rebook.status).toBe(201);
   });
 
@@ -242,7 +256,7 @@ describe('Ruthless reservation logic audit', () => {
     const bookingRes = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .send({ start_time: '2026-08-12T12:00:00.000Z', party_size: 2, duration_minutes: 60 });
+      .send({ start_time: `${TEST_DATE}T12:00:00.000Z`, party_size: 2, duration_minutes: 60 });
     const reservationId = bookingRes.body.data.reservation_id;
     await Reservation.findByIdAndUpdate(reservationId, { status: 'CHECKED_IN', __v: 5 });
 
@@ -264,7 +278,7 @@ describe('Ruthless reservation logic audit', () => {
     const res = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .send({ start_time: '2026-08-12T12:00:00.000Z', party_size: 4, duration_minutes: 60 });
+      .send({ start_time: `${TEST_DATE}T12:00:00.000Z`, party_size: 4, duration_minutes: 60 });
     expect(res.status).toBe(201);
     const dbRes = await Reservation.findById(res.body.data.reservation_id);
     expect(dbRes.table_ids.length).toBe(1);
@@ -274,7 +288,7 @@ describe('Ruthless reservation logic audit', () => {
     const res = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .send({ start_time: '2026-08-12T12:00:00.000Z', party_size: 5, duration_minutes: 60 });
+      .send({ start_time: `${TEST_DATE}T12:00:00.000Z`, party_size: 5, duration_minutes: 60 });
     expect(res.status).toBe(422);
   });
 
@@ -292,7 +306,7 @@ describe('Ruthless reservation logic audit', () => {
     const bookingRes = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${otherToken}`)
-      .send({ start_time: '2026-08-12T12:00:00.000Z', party_size: 2, duration_minutes: 60 });
+      .send({ start_time: `${TEST_DATE}T12:00:00.000Z`, party_size: 2, duration_minutes: 60 });
     const firstId = bookingRes.body.data.reservation_id;
 
     // Force it back to an expired HOLD (simulating a lapsed, unpaid hold).
@@ -304,7 +318,7 @@ describe('Ruthless reservation logic audit', () => {
     const second = await request(app)
       .post(`/api/v1/cafes/${cafe._id}/reservations`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .send({ start_time: '2026-08-12T12:00:00.000Z', party_size: 2, duration_minutes: 60 });
+      .send({ start_time: `${TEST_DATE}T12:00:00.000Z`, party_size: 2, duration_minutes: 60 });
 
     expect(second.status).toBe(201);
   });
