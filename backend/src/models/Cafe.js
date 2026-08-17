@@ -43,6 +43,39 @@ const cafeSchema = new mongoose.Schema(
         is_closed: { type: Boolean, default: false },
       },
     ],
+    description: {
+      type: String,
+      trim: true,
+      maxlength: [1000, 'description must be 1000 characters or fewer'],
+      default: '',
+    },
+    hero_image_url: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    menu: [
+      {
+        category: {
+          type: String,
+          required: [true, 'menu category name is required'],
+          trim: true,
+          maxlength: 60,
+        },
+        items: [
+          {
+            name: {
+              type: String,
+              required: [true, 'menu item name is required'],
+              trim: true,
+              maxlength: 80,
+            },
+            description: { type: String, trim: true, default: '', maxlength: 300 },
+            price: { type: Number, min: 0 },
+          },
+        ],
+      },
+    ],
     subscription_status: {
       type: String,
       enum: ['active', 'inactive', 'trial', 'past_due'],

@@ -6,6 +6,7 @@ const NON_NEGATIVE_INT_RULES = ['booking_lead_time_hours'];
 
 const VALID_DAYS_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const TIME_STRING_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+const HTTP_URL_PATTERN = /^https?:\/\//i;
 
 const validateOperatingHoursInput = (operatingHours) => {
   if (!Array.isArray(operatingHours)) {
@@ -43,10 +44,38 @@ const validateOperatingHoursInput = (operatingHours) => {
   }
 };
 
+const validateMenuInput = (menu) => {
+  if (!Array.isArray(menu)) {
+    throw new BadRequestError('menu must be an array');
+  }
+
+  for (const category of menu) {
+    const { category: categoryName, items } = category || {};
+
+    if (typeof categoryName !== 'string' || categoryName.trim().length === 0) {
+      throw new BadRequestError('menu.category is required and must be a non-empty string');
+    }
+    if (!Array.isArray(items)) {
+      throw new BadRequestError(`menu.items must be an array for category "${categoryName}"`);
+    }
+
+    for (const item of items) {
+      const { name, price } = item || {};
+
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        throw new BadRequestError(`menu item name is required and must be a non-empty string (category "${categoryName}")`);
+      }
+      if (price !== undefined && price !== null && (typeof price !== 'number' || price < 0)) {
+        throw new BadRequestError(`menu item price must be a non-negative number (item "${name}")`);
+      }
+    }
+  }
+};
+
 const updateCafe = async (req, res, next) => {
   try {
     const cafeId = req.tenantId;
-    const { reservation_rules, operating_hours } = req.body;
+    const { reservation_rules, operating_hours, description, hero_image_url, menu } = req.body;
 
     const cafe = await Cafe.findById(cafeId);
     if (!cafe) {
@@ -78,6 +107,28 @@ const updateCafe = async (req, res, next) => {
     if (operating_hours !== undefined) {
       validateOperatingHoursInput(operating_hours);
       cafe.operating_hours = operating_hours;
+    }
+
+    if (description !== undefined) {
+      if (typeof description !== 'string') {
+        throw new BadRequestError('description must be a string');
+      }
+      cafe.description = description;
+    }
+
+    if (hero_image_url !== undefined) {
+      if (typeof hero_image_url !== 'string') {
+        throw new BadRequestError('hero_image_url must be a string');
+      }
+      if (hero_image_url.length > 0 && !HTTP_URL_PATTERN.test(hero_image_url)) {
+        throw new BadRequestError('hero_image_url must be a valid http(s) URL');
+      }
+      cafe.hero_image_url = hero_image_url;
+    }
+
+    if (menu !== undefined) {
+      validateMenuInput(menu);
+      cafe.menu = menu;
     }
 
     await cafe.save();
