@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useTenant } from '@/components/providers/tenant-provider';
 import Image from 'next/image';
 import { Coffee, Clock, ShieldCheck, Sparkles, MapPin, CheckCircle2 } from 'lucide-react';
@@ -7,20 +8,31 @@ import { motion } from 'framer-motion';
 
 export function Hero() {
   const { cafe } = useTenant();
+  // A cafe owner can save a URL that isn't actually a direct image link (the
+  // most common case: pasting a Google Images "view image" result, which
+  // points at a results-page wrapper rather than the CDN image itself) —
+  // this falls back to the same gradient shown when no photo is set at all,
+  // rather than leaving a broken/blank image in the hero banner.
+  const [heroImageFailed, setHeroImageFailed] = useState(false);
+  const showHeroImage = !!cafe.hero_image_url && !heroImageFailed;
 
   return (
     <div className="relative w-full min-h-[440px] lg:min-h-[500px] bg-brand-brown text-white flex items-center justify-center overflow-hidden py-16 px-4">
       {/* Background Hero Image / Ambient Glow */}
-      {cafe.hero_image_url ? (
+      {showHeroImage ? (
         <Image
-          src={cafe.hero_image_url}
+          src={cafe.hero_image_url!}
           alt={cafe.name}
           fill
           className="object-cover opacity-40 mix-blend-overlay"
           priority
+          onError={() => setHeroImageFailed(true)}
         />
       ) : (
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-red/40 via-brand-brown to-brand-brown opacity-90" />
+        <div
+          data-testid="hero-gradient-fallback"
+          className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-red/40 via-brand-brown to-brand-brown opacity-90"
+        />
       )}
 
       {/* Decorative Blobs */}

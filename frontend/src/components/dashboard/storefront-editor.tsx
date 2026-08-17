@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { CafeMenuCategory, CafeMenuItem } from '@/lib/types/models';
-import { Image as ImageIcon, Info, Plus, Trash2, UtensilsCrossed } from 'lucide-react';
+import { Image as ImageIcon, Info, Plus, Trash2, TriangleAlert, UtensilsCrossed } from 'lucide-react';
 
 const DESCRIPTION_MAX_LENGTH = 1000;
 
@@ -24,6 +25,8 @@ export function StorefrontEditor({
   onHeroImageUrlChange,
   onMenuChange,
 }: StorefrontEditorProps) {
+  const [previewFailedFor, setPreviewFailedFor] = useState<string | null>(null);
+
   const addCategory = () => {
     onMenuChange([...menu, { category: '', items: [] }]);
   };
@@ -98,13 +101,23 @@ export function StorefrontEditor({
           placeholder="https://..."
           className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm"
         />
-        {heroImageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={heroImageUrl}
-            alt="Hero preview"
-            className="mt-2 h-32 w-full max-w-sm rounded-xl object-cover border border-brand-brown/10"
-          />
+        {heroImageUrl && previewFailedFor === heroImageUrl ? (
+          <div className="mt-2 flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <TriangleAlert className="h-4 w-4 shrink-0" />
+            This doesn&apos;t look like a direct image link (a common mistake is copying a Google Images results
+            page URL instead of the actual photo URL) — the hero photo won&apos;t show until it&apos;s fixed.
+          </div>
+        ) : (
+          heroImageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={heroImageUrl}
+              src={heroImageUrl}
+              alt="Hero preview"
+              onError={() => setPreviewFailedFor(heroImageUrl)}
+              className="mt-2 h-32 w-full max-w-sm rounded-xl object-cover border border-brand-brown/10"
+            />
+          )
         )}
       </div>
 

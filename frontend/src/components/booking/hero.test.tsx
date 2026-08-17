@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { Hero } from './hero';
 import { useTenant } from '@/components/providers/tenant-provider';
@@ -56,5 +56,17 @@ describe('Hero', () => {
     render(<Hero />);
 
     expect(screen.queryByAltText('Demo Cafe')).not.toBeInTheDocument();
+  });
+
+  test('falls back to the gradient background when the hero image fails to load (e.g. a non-image URL)', () => {
+    vi.mocked(useTenant).mockReturnValue({
+      cafe: { ...baseCafe, hero_image_url: 'https://www.google.com/imgres?imgurl=https://cdn.pixabay.com/photo.jpg' },
+    } as any);
+    render(<Hero />);
+
+    fireEvent.error(screen.getByAltText('Demo Cafe'));
+
+    expect(screen.queryByAltText('Demo Cafe')).not.toBeInTheDocument();
+    expect(screen.getByTestId('hero-gradient-fallback')).toBeInTheDocument();
   });
 });

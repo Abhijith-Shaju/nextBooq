@@ -126,4 +126,52 @@ describe('StorefrontEditor', () => {
       { category: 'Coffee', items: [{ name: 'Cappuccino', price: 120 }] },
     ]);
   });
+
+  test('shows a warning instead of a broken image when the hero photo URL fails to load', () => {
+    render(
+      <StorefrontEditor
+        description=""
+        heroImageUrl="https://www.google.com/imgres?imgurl=https://cdn.pixabay.com/photo.jpg"
+        menu={[]}
+        onDescriptionChange={noop}
+        onHeroImageUrlChange={noop}
+        onMenuChange={noop}
+      />
+    );
+
+    fireEvent.error(screen.getByAltText('Hero preview'));
+
+    expect(screen.queryByAltText('Hero preview')).not.toBeInTheDocument();
+    expect(screen.getByText(/doesn't look like a direct image link/i)).toBeInTheDocument();
+  });
+
+  test('clears the warning once a new, working URL is entered', () => {
+    const { rerender } = render(
+      <StorefrontEditor
+        description=""
+        heroImageUrl="https://example.com/broken.jpg"
+        menu={[]}
+        onDescriptionChange={noop}
+        onHeroImageUrlChange={noop}
+        onMenuChange={noop}
+      />
+    );
+
+    fireEvent.error(screen.getByAltText('Hero preview'));
+    expect(screen.getByText(/doesn't look like a direct image link/i)).toBeInTheDocument();
+
+    rerender(
+      <StorefrontEditor
+        description=""
+        heroImageUrl="https://example.com/working.jpg"
+        menu={[]}
+        onDescriptionChange={noop}
+        onHeroImageUrlChange={noop}
+        onMenuChange={noop}
+      />
+    );
+
+    expect(screen.queryByText(/doesn't look like a direct image link/i)).not.toBeInTheDocument();
+    expect(screen.getByAltText('Hero preview')).toBeInTheDocument();
+  });
 });
