@@ -27,6 +27,15 @@ export function BookingCard() {
     }
   }, [cafe, setCafe]);
 
+  if (!cafe.payments?.configured) {
+    return (
+      <div className="ticket-card mx-auto w-full max-w-md p-8 text-center space-y-2">
+        <p className="text-base font-bold text-brand-brown">Online reservations aren&apos;t available yet</p>
+        <p className="text-sm text-brand-mocha">Please contact {cafe.name} directly to book a table.</p>
+      </div>
+    );
+  }
+
   const seatingOptions = [
     { id: 'Indoor Main Dining', label: 'Indoor Dining' },
     { id: 'Outdoor Patio', label: 'Outdoor Patio' },
