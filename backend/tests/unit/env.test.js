@@ -56,6 +56,7 @@ describe('Environment Config Schema', () => {
       RAZORPAY_KEY_ID: 'real_key_id',
       RAZORPAY_KEY_SECRET: 'real_key_secret',
       RAZORPAY_WEBHOOK_SECRET: 'real_webhook_secret',
+      ENCRYPTION_KEY: 'a_real_32_byte_or_longer_encryption_key_value',
       RESEND_API_KEY: 're_real_key',
       FROM_EMAIL: 'nextBooq <noreply@realdomain.com>',
     });
