@@ -46,6 +46,40 @@ export function getTenantSlugFromHost(hostHeader: string | null | undefined): st
 }
 
 /**
+ * Builds a link to a specific cafe's page from a context that isn't itself
+ * scoped to that cafe (e.g. the org owner dashboard's list of cafes, where
+ * each card links to a different cafe's own dashboard). `currentHost` is
+ * window.location.host at the time of the click/render.
+ *
+ * - Not on a cafe subdomain at all (apex, or an unrelated host): the normal
+ *   slug-prefixed path, e.g. "/vtcafe/dashboard".
+ * - Already on that exact cafe's own subdomain: just the unprefixed path —
+ *   prefixing it would double the slug through middleware's rewrite again
+ *   (see resolveTenantRewrite), same bug class as buildTenantPath fixes for
+ *   links generated from inside the [tenant] tree itself.
+ * - On a DIFFERENT cafe's subdomain (an org that owns more than one cafe,
+ *   browsing via one of their subdomains): a same-origin relative link
+ *   can't reach another cafe's subdomain at all, so this returns a full
+ *   absolute URL to the target cafe's own subdomain instead.
+ */
+export function buildCrossCafeHref(targetSlug: string, path: string, currentHost: string | null | undefined): string {
+  const normalized = path === '/' || path === '' ? '' : path.startsWith('/') ? path : `/${path}`;
+  const currentSlug = getTenantSlugFromHost(currentHost);
+
+  if (currentSlug === targetSlug) {
+    return normalized || '/';
+  }
+
+  if (currentSlug && currentHost) {
+    const port = currentHost.includes(':') ? `:${currentHost.split(':')[1]}` : '';
+    const protocol = ROOT_DOMAIN === 'localhost' || ROOT_DOMAIN.endsWith('.localhost') ? 'http:' : 'https:';
+    return `${protocol}//${targetSlug}.${ROOT_DOMAIN}${port}${normalized || '/'}`;
+  }
+
+  return `/${targetSlug}${normalized}`;
+}
+
+/**
  * Given the incoming request's Host header and pathname, returns the
  * rewritten pathname to route to under the [tenant] dynamic segment if this
  * request is for a cafe subdomain (e.g. blackshores.nextbooq.in), or null if

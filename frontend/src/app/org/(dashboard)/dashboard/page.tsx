@@ -7,6 +7,7 @@ import { useOrgCafes } from '@/hooks/org/use-org-cafes';
 import { useAssignStaff, AssignStaffPayload } from '@/hooks/org/use-assign-staff';
 import { OrgCafe } from '@/lib/types/org';
 import { Skeleton } from '@/components/ui/skeleton';
+import { buildCrossCafeHref } from '@/lib/tenant-domain';
 
 const ROLE_OPTIONS: AssignStaffPayload['role'][] = ['owner', 'manager', 'host', 'staff'];
 
@@ -91,7 +92,10 @@ function CafeCard({ cafe }: { cafe: OrgCafe }) {
   return (
     <div className="rounded-2xl border border-brand-brown/10 bg-white/80 p-5 shadow-brand-sm transition-shadow hover:shadow-brand-md">
       <div className="flex items-start justify-between gap-3">
-        <Link href={`/${cafe.slug}/dashboard`} className="group/link inline-flex items-start gap-1">
+        <Link
+          href={buildCrossCafeHref(cafe.slug, '/dashboard', typeof window !== 'undefined' ? window.location.host : null)}
+          className="group/link inline-flex items-start gap-1"
+        >
           <span className="font-display text-lg font-bold leading-snug text-brand-brown">{cafe.name}</span>
           <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-brand-mocha opacity-0 transition-opacity group-hover/link:opacity-100" />
         </Link>
