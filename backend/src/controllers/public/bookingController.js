@@ -2,6 +2,7 @@ const { createHoldReservation } = require('../../services/bookingService');
 const { createOrderForReservation, verifyCheckoutPayment } = require('../../services/paymentService');
 const CafeCustomer = require('../../models/CafeCustomer');
 const { BadRequestError } = require('../../utils/errors');
+const config = require('../../config/env');
 
 const createReservation = async (req, res, next) => {
   try {
@@ -64,6 +65,10 @@ const createReservation = async (req, res, next) => {
       throw new BadRequestError(
         `deposit_amount must be a positive number no greater than ${MAX_DEPOSIT_AMOUNT_RUPEES}`
       );
+    }
+
+    if (!req.cafe.payments?.configured && config.NODE_ENV !== 'development') {
+      throw new BadRequestError("This cafe hasn't finished setting up payments yet.");
     }
 
     // 1. Transactional HOLD reservation creation
