@@ -117,4 +117,84 @@ describe('Integration Test: Client-side payment verification endpoint', () => {
     const updated = await Reservation.findById(reservation._id);
     expect(updated.status).toBe('PENDING_PAYMENT');
   });
+
+  describe('dev-mode unconfigured cafe payment verification', () => {
+    const DEV_MOCK_KEY_SECRET = 'dev_mock_key_secret_not_a_real_razorpay_secret';
+
+    const signWithDevMockKey = (razorpayOrderId, razorpayPaymentId) =>
+      crypto
+        .createHmac('sha256', DEV_MOCK_KEY_SECRET)
+        .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+        .digest('hex');
+
+    let devModeCafe;
+    let devModeUser;
+    let devModeReservation;
+    let devModeToken;
+    let originalEnv;
+
+    beforeEach(async () => {
+      // Create an unconfigured cafe (no payments configured)
+      const org = await Organization.create({ name: 'Dev Mode Unconfigured Org' });
+      devModeCafe = await Cafe.create({
+        org_id: org._id,
+        name: 'Dev Mode Unconfigured Cafe',
+        slug: 'dev-mode-unconfigured',
+        timezone: 'UTC',
+        // No payments field — simulates unconfigured cafe
+      });
+
+      devModeUser = await User.create({
+        name: 'Dev Mode User',
+        email: 'devmode@test.com',
+        phone: '+1112226666',
+        password_hash: 'pass',
+      });
+
+      const devModeTable = await Table.create({ cafe_id: devModeCafe._id, table_number: 'T2', capacity: 2 });
+
+      // Create a reservation with a mock order ID (as if created by dev-mode mock fallback)
+      devModeReservation = await Reservation.create({
+        cafe_id: devModeCafe._id,
+        user_id: devModeUser._id,
+        table_ids: [devModeTable._id],
+        start_time: new Date('2026-08-21T19:00:00Z'),
+        end_time: new Date('2026-08-21T20:30:00Z'),
+        party_size: 2,
+        reservation_timezone: 'UTC',
+        status: 'PENDING_PAYMENT',
+        payment_data: { order_id: 'order_mock_dev_12345', amount: 100, currency: 'INR', webhook_processed: false },
+      });
+
+      // Temporarily set NODE_ENV to development for this test
+      originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
+
+      devModeToken = jwt.sign({ id: devModeUser._id.toString() }, config.JWT_SECRET);
+    });
+
+    afterEach(() => {
+      process.env.NODE_ENV = originalEnv;
+    });
+
+    test('verifies payment for unconfigured cafe in development using hardcoded dev mock key', async () => {
+      const signature = signWithDevMockKey('order_mock_dev_12345', 'pay_dev_12345');
+
+      const res = await request(app)
+        .post(`/api/v1/cafes/${devModeCafe._id}/reservations/${devModeReservation._id}/verify-payment`)
+        .set('Authorization', `Bearer ${devModeToken}`)
+        .send({
+          razorpay_order_id: 'order_mock_dev_12345',
+          razorpay_payment_id: 'pay_dev_12345',
+          razorpay_signature: signature,
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.status).toBe('CONFIRMED');
+
+      const updated = await Reservation.findById(devModeReservation._id);
+      expect(updated.status).toBe('CONFIRMED');
+      expect(updated.payment_data.payment_id).toBe('pay_dev_12345');
+    });
+  });
 });

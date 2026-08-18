@@ -7,6 +7,11 @@ const { transitionState } = require('./stateMachine');
 const { BadRequestError } = require('../utils/errors');
 const config = require('../config/env');
 
+// Hardcoded mock key for dev-mode unconfigured cafes (fallback for local development
+// without per-cafe credentials). Must be consistent across order creation and payment
+// verification for the mock order lifecycle to work.
+const DEV_MOCK_KEY_SECRET = 'dev_mock_key_secret_not_a_real_razorpay_secret';
+
 const getRazorpayClientForCafe = (cafe) => {
   const keySecret = decrypt(cafe.payments.razorpay_key_secret_encrypted);
   return createRazorpayClient({ key_id: cafe.payments.razorpay_key_id, key_secret: keySecret });
@@ -150,9 +155,9 @@ const verifyCheckoutPayment = async ({
 
   const cafe = await Cafe.findById(tenantId);
   const keySecret =
-    cafe?.payments?.configured || config.NODE_ENV !== 'development'
+    cafe?.payments?.configured || process.env.NODE_ENV !== 'development'
       ? decrypt(cafe.payments.razorpay_key_secret_encrypted)
-      : config.RAZORPAY_KEY_SECRET; // development mock-order fallback keeps working
+      : DEV_MOCK_KEY_SECRET; // development mock-order fallback keeps working
 
   const expectedSignature = crypto
     .createHmac('sha256', keySecret)
