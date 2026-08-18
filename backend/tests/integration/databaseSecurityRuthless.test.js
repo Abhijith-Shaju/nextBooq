@@ -240,18 +240,13 @@ describe('Database security audit: cross-tenant data isolation', () => {
 });
 
 describe('Database security audit: production secret hygiene', () => {
-  test('FIXED: production env config rejects the published-default RAZORPAY_WEBHOOK_SECRET', () => {
-    const result = config.envSchema.safeParse({
-      NODE_ENV: 'production',
-      MONGO_URI: 'mongodb://prod-host:27017/nextbooq',
-      JWT_SECRET: 'a'.repeat(32),
-      RAZORPAY_KEY_ID: 'rzp_live_real_key',
-      RAZORPAY_KEY_SECRET: 'rzp_live_real_secret',
-      // RAZORPAY_WEBHOOK_SECRET intentionally omitted -> falls back to the insecure default
-    });
-
-    expect(result.success).toBe(false);
-  });
+  // The 'rejects the published-default RAZORPAY_WEBHOOK_SECRET' production-boot
+  // guard test was removed here: RAZORPAY_WEBHOOK_SECRET is no longer a
+  // platform-level secret requiring a production-boot guard, since Task 7
+  // moved webhook verification to per-cafe secrets stored encrypted on each
+  // Cafe.payments document (razorpay_webhook_secret_encrypted). The schema no
+  // longer parses RAZORPAY_WEBHOOK_SECRET from the environment at all, so
+  // there's nothing left here for this guard to check.
 
   test('FIXED: production env config rejects the published-default RAZORPAY_KEY_ID/SECRET', () => {
     const result = config.envSchema.safeParse({

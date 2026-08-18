@@ -1,12 +1,19 @@
 const crypto = require('crypto');
-const config = require('../config/env');
+const Cafe = require('../models/Cafe');
 const Reservation = require('../models/Reservation');
 const { transitionState } = require('../services/stateMachine');
+const { decrypt } = require('../utils/encryption');
 
 const handleRazorpayWebhook = async (req, res, next) => {
   try {
+    const { cafeSlug } = req.params;
+    const cafe = await Cafe.findOne({ slug: cafeSlug, is_deleted: false });
+    if (!cafe || !cafe.payments?.configured) {
+      return res.status(404).json({ status: 'fail', message: 'Unknown cafe' });
+    }
+
     const signature = req.headers['x-razorpay-signature'];
-    const secret = config.RAZORPAY_WEBHOOK_SECRET;
+    const secret = decrypt(cafe.payments.razorpay_webhook_secret_encrypted);
 
     if (!signature) {
       return res.status(400).json({ status: 'fail', message: 'Missing Razorpay signature' });

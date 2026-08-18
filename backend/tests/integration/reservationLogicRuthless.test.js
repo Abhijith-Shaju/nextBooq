@@ -48,7 +48,7 @@ const TEST_DATE = nextWednesdayAtLeast48hOut();
 
 const signWebhook = (payload) =>
   crypto
-    .createHmac('sha256', config.RAZORPAY_WEBHOOK_SECRET || 'rzp_test_webhook_secret')
+    .createHmac('sha256', 'fixture_webhook_secret')
     .update(JSON.stringify(payload))
     .digest('hex');
 
@@ -246,7 +246,7 @@ describe('Ruthless reservation logic audit', () => {
     };
 
     const webhookRes = await request(app)
-      .post('/api/v1/webhooks/razorpay')
+      .post(`/api/v1/webhooks/razorpay/${cafe.slug}`)
       .set('x-razorpay-signature', signWebhook(webhookPayload))
       .send(webhookPayload);
 

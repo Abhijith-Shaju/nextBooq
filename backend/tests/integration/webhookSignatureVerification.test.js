@@ -1,13 +1,13 @@
 const request = require('supertest');
 const crypto = require('crypto');
 const app = require('../../src/app');
-const config = require('../../src/config/env');
 const Cafe = require('../../src/models/Cafe');
 const Organization = require('../../src/models/Organization');
 const User = require('../../src/models/User');
 const Table = require('../../src/models/Table');
 const Reservation = require('../../src/models/Reservation');
 const { setupTestDB } = require('../setup');
+const { encrypt } = require('../../src/utils/encryption');
 
 setupTestDB();
 
@@ -15,7 +15,7 @@ describe('Integration Test: Razorpay Webhook Signature Verification (raw body)',
   let cafe;
   let reservation;
   const orderId = 'order_rawbody_123456';
-  const secret = config.RAZORPAY_WEBHOOK_SECRET || 'rzp_test_webhook_secret';
+  const secret = 'fixture_webhook_secret';
 
   const signRawBody = (rawBody) => crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
 
@@ -26,6 +26,12 @@ describe('Integration Test: Razorpay Webhook Signature Verification (raw body)',
       name: 'Webhook Sig Cafe',
       slug: 'webhook-sig-cafe',
       timezone: 'UTC',
+      payments: {
+        razorpay_key_id: 'rzp_test_fixture',
+        razorpay_key_secret_encrypted: encrypt('fixture_key_secret'),
+        razorpay_webhook_secret_encrypted: encrypt('fixture_webhook_secret'),
+        configured: true,
+      },
     });
 
     const user = await User.create({
@@ -73,7 +79,7 @@ describe('Integration Test: Razorpay Webhook Signature Verification (raw body)',
     const signature = signRawBody(rawBody);
 
     const res = await request(app)
-      .post('/api/v1/webhooks/razorpay')
+      .post(`/api/v1/webhooks/razorpay/${cafe.slug}`)
       .set('Content-Type', 'application/json')
       .set('x-razorpay-signature', signature)
       .send(rawBody);
@@ -96,7 +102,7 @@ describe('Integration Test: Razorpay Webhook Signature Verification (raw body)',
     const signature = signRawBody(rawBody);
 
     const res = await request(app)
-      .post('/api/v1/webhooks/razorpay')
+      .post(`/api/v1/webhooks/razorpay/${cafe.slug}`)
       .set('Content-Type', 'application/json')
       .set('x-razorpay-signature', signature)
       .send(tamperedBody);

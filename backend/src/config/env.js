@@ -17,7 +17,10 @@ const INSECURE_DEFAULTS = {
   // (an unconfigured cafe in NODE_ENV=development). Removing it would make
   // that fallback throw (crypto.createHmac with an undefined key).
   RAZORPAY_KEY_SECRET: 'rzp_test_key_secret',
-  RAZORPAY_WEBHOOK_SECRET: 'rzp_test_webhook_secret',
+  // RAZORPAY_WEBHOOK_SECRET removed for the same reason as RAZORPAY_KEY_ID
+  // above — webhooks are now verified per-cafe (see
+  // Cafe.payments.razorpay_webhook_secret_encrypted).
+  // RAZORPAY_WEBHOOK_SECRET: 'rzp_test_webhook_secret',
   ENCRYPTION_KEY: 'insecure_dev_only_encryption_key_32b',
 };
 
@@ -29,7 +32,7 @@ const envSchema = z
     JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters long for adequate signing security'),
     // RAZORPAY_KEY_ID: z.string().optional().default(INSECURE_DEFAULTS.RAZORPAY_KEY_ID),
     RAZORPAY_KEY_SECRET: z.string().optional().default(INSECURE_DEFAULTS.RAZORPAY_KEY_SECRET),
-    RAZORPAY_WEBHOOK_SECRET: z.string().optional().default(INSECURE_DEFAULTS.RAZORPAY_WEBHOOK_SECRET),
+    // RAZORPAY_WEBHOOK_SECRET: z.string().optional().default(INSECURE_DEFAULTS.RAZORPAY_WEBHOOK_SECRET),
     // 32-byte key (any string is fine — encryption.js hashes it down to 32
     // bytes via SHA-256) for AES-256-GCM encryption of per-cafe Razorpay
     // credentials at rest. Must be set to a real random value in production,
