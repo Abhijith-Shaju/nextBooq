@@ -76,6 +76,12 @@ const cafeSchema = new mongoose.Schema(
         ],
       },
     ],
+    payments: {
+      razorpay_key_id: { type: String, trim: true, default: '' },
+      razorpay_key_secret_encrypted: { type: String, default: '' },
+      razorpay_webhook_secret_encrypted: { type: String, default: '' },
+      configured: { type: Boolean, default: false },
+    },
     subscription_status: {
       type: String,
       enum: ['active', 'inactive', 'trial', 'past_due'],
@@ -90,5 +96,19 @@ const cafeSchema = new mongoose.Schema(
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
   }
 );
+
+// Defense in depth: no response path (existing or future) should ever
+// serialize the encrypted Razorpay credentials, even by accident. The
+// one-time plaintext webhook secret shown right after a payments save is
+// built separately by the controller — never sourced from this document.
+cafeSchema.set('toJSON', {
+  transform: (_doc, ret) => {
+    if (ret.payments) {
+      delete ret.payments.razorpay_key_secret_encrypted;
+      delete ret.payments.razorpay_webhook_secret_encrypted;
+    }
+    return ret;
+  },
+});
 
 module.exports = mongoose.model('Cafe', cafeSchema);
