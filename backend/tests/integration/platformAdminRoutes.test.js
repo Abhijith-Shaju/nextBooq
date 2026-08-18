@@ -7,6 +7,7 @@ const Cafe = require('../../src/models/Cafe');
 const User = require('../../src/models/User');
 const Subscription = require('../../src/models/Subscription');
 const { setupTestDB } = require('../setup');
+const { encrypt } = require('../../src/utils/encryption');
 
 setupTestDB();
 
@@ -78,6 +79,39 @@ describe('Platform admin routes', () => {
     const found = res.body.data.find((o) => o._id === org._id.toString());
     expect(found).toBeDefined();
     expect(found.cafes[0].subscription).toBeNull();
+  });
+
+  test('GET /orgs never leaks a cafe\'s encrypted Razorpay secrets', async () => {
+    await Cafe.updateOne(
+      { _id: cafe._id },
+      {
+        $set: {
+          payments: {
+            razorpay_key_id: 'rzp_test_leaktest',
+            razorpay_key_secret_encrypted: encrypt('super_secret_key'),
+            razorpay_webhook_secret_encrypted: encrypt('super_secret_webhook'),
+            configured: true,
+          },
+        },
+      }
+    );
+
+    const res = await request(app)
+      .get('/api/v1/platform-admin/orgs')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    const found = res.body.data.find((o) => o._id === org._id.toString());
+    const foundCafe = found.cafes.find((c) => c._id === cafe._id.toString());
+    expect(foundCafe).toBeDefined();
+    expect(foundCafe.payments.razorpay_key_id).toBe('rzp_test_leaktest');
+    expect(foundCafe.payments.configured).toBe(true);
+    expect(foundCafe.payments).not.toHaveProperty('razorpay_key_secret_encrypted');
+    expect(foundCafe.payments).not.toHaveProperty('razorpay_webhook_secret_encrypted');
+
+    const serialized = JSON.stringify(res.body);
+    expect(serialized).not.toMatch(/razorpay_key_secret_encrypted/);
+    expect(serialized).not.toMatch(/razorpay_webhook_secret_encrypted/);
   });
 
   test('POST /cafes/:cafeId/subscriptions records a term and returns it', async () => {

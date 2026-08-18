@@ -10,13 +10,12 @@ const INSECURE_DEFAULTS = {
   // deleted in case a platform-level account is needed later for something
   // unrelated (e.g. platform subscription billing).
   // RAZORPAY_KEY_ID: 'rzp_test_key_id',
-  // RAZORPAY_KEY_SECRET is intentionally KEPT (not commented out) even though
-  // order creation no longer uses it: paymentService.js's
-  // verifyCheckoutPayment() still reads config.RAZORPAY_KEY_SECRET as the
-  // signature-verification fallback for the development mock-order path
-  // (an unconfigured cafe in NODE_ENV=development). Removing it would make
-  // that fallback throw (crypto.createHmac with an undefined key).
-  RAZORPAY_KEY_SECRET: 'rzp_test_key_secret',
+  // RAZORPAY_KEY_SECRET removed: paymentService.js's mock-order fallback
+  // (both order creation and the verifyCheckoutPayment signature-check
+  // fallback) is now gated to `NODE_ENV === 'development'` only, so this
+  // value is never read outside development mode. Left commented out
+  // rather than deleted for the same reason as RAZORPAY_KEY_ID above.
+  // RAZORPAY_KEY_SECRET: 'rzp_test_key_secret',
   // RAZORPAY_WEBHOOK_SECRET removed for the same reason as RAZORPAY_KEY_ID
   // above — webhooks are now verified per-cafe (see
   // Cafe.payments.razorpay_webhook_secret_encrypted).
@@ -31,7 +30,7 @@ const envSchema = z
     MONGO_URI: z.string().min(1, 'MONGO_URI is required'),
     JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters long for adequate signing security'),
     // RAZORPAY_KEY_ID: z.string().optional().default(INSECURE_DEFAULTS.RAZORPAY_KEY_ID),
-    RAZORPAY_KEY_SECRET: z.string().optional().default(INSECURE_DEFAULTS.RAZORPAY_KEY_SECRET),
+    // RAZORPAY_KEY_SECRET: z.string().optional().default(INSECURE_DEFAULTS.RAZORPAY_KEY_SECRET),
     // RAZORPAY_WEBHOOK_SECRET: z.string().optional().default(INSECURE_DEFAULTS.RAZORPAY_WEBHOOK_SECRET),
     // 32-byte key (any string is fine — encryption.js hashes it down to 32
     // bytes via SHA-256) for AES-256-GCM encryption of per-cafe Razorpay
@@ -58,10 +57,13 @@ const envSchema = z
     FRONTEND_URL: z.string().optional().default('http://localhost:3000'),
   })
   .superRefine((data, ctx) => {
-    // RAZORPAY_WEBHOOK_SECRET gates the HMAC signature check that authorizes
-    // payment.captured webhooks to CONFIRM a reservation. Booting production with
-    // the source-published default would let anyone forge a valid webhook and
-    // confirm reservations without paying, so fail startup outright instead.
+    // Guard against booting production with any of INSECURE_DEFAULTS' source-
+    // published placeholder values still in place (e.g. ENCRYPTION_KEY, which
+    // gates the at-rest encryption of every cafe's own Razorpay credentials
+    // and webhook secret — see Cafe.payments). Razorpay webhook/order-signing
+    // secrets are no longer platform-wide config: each cafe's credentials are
+    // validated and encrypted at settings-save time instead (see
+    // admin/cafeController.js), so they don't need a startup check here.
     if (data.NODE_ENV === 'production') {
       for (const [key, defaultValue] of Object.entries(INSECURE_DEFAULTS)) {
         if (data[key] === defaultValue) {

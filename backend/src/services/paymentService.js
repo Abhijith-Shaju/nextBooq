@@ -55,13 +55,18 @@ const createOrderForReservation = async (reservationId, tenantId, amountInRupees
     order = await client.orders.create(options);
   } catch (razorpayErr) {
     const isAuthFail =
-      razorpayErr?.statusCode === 401 ||
-      razorpayErr?.error?.code === 'BAD_REQUEST_ERROR' ||
-      (config.RAZORPAY_KEY_ID && config.RAZORPAY_KEY_ID.includes('mock'));
+      razorpayErr?.statusCode === 401 || razorpayErr?.error?.code === 'BAD_REQUEST_ERROR';
 
-    if (isAuthFail || config.NODE_ENV === 'development') {
+    // Mock-order fallback is development-only: real credentials can go bad
+    // in production after passing settings-save validation (revoked/rotated
+    // keys), and silently minting a fake order there would strand a paying
+    // customer on a broken Checkout widget. Only take this path when we know
+    // we're running locally, regardless of why the Razorpay call failed.
+    if (config.NODE_ENV === 'development') {
       console.warn(
-        '[RAZORPAY MOCK FALLBACK] Razorpay API auth failed or mock credentials in use. Falling back to local dev mock order.'
+        isAuthFail
+          ? '[RAZORPAY MOCK FALLBACK] Razorpay API auth failed or mock credentials in use. Falling back to local dev mock order.'
+          : '[RAZORPAY MOCK FALLBACK] Razorpay API call failed in development. Falling back to local dev mock order.'
       );
       order = {
         id: `order_mock_${Date.now()}_${Math.random().toString(36).substring(7)}`,
@@ -144,9 +149,10 @@ const verifyCheckoutPayment = async ({
   }
 
   const cafe = await Cafe.findById(tenantId);
-  const keySecret = cafe?.payments?.configured
-    ? decrypt(cafe.payments.razorpay_key_secret_encrypted)
-    : config.RAZORPAY_KEY_SECRET; // development mock-order fallback keeps working
+  const keySecret =
+    cafe?.payments?.configured || config.NODE_ENV !== 'development'
+      ? decrypt(cafe.payments.razorpay_key_secret_encrypted)
+      : config.RAZORPAY_KEY_SECRET; // development mock-order fallback keeps working
 
   const expectedSignature = crypto
     .createHmac('sha256', keySecret)

@@ -53,7 +53,10 @@ const getOverviewStats = async () => {
 const listOrgsWithCafes = async () => {
   const [orgs, cafes, currentSubs] = await Promise.all([
     Organization.find({}).sort({ name: 1 }).lean(),
-    Cafe.find({ is_deleted: false }).sort({ name: 1 }).lean(),
+    Cafe.find({ is_deleted: false })
+      .sort({ name: 1 })
+      .select('-payments.razorpay_key_secret_encrypted -payments.razorpay_webhook_secret_encrypted')
+      .lean(),
     Subscription.find({ is_current: true }).lean(),
   ]);
 
