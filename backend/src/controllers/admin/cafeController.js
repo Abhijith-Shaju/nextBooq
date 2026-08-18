@@ -1,5 +1,9 @@
+const crypto = require('crypto');
 const Cafe = require('../../models/Cafe');
 const { BadRequestError, NotFoundError } = require('../../utils/errors');
+const { encrypt } = require('../../utils/encryption');
+const { createRazorpayClient } = require('../../config/razorpay');
+const config = require('../../config/env');
 
 const POSITIVE_INT_RULES = ['default_turn_time_minutes', 'max_party_size', 'hold_duration_minutes'];
 const NON_NEGATIVE_INT_RULES = ['booking_lead_time_hours'];
@@ -17,6 +21,17 @@ const isValidHttpsUrl = (value) => {
     return true;
   } catch {
     return false;
+  }
+};
+
+const validateRazorpayCredentials = async (razorpayKeyId, razorpayKeySecret) => {
+  const client = createRazorpayClient({ key_id: razorpayKeyId, key_secret: razorpayKeySecret });
+  try {
+    await client.payments.all({ count: 1 });
+  } catch {
+    throw new BadRequestError(
+      'These Razorpay credentials could not be verified. Double-check the Key ID and Key Secret from your Razorpay dashboard.'
+    );
   }
 };
 
@@ -87,7 +102,7 @@ const validateMenuInput = (menu) => {
 const updateCafe = async (req, res, next) => {
   try {
     const cafeId = req.tenantId;
-    const { reservation_rules, operating_hours, description, hero_image_url, menu } = req.body;
+    const { reservation_rules, operating_hours, description, hero_image_url, menu, payments } = req.body;
 
     const cafe = await Cafe.findById(cafeId);
     if (!cafe) {
@@ -143,11 +158,46 @@ const updateCafe = async (req, res, next) => {
       cafe.menu = menu;
     }
 
+    let webhookReveal = null;
+
+    if (payments !== undefined) {
+      const { razorpay_key_id: razorpayKeyId, razorpay_key_secret: razorpayKeySecret } = payments || {};
+      const hasKeyId = typeof razorpayKeyId === 'string' && razorpayKeyId.length > 0;
+      const hasKeySecret = typeof razorpayKeySecret === 'string' && razorpayKeySecret.length > 0;
+
+      if (hasKeyId !== hasKeySecret) {
+        throw new BadRequestError('Both razorpay_key_id and razorpay_key_secret are required together');
+      }
+
+      if (hasKeyId && hasKeySecret) {
+        await validateRazorpayCredentials(razorpayKeyId, razorpayKeySecret);
+
+        const webhookSecretPlaintext = crypto.randomBytes(32).toString('hex');
+
+        cafe.payments = {
+          razorpay_key_id: razorpayKeyId,
+          razorpay_key_secret_encrypted: encrypt(razorpayKeySecret),
+          razorpay_webhook_secret_encrypted: encrypt(webhookSecretPlaintext),
+          configured: true,
+        };
+
+        webhookReveal = {
+          url: `${config.FRONTEND_URL}/api/v1/webhooks/razorpay/${cafe.slug}`,
+          secret: webhookSecretPlaintext,
+        };
+      }
+    }
+
     await cafe.save();
+
+    const responseData = cafe.toJSON();
+    if (webhookReveal) {
+      responseData.payments_webhook = webhookReveal;
+    }
 
     res.status(200).json({
       status: 'success',
-      data: cafe,
+      data: responseData,
     });
   } catch (error) {
     next(error);
