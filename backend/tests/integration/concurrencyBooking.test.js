@@ -8,6 +8,7 @@ const User = require('../../src/models/User');
 const Table = require('../../src/models/Table');
 const Reservation = require('../../src/models/Reservation');
 const { setupTestDB } = require('../setup');
+const { encrypt } = require('../../src/utils/encryption');
 
 // Explicitly mock Razorpay SDK calls for this concurrency test
 jest.mock('../../src/config/razorpay', () => ({
@@ -45,6 +46,12 @@ describe('Integration Test: High Concurrency Double-Booking Stress Test', () => 
       slug: 'concurrency-cafe',
       timezone: 'UTC',
       subscription_status: 'active',
+      payments: {
+        razorpay_key_id: 'rzp_test_fixture',
+        razorpay_key_secret_encrypted: encrypt('fixture_key_secret'),
+        razorpay_webhook_secret_encrypted: encrypt('fixture_webhook_secret'),
+        configured: true,
+      },
     });
 
     // 2. Create User & Auth Token

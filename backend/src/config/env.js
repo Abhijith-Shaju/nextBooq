@@ -4,7 +4,18 @@ const { z } = require('zod');
 dotenv.config();
 
 const INSECURE_DEFAULTS = {
-  RAZORPAY_KEY_ID: 'rzp_test_key_id',
+  // RAZORPAY_KEY_ID removed: every cafe now uses its own Razorpay
+  // credentials (see Cafe.payments), so there's no platform-level Razorpay
+  // account for the booking flow anymore. Left commented out rather than
+  // deleted in case a platform-level account is needed later for something
+  // unrelated (e.g. platform subscription billing).
+  // RAZORPAY_KEY_ID: 'rzp_test_key_id',
+  // RAZORPAY_KEY_SECRET is intentionally KEPT (not commented out) even though
+  // order creation no longer uses it: paymentService.js's
+  // verifyCheckoutPayment() still reads config.RAZORPAY_KEY_SECRET as the
+  // signature-verification fallback for the development mock-order path
+  // (an unconfigured cafe in NODE_ENV=development). Removing it would make
+  // that fallback throw (crypto.createHmac with an undefined key).
   RAZORPAY_KEY_SECRET: 'rzp_test_key_secret',
   RAZORPAY_WEBHOOK_SECRET: 'rzp_test_webhook_secret',
   ENCRYPTION_KEY: 'insecure_dev_only_encryption_key_32b',
@@ -16,7 +27,7 @@ const envSchema = z
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
     MONGO_URI: z.string().min(1, 'MONGO_URI is required'),
     JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters long for adequate signing security'),
-    RAZORPAY_KEY_ID: z.string().optional().default(INSECURE_DEFAULTS.RAZORPAY_KEY_ID),
+    // RAZORPAY_KEY_ID: z.string().optional().default(INSECURE_DEFAULTS.RAZORPAY_KEY_ID),
     RAZORPAY_KEY_SECRET: z.string().optional().default(INSECURE_DEFAULTS.RAZORPAY_KEY_SECRET),
     RAZORPAY_WEBHOOK_SECRET: z.string().optional().default(INSECURE_DEFAULTS.RAZORPAY_WEBHOOK_SECRET),
     // 32-byte key (any string is fine — encryption.js hashes it down to 32

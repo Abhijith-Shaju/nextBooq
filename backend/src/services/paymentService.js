@@ -1,10 +1,16 @@
 const crypto = require('crypto');
 const { createRazorpayClient } = require('../config/razorpay');
+const { decrypt } = require('../utils/encryption');
 const Reservation = require('../models/Reservation');
 const Cafe = require('../models/Cafe');
 const { transitionState } = require('./stateMachine');
 const { BadRequestError } = require('../utils/errors');
 const config = require('../config/env');
+
+const getRazorpayClientForCafe = (cafe) => {
+  const keySecret = decrypt(cafe.payments.razorpay_key_secret_encrypted);
+  return createRazorpayClient({ key_id: cafe.payments.razorpay_key_id, key_secret: keySecret });
+};
 
 /**
  * Creates a Razorpay Order and transitions reservation HOLD -> PENDING_PAYMENT.
@@ -17,6 +23,10 @@ const createOrderForReservation = async (reservationId, tenantId, amountInRupees
 
   const cafe = await Cafe.findById(tenantId);
   const paymentTimeoutMinutes = cafe?.reservation_rules?.payment_timeout_minutes || 15;
+
+  if (!cafe?.payments?.configured && config.NODE_ENV !== 'development') {
+    throw new BadRequestError("This cafe hasn't finished setting up payments yet.");
+  }
 
   if (reservation.status !== 'HOLD') {
     throw new BadRequestError(`Cannot create payment order for reservation in state ${reservation.status}`);
@@ -36,13 +46,13 @@ const createOrderForReservation = async (reservationId, tenantId, amountInRupees
 
   let order;
   try {
-    // TEMPORARY: still using the platform-global credentials here — Task 5
-    // replaces this with each reservation's own cafe's decrypted credentials.
-    const razorpay = createRazorpayClient({
-      key_id: config.RAZORPAY_KEY_ID,
-      key_secret: config.RAZORPAY_KEY_SECRET,
-    });
-    order = await razorpay.orders.create(options);
+    const client = cafe.payments?.configured ? getRazorpayClientForCafe(cafe) : null;
+    if (!client) {
+      // Only reachable in development for an unconfigured cafe (guarded above
+      // for all other environments) — fall through to the existing mock path.
+      throw new Error('No Razorpay client configured for this cafe (development mock fallback)');
+    }
+    order = await client.orders.create(options);
   } catch (razorpayErr) {
     const isAuthFail =
       razorpayErr?.statusCode === 401 ||
@@ -133,8 +143,13 @@ const verifyCheckoutPayment = async ({
     throw new BadRequestError('Order ID does not match this reservation');
   }
 
+  const cafe = await Cafe.findById(tenantId);
+  const keySecret = cafe?.payments?.configured
+    ? decrypt(cafe.payments.razorpay_key_secret_encrypted)
+    : config.RAZORPAY_KEY_SECRET; // development mock-order fallback keeps working
+
   const expectedSignature = crypto
-    .createHmac('sha256', config.RAZORPAY_KEY_SECRET)
+    .createHmac('sha256', keySecret)
     .update(`${razorpayOrderId}|${razorpayPaymentId}`)
     .digest('hex');
 

@@ -6,6 +6,7 @@ const User = require('../../src/models/User');
 const Table = require('../../src/models/Table');
 const CafeCustomer = require('../../src/models/CafeCustomer');
 const { setupTestDB } = require('../setup');
+const { encrypt } = require('../../src/utils/encryption');
 
 // Explicitly mock Razorpay SDK calls for integration tests
 jest.mock('../../src/config/razorpay', () => ({
@@ -51,6 +52,12 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
         { day_of_week: 'saturday', open_time: '00:00', close_time: '23:59', is_closed: false },
         { day_of_week: 'sunday', open_time: '00:00', close_time: '23:59', is_closed: false },
       ],
+      payments: {
+        razorpay_key_id: 'rzp_test_fixture',
+        razorpay_key_secret_encrypted: encrypt('fixture_key_secret'),
+        razorpay_webhook_secret_encrypted: encrypt('fixture_webhook_secret'),
+        configured: true,
+      },
     });
 
     await Table.create({

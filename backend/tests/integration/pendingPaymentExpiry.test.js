@@ -6,6 +6,7 @@ const Reservation = require('../../src/models/Reservation');
 const { setupTestDB } = require('../setup');
 const { createOrderForReservation } = require('../../src/services/paymentService');
 const { expireStalePendingPayments } = require('../../src/services/reservationExpiryService');
+const { encrypt } = require('../../src/utils/encryption');
 
 setupTestDB();
 
@@ -21,6 +22,12 @@ describe('Integration Test: PENDING_PAYMENT expiry', () => {
       name: 'Expiry Cafe',
       slug: 'expiry-cafe',
       timezone: 'UTC',
+      payments: {
+        razorpay_key_id: 'rzp_test_fixture',
+        razorpay_key_secret_encrypted: encrypt('fixture_key_secret'),
+        razorpay_webhook_secret_encrypted: encrypt('fixture_webhook_secret'),
+        configured: true,
+      },
     });
     user = await User.create({
       name: 'Expiry User',

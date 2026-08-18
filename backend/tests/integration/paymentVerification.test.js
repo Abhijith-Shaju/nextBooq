@@ -9,6 +9,7 @@ const User = require('../../src/models/User');
 const Table = require('../../src/models/Table');
 const Reservation = require('../../src/models/Reservation');
 const { setupTestDB } = require('../setup');
+const { encrypt } = require('../../src/utils/encryption');
 
 setupTestDB();
 
@@ -22,7 +23,7 @@ describe('Integration Test: Client-side payment verification endpoint', () => {
 
   const signCheckoutResponse = (razorpayOrderId, razorpayPaymentId) =>
     crypto
-      .createHmac('sha256', config.RAZORPAY_KEY_SECRET)
+      .createHmac('sha256', 'fixture_key_secret')
       .update(`${razorpayOrderId}|${razorpayPaymentId}`)
       .digest('hex');
 
@@ -33,6 +34,12 @@ describe('Integration Test: Client-side payment verification endpoint', () => {
       name: 'Verify Cafe',
       slug: 'verify-cafe',
       timezone: 'UTC',
+      payments: {
+        razorpay_key_id: 'rzp_test_fixture',
+        razorpay_key_secret_encrypted: encrypt('fixture_key_secret'),
+        razorpay_webhook_secret_encrypted: encrypt('fixture_webhook_secret'),
+        configured: true,
+      },
     });
     user = await User.create({
       name: 'Verify User',
