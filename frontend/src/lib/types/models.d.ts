@@ -35,6 +35,10 @@ export interface Cafe {
   logo_url?: string;
   hero_image_url?: string;
   menu?: CafeMenuCategory[];
+  payments?: {
+    razorpay_key_id: string;
+    configured: boolean;
+  };
   timezone: string;
   reservation_rules: ReservationRules;
   operating_hours?: OperatingHourEntry[];

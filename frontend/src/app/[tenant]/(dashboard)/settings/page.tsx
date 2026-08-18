@@ -13,6 +13,7 @@ import {
 import { Save, Settings as SettingsIcon, Clock, Users, ShieldAlert, Hourglass, Loader2, CalendarClock } from 'lucide-react';
 import { toast } from 'sonner';
 import { StorefrontEditor } from '@/components/dashboard/storefront-editor';
+import { PaymentsEditor } from '@/components/dashboard/payments-editor';
 import { CafeMenuCategory } from '@/lib/types/models';
 
 const DEFAULT_RULES = {
@@ -39,6 +40,7 @@ export default function CafeSettingsPage() {
   const [heroImageUrl, setHeroImageUrl] = useState(cafe.hero_image_url || '');
   const [menu, setMenu] = useState<CafeMenuCategory[]>(cafe.menu || []);
   const [isSaving, setIsSaving] = useState(false);
+  const [webhookReveal, setWebhookReveal] = useState<{ url: string; secret: string } | null>(null);
 
   // `cafe` is fetched server-side (see [tenant]/layout.tsx) and only changes
   // when that server data actually refreshes (e.g. via router.refresh()
@@ -268,6 +270,29 @@ export default function CafeSettingsPage() {
             onHeroImageUrlChange={setHeroImageUrl}
             onMenuChange={setMenu}
           />
+
+          <PaymentsEditor
+            cafeId={cafe.id}
+            razorpayKeyId={cafe.payments?.razorpay_key_id || ''}
+            configured={cafe.payments?.configured || false}
+            onSaved={(webhook) => {
+              setWebhookReveal(webhook);
+              router.refresh();
+              toast.success('Razorpay connected. Copy the webhook details below into your Razorpay dashboard now — they won\'t be shown again.');
+            }}
+          />
+
+          {webhookReveal && (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-xs text-blue-900 space-y-1">
+              <p className="font-semibold">Add this webhook in your Razorpay dashboard (Settings → Webhooks):</p>
+              <p>
+                URL: <span className="font-mono">{webhookReveal.url}</span>
+              </p>
+              <p>
+                Secret: <span className="font-mono">{webhookReveal.secret}</span>
+              </p>
+            </div>
+          )}
 
           <div className="pt-6 border-t border-brand-brown/10 flex justify-end">
             <button
