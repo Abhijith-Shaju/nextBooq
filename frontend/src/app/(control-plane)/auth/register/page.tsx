@@ -36,7 +36,7 @@ function RegisterForm() {
       { name, email, phone, password },
       {
         onSuccess: (user) => {
-          router.push(resolvePostAuthDestination(user, callbackUrl, window.location.host));
+          router.push(resolvePostAuthDestination(user, callbackUrl));
         },
       }
     );

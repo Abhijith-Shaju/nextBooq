@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import { headers } from 'next/headers';
 import { TenantProvider } from '@/components/providers/tenant-provider';
 import { resolveTenantCafe } from '@/lib/resolve-tenant-cafe';
 
@@ -11,10 +10,6 @@ export default async function TenantLayout({
   params: Promise<{ tenant: string }>;
 }) {
   const { tenant } = await params;
-  // Set by middleware.ts only when this request's slug came from a cafe
-  // subdomain's Host header rather than the URL path — see tenant-provider's
-  // buildTenantPath for why every internal link needs to know this.
-  const isSubdomainAccess = (await headers()).get('x-tenant-via-subdomain') === '1';
 
   // Ignore static assets matched by dynamic tenant route
   const RESERVED_SLUGS = ['favicon.ico', 'sw.js', 'robots.txt', 'site.webmanifest', '_next'];
@@ -35,7 +30,7 @@ export default async function TenantLayout({
   const { cafe } = result;
 
   return (
-    <TenantProvider cafe={cafe} isSubdomainAccess={isSubdomainAccess}>
+    <TenantProvider cafe={cafe}>
       {/* TenantProvider itself sets --brand-primary/--brand-accent (as hex,
           via resolveTenantTheme) on its own wrapping div — duplicating that
           here in a different, CSS-invalid format (bare "H S% L%" triplet

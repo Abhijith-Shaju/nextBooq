@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 
 export function CheckoutCard() {
   const { reservation, partySize, date, time } = useBookingStore();
-  const { cafe, tenantPath } = useTenant();
+  const { cafe } = useTenant();
   const router = useRouter();
 
   const depositAmount = 100; // ₹100 deposit per specs
@@ -46,7 +46,7 @@ export function CheckoutCard() {
               }
             );
             toast.success('Payment verified! Reservation confirmed.');
-            router.push(tenantPath('/success'));
+            router.push(`/${cafe.slug}/success`);
           } catch (verifyError) {
             console.error(verifyError);
             toast.error('We could not verify your payment. Please contact the cafe if you were charged.');

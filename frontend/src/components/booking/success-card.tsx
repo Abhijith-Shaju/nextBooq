@@ -11,7 +11,7 @@ import { generateIcsContent } from '@/lib/booking/ics';
 
 export function SuccessCard() {
   const { date, time, partySize, reservation, resetBooking } = useBookingStore();
-  const { cafe, tenantPath } = useTenant();
+  const { cafe } = useTenant();
 
   const tokenNumber = reservation?.id ? String(reservation.id).slice(-4).toUpperCase() : '----';
 
@@ -105,7 +105,7 @@ export function SuccessCard() {
             <CalendarPlus className="mr-1.5 inline h-3.5 w-3.5" /> Add to calendar
           </button>
           <Link
-            href={tenantPath('/')}
+            href={`/${cafe.slug}`}
             onClick={() => resetBooking()}
             className="flex flex-1 items-center justify-center rounded-xl bg-brand-gold/15 py-2.5 text-xs font-bold text-brand-gold transition-colors hover:bg-brand-gold/25"
           >

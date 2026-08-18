@@ -24,9 +24,7 @@ export default function MarketingHeader() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const dashboardHref = user
-    ? resolvePostAuthDestination(user, null, typeof window !== 'undefined' ? window.location.host : null)
-    : null
+  const dashboardHref = user ? resolvePostAuthDestination(user) : null
   const hasDashboardLink = dashboardHref !== null && dashboardHref !== '/'
   const dashboardLabel = user?.is_platform_admin ? 'Admin' : 'Dashboard'
 

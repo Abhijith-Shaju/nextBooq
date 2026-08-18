@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { resolveTenantRewrite, buildCrossCafeHref } from './tenant-domain';
+import { resolveTenantRewrite } from './tenant-domain';
 
 describe('resolveTenantRewrite', () => {
   test('rewrites a cafe subdomain root request to the tenant path route', () => {
@@ -58,33 +58,5 @@ describe('resolveTenantRewrite', () => {
 
   test('ignores an unexpected nested subdomain', () => {
     expect(resolveTenantRewrite('foo.blackshores.nextbooq.in', '/')).toBeNull();
-  });
-});
-
-describe('buildCrossCafeHref', () => {
-  test('builds a normal slug-prefixed path when not on any cafe subdomain', () => {
-    expect(buildCrossCafeHref('blackshores', '/dashboard', 'nextbooq.in')).toBe('/blackshores/dashboard');
-    expect(buildCrossCafeHref('blackshores', '/dashboard', null)).toBe('/blackshores/dashboard');
-  });
-
-  test('returns the unprefixed path when already on that exact cafe subdomain', () => {
-    expect(buildCrossCafeHref('blackshores', '/dashboard', 'blackshores.nextbooq.in')).toBe('/dashboard');
-  });
-
-  test('returns an absolute URL to the target cafe subdomain when on a different cafe subdomain', () => {
-    expect(buildCrossCafeHref('vtcafe', '/dashboard', 'blackshores.nextbooq.in')).toBe(
-      'https://vtcafe.nextbooq.in/dashboard'
-    );
-  });
-
-  test('preserves the port when redirecting across cafe subdomains', () => {
-    expect(buildCrossCafeHref('vtcafe', '/dashboard', 'blackshores.nextbooq.in:3000')).toBe(
-      'https://vtcafe.nextbooq.in:3000/dashboard'
-    );
-  });
-
-  test('treats a root path as "/" on both the same-subdomain and cross-subdomain branches', () => {
-    expect(buildCrossCafeHref('blackshores', '/', 'blackshores.nextbooq.in')).toBe('/');
-    expect(buildCrossCafeHref('vtcafe', '/', 'blackshores.nextbooq.in')).toBe('https://vtcafe.nextbooq.in/');
   });
 });

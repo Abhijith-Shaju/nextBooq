@@ -1,43 +1,18 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, ReactNode, CSSProperties } from 'react';
+import { createContext, useContext, useEffect, ReactNode, CSSProperties } from 'react';
 import { Cafe } from '@/lib/types/models';
 import { resolveTenantTheme } from '@/lib/theme/resolve-tenant-theme';
 import { useBookingStore } from '@/store/use-booking-store';
 import { useDashboardStore } from '@/store/use-dashboard-store';
 
-/**
- * Builds an internal link/redirect target for the current cafe. `path` is
- * the tenant-relative part (e.g. "/dashboard", or "/" for the cafe's own
- * root) — this prepends the cafe's slug only when that slug isn't already
- * implied by the Host header (path-based access, e.g. nextbooq.in/vtcafe/...).
- * On a cafe subdomain (vtcafe.nextbooq.in/...) the slug is already in the
- * host, so prepending it again would double it in the URL and 404 (the
- * [tenant] dynamic route would then see "vtcafe/vtcafe/dashboard" as its
- * params.tenant + a nonexistent nested route).
- */
-export function buildTenantPath(cafe: Pick<Cafe, 'slug'>, path: string, isSubdomainAccess: boolean): string {
-  const normalized = path === '/' || path === '' ? '' : path.startsWith('/') ? path : `/${path}`;
-  if (isSubdomainAccess) return normalized || '/';
-  return `/${cafe.slug}${normalized}`;
-}
-
 interface TenantContextType {
   cafe: Cafe;
-  tenantPath: (path: string) => string;
 }
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
 
-export function TenantProvider({
-  cafe,
-  isSubdomainAccess = false,
-  children,
-}: {
-  cafe: Cafe;
-  isSubdomainAccess?: boolean;
-  children: ReactNode;
-}) {
+export function TenantProvider({ cafe, children }: { cafe: Cafe; children: ReactNode }) {
   const theme = resolveTenantTheme(cafe);
   const themeStyle = {
     '--brand-primary': theme.brandPrimary,
@@ -53,13 +28,8 @@ export function TenantProvider({
     useDashboardStore.getState().reset();
   }, [cafe.id]);
 
-  const tenantPath = useCallback(
-    (path: string) => buildTenantPath(cafe, path, isSubdomainAccess),
-    [cafe, isSubdomainAccess]
-  );
-
   return (
-    <TenantContext.Provider value={{ cafe, tenantPath }}>
+    <TenantContext.Provider value={{ cafe }}>
       <div style={themeStyle}>{children}</div>
     </TenantContext.Provider>
   );

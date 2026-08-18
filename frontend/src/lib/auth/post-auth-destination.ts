@@ -1,5 +1,4 @@
 import type { AuthUser } from '@/lib/types/auth';
-import { getTenantSlugFromHost } from '@/lib/tenant-domain';
 
 /**
  * Frontend navigation policy only. This function decides the next browser URL
@@ -25,21 +24,6 @@ function validMembershipSlugs(user: AuthUser): string[] {
     .filter((slug): slug is string => slug !== null);
 }
 
-// middleware.ts builds callbackUrl from the already-rewritten (slug-prefixed)
-// pathname, so a callback captured while on a cafe subdomain still names the
-// slug explicitly (e.g. "/vtcafe/dashboard") even though the slug is also
-// implied by the Host header. Returning that path as-is while still on that
-// same subdomain would double-prefix it through middleware's rewrite again.
-// This strips exactly that redundant leading "/<slug>" segment, only when it
-// matches the subdomain we're actually on.
-function stripCurrentSubdomainSlug(path: string, currentSlug: string | null): string {
-  if (!currentSlug) return path;
-  const prefix = `/${currentSlug}`;
-  if (path === prefix) return '/';
-  if (path.startsWith(`${prefix}/`)) return path.slice(prefix.length);
-  return path;
-}
-
 function normalizeSafePath(rawCallbackUrl?: string | null): string | null {
   if (!rawCallbackUrl || rawCallbackUrl.length > 2048) return null;
   if (!rawCallbackUrl.startsWith('/') || rawCallbackUrl.startsWith('//')) return null;
@@ -58,21 +42,7 @@ function normalizeSafePath(rawCallbackUrl?: string | null): string | null {
   }
 }
 
-/**
- * `currentHost` is the Host header / window.location.host the login/register
- * page itself was loaded on. If it identifies a cafe subdomain (e.g. staff
- * logging in from vtcafe.nextbooq.in/auth/login), and that's also the cafe
- * this user actually staffs, the destination must NOT be slug-prefixed —
- * the slug is already implied by the host, and prefixing it would make
- * middleware.ts's subdomain rewrite double it (vtcafe.../vtcafe/dashboard),
- * which no route matches. Omitted (or a host that doesn't match any of the
- * user's cafes) preserves the original path-based, slug-prefixed behavior.
- */
-export function resolvePostAuthDestination(
-  user: AuthUser | null | undefined,
-  rawCallbackUrl?: string | null,
-  currentHost?: string | null
-): string {
+export function resolvePostAuthDestination(user: AuthUser | null | undefined, rawCallbackUrl?: string | null): string {
   if (!user) return '/';
 
   const callbackUrl = normalizeSafePath(rawCallbackUrl);
@@ -84,21 +54,12 @@ export function resolvePostAuthDestination(
     return callbackUrl && ORG_ROUTE.test(callbackUrl) ? callbackUrl : '/org/dashboard';
   }
 
-  const currentSlug = getTenantSlugFromHost(currentHost);
-
   const memberSlugs = validMembershipSlugs(user);
   if (callbackUrl) {
     const staffMatch = callbackUrl.match(STAFF_ROUTE);
-    if (staffMatch && memberSlugs.includes(staffMatch[1])) {
-      return stripCurrentSubdomainSlug(callbackUrl, currentSlug);
-    }
-    if (CUSTOMER_ROUTE.test(callbackUrl)) {
-      return stripCurrentSubdomainSlug(callbackUrl, currentSlug);
-    }
+    if (staffMatch && memberSlugs.includes(staffMatch[1])) return callbackUrl;
+    if (CUSTOMER_ROUTE.test(callbackUrl)) return callbackUrl;
   }
 
-  const targetSlug = memberSlugs[0];
-  if (!targetSlug) return '/';
-
-  return currentSlug === targetSlug ? '/dashboard' : `/${targetSlug}/dashboard`;
+  return memberSlugs[0] ? `/${memberSlugs[0]}/dashboard` : '/';
 }
