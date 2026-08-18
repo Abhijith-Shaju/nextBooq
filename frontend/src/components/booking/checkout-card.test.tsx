@@ -24,7 +24,14 @@ vi.mock('@/lib/razorpay', () => ({
 
 vi.mock('@/components/providers/tenant-provider', () => ({
   useTenant: () => ({
-    cafe: { id: 'cafe_1', slug: 'demo-cafe', name: 'Demo Cafe', reservation_rules: {}, timezone: 'UTC' },
+    cafe: {
+      id: 'cafe_1',
+      slug: 'demo-cafe',
+      name: 'Demo Cafe',
+      reservation_rules: {},
+      timezone: 'UTC',
+      payments: { razorpay_key_id: 'rzp_test_cafespecific', configured: true },
+    },
   }),
 }));
 
@@ -84,5 +91,27 @@ describe('CheckoutCard', () => {
         }
       )
     );
+  });
+
+  test('opens checkout with the cafe-specific Razorpay key', async () => {
+    useBookingStore.getState().setReservation({
+      id: 'res_123',
+      status: 'PENDING_PAYMENT',
+      razorpay_order_id: 'order_real_abc',
+      amount: 10000,
+      currency: 'INR',
+      hold_expires_at: '2026-08-20T19:10:00Z',
+    });
+
+    let capturedKey: string | undefined;
+    vi.mocked(openRazorpayCheckout).mockImplementation(async (options: any) => {
+      capturedKey = options.key;
+    });
+
+    render(<CheckoutCard />);
+    fireEvent.click(screen.getByRole('button', { name: /pay/i }));
+
+    await waitFor(() => expect(openRazorpayCheckout).toHaveBeenCalled());
+    expect(capturedKey).toBe('rzp_test_cafespecific');
   });
 });

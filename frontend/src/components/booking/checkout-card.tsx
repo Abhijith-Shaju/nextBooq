@@ -26,7 +26,7 @@ export function CheckoutCard() {
 
     try {
       await openRazorpayCheckout({
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_mockkey',
+        key: cafe.payments?.razorpay_key_id || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_mockkey',
         amount: depositAmount * 100, // in paise
         currency: 'INR',
         name: cafe.name,
