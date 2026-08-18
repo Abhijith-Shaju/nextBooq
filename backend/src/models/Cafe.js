@@ -101,14 +101,15 @@ const cafeSchema = new mongoose.Schema(
 // serialize the encrypted Razorpay credentials, even by accident. The
 // one-time plaintext webhook secret shown right after a payments save is
 // built separately by the controller — never sourced from this document.
-cafeSchema.set('toJSON', {
-  transform: (_doc, ret) => {
-    if (ret.payments) {
-      delete ret.payments.razorpay_key_secret_encrypted;
-      delete ret.payments.razorpay_webhook_secret_encrypted;
-    }
-    return ret;
-  },
-});
+const redactPaymentSecrets = (_doc, ret) => {
+  if (ret.payments) {
+    delete ret.payments.razorpay_key_secret_encrypted;
+    delete ret.payments.razorpay_webhook_secret_encrypted;
+  }
+  return ret;
+};
+
+cafeSchema.set('toJSON', { transform: redactPaymentSecrets });
+cafeSchema.set('toObject', { transform: redactPaymentSecrets });
 
 module.exports = mongoose.model('Cafe', cafeSchema);

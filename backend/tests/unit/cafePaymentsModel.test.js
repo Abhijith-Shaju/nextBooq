@@ -47,4 +47,27 @@ describe('Cafe model: payments sub-document', () => {
     expect(json.payments.razorpay_key_secret_encrypted).toBeUndefined();
     expect(json.payments.razorpay_webhook_secret_encrypted).toBeUndefined();
   });
+
+  test('toObject({ getters: true }) strips the encrypted secret fields but keeps key_id and configured', async () => {
+    const org = await Organization.create({ name: 'Payments Model Org 3' });
+    const cafe = await Cafe.create({
+      org_id: org._id,
+      name: 'Model Cafe 3',
+      slug: 'model-cafe-3',
+      timezone: 'UTC',
+      payments: {
+        razorpay_key_id: 'rzp_test_visible',
+        razorpay_key_secret_encrypted: 'iv:tag:ciphertext',
+        razorpay_webhook_secret_encrypted: 'iv:tag:ciphertext2',
+        configured: true,
+      },
+    });
+
+    const obj = cafe.toObject({ getters: true });
+
+    expect(obj.payments.razorpay_key_id).toBe('rzp_test_visible');
+    expect(obj.payments.configured).toBe(true);
+    expect(obj.payments.razorpay_key_secret_encrypted).toBeUndefined();
+    expect(obj.payments.razorpay_webhook_secret_encrypted).toBeUndefined();
+  });
 });
