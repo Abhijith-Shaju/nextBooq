@@ -10,17 +10,22 @@ const Reservation = require('../../src/models/Reservation');
 const { setupTestDB } = require('../setup');
 
 jest.mock('../../src/config/razorpay', () => ({
-  orders: {
-    create: jest.fn().mockImplementation(async (options) => ({
-      id: `order_mock_${Date.now()}`,
-      entity: 'order',
-      amount: options.amount,
-      currency: options.currency || 'INR',
-      receipt: options.receipt,
-      status: 'created',
-      created_at: Math.floor(Date.now() / 1000),
-    })),
-  },
+  createRazorpayClient: jest.fn(() => ({
+    orders: {
+      create: jest.fn().mockImplementation(async (options) => ({
+        id: `order_mock_${Date.now()}`,
+        entity: 'order',
+        amount: options.amount,
+        currency: options.currency || 'INR',
+        receipt: options.receipt,
+        status: 'created',
+        created_at: Math.floor(Date.now() / 1000),
+      })),
+    },
+    payments: {
+      all: jest.fn().mockResolvedValue({ entity: 'collection', count: 0, items: [] }),
+    },
+  })),
 }));
 
 setupTestDB();

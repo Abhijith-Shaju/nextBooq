@@ -12,17 +12,22 @@ const { setupTestDB } = require('../setup');
 
 // Explicitly mock Razorpay SDK calls for E2E tests
 jest.mock('../../src/config/razorpay', () => ({
-  orders: {
-    create: jest.fn().mockImplementation(async (options) => ({
-      id: `order_mock_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
-      entity: 'order',
-      amount: options.amount,
-      currency: options.currency || 'INR',
-      receipt: options.receipt,
-      status: 'created',
-      created_at: Math.floor(Date.now() / 1000),
-    })),
-  },
+  createRazorpayClient: jest.fn(() => ({
+    orders: {
+      create: jest.fn().mockImplementation(async (options) => ({
+        id: `order_mock_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
+        entity: 'order',
+        amount: options.amount,
+        currency: options.currency || 'INR',
+        receipt: options.receipt,
+        status: 'created',
+        created_at: Math.floor(Date.now() / 1000),
+      })),
+    },
+    payments: {
+      all: jest.fn().mockResolvedValue({ entity: 'collection', count: 0, items: [] }),
+    },
+  })),
 }));
 
 setupTestDB();

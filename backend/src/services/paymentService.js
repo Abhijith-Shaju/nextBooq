@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const razorpay = require('../config/razorpay');
+const { createRazorpayClient } = require('../config/razorpay');
 const Reservation = require('../models/Reservation');
 const Cafe = require('../models/Cafe');
 const { transitionState } = require('./stateMachine');
@@ -36,6 +36,12 @@ const createOrderForReservation = async (reservationId, tenantId, amountInRupees
 
   let order;
   try {
+    // TEMPORARY: still using the platform-global credentials here — Task 5
+    // replaces this with each reservation's own cafe's decrypted credentials.
+    const razorpay = createRazorpayClient({
+      key_id: config.RAZORPAY_KEY_ID,
+      key_secret: config.RAZORPAY_KEY_SECRET,
+    });
     order = await razorpay.orders.create(options);
   } catch (razorpayErr) {
     const isAuthFail =

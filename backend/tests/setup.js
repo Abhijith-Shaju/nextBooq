@@ -1,19 +1,26 @@
 const mongoose = require('mongoose');
 const { MongoMemoryReplSet } = require('mongodb-memory-server');
 
-// Mock Razorpay API calls globally in test environment
+// Mock the Razorpay client factory globally in test environment — every
+// caller gets the same fake orders.create/payments.all behavior regardless
+// of which cafe's credentials were passed in.
 jest.mock('../src/config/razorpay', () => ({
-  orders: {
-    create: jest.fn().mockImplementation(async (options) => ({
-      id: `order_mock_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-      entity: 'order',
-      amount: options.amount,
-      currency: options.currency || 'INR',
-      receipt: options.receipt,
-      status: 'created',
-      created_at: Math.floor(Date.now() / 1000),
-    })),
-  },
+  createRazorpayClient: jest.fn(() => ({
+    orders: {
+      create: jest.fn().mockImplementation(async (options) => ({
+        id: `order_mock_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        entity: 'order',
+        amount: options.amount,
+        currency: options.currency || 'INR',
+        receipt: options.receipt,
+        status: 'created',
+        created_at: Math.floor(Date.now() / 1000),
+      })),
+    },
+    payments: {
+      all: jest.fn().mockResolvedValue({ entity: 'collection', count: 0, items: [] }),
+    },
+  })),
 }));
 
 let replSet;
