@@ -7,6 +7,7 @@ const INSECURE_DEFAULTS = {
   RAZORPAY_KEY_ID: 'rzp_test_key_id',
   RAZORPAY_KEY_SECRET: 'rzp_test_key_secret',
   RAZORPAY_WEBHOOK_SECRET: 'rzp_test_webhook_secret',
+  ENCRYPTION_KEY: 'insecure_dev_only_encryption_key_32b',
 };
 
 const envSchema = z
@@ -18,6 +19,11 @@ const envSchema = z
     RAZORPAY_KEY_ID: z.string().optional().default(INSECURE_DEFAULTS.RAZORPAY_KEY_ID),
     RAZORPAY_KEY_SECRET: z.string().optional().default(INSECURE_DEFAULTS.RAZORPAY_KEY_SECRET),
     RAZORPAY_WEBHOOK_SECRET: z.string().optional().default(INSECURE_DEFAULTS.RAZORPAY_WEBHOOK_SECRET),
+    // 32-byte key (any string is fine — encryption.js hashes it down to 32
+    // bytes via SHA-256) for AES-256-GCM encryption of per-cafe Razorpay
+    // credentials at rest. Must be set to a real random value in production,
+    // same as the RAZORPAY_* secrets below.
+    ENCRYPTION_KEY: z.string().optional().default(INSECURE_DEFAULTS.ENCRYPTION_KEY),
     CORS_ALLOWED_ORIGINS: z.string().optional().default('http://localhost:3000'),
     // Passed straight to Express's `trust proxy` setting. Controls how many
     // hops of X-Forwarded-For to trust when deriving req.ip (used by rate
