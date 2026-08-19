@@ -71,4 +71,40 @@ const sendVerificationEmail = async ({ to, code }) => {
   }
 };
 
-module.exports = { sendPasswordResetEmail, sendVerificationEmail };
+const sendContactEmail = async ({ name, email, message }) => {
+  const recipient = config.CONTACT_EMAIL || config.FROM_EMAIL;
+
+  if (!config.RESEND_API_KEY) {
+    console.log(
+      `[emailService] RESEND_API_KEY not set — logging contact form submission instead of sending. from=${name} <${email}> to=${recipient}`
+    );
+    return { logged: true, data: null, error: null };
+  }
+
+  const resend = new Resend(config.RESEND_API_KEY);
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: config.FROM_EMAIL,
+      to: recipient,
+      replyTo: email,
+      subject: `New contact form message from ${name}`,
+      html: `
+        <p><strong>From:</strong> ${name} (${email})</p>
+        <p><strong>Message:</strong></p>
+        <p>${message}</p>
+      `,
+    });
+
+    if (error) {
+      console.error('[emailService] Failed to send contact form email:', error);
+    }
+
+    return { logged: false, data, error };
+  } catch (err) {
+    console.error('[emailService] Failed to send contact form email:', err);
+    return { logged: false, data: null, error: { message: err.message } };
+  }
+};
+
+module.exports = { sendPasswordResetEmail, sendVerificationEmail, sendContactEmail };

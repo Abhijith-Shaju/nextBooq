@@ -52,6 +52,11 @@ const envSchema = z
     // Resend's shared sandbox sender — safe default for local/test; override
     // in production with a domain you've verified with Resend.
     FROM_EMAIL: z.string().optional().default('nextBooq <onboarding@resend.dev>'),
+    // Recipient for the "Contact Us" form's emails. Defaults to FROM_EMAIL's
+    // own address when unset, so the form works out of the box without a
+    // separate config value — override this if you want contact submissions
+    // routed somewhere other than the sender identity.
+    CONTACT_EMAIL: z.string().optional(),
     // Used to build absolute links (e.g. password reset) in emails, since the
     // backend has no other way to know the frontend's public origin.
     FRONTEND_URL: z.string().optional().default('http://localhost:3000'),

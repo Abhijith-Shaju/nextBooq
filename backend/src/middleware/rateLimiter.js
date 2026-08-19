@@ -51,4 +51,13 @@ const bookingCreationRateLimiter = createRateLimiter({
   message: 'Too many booking attempts. Please try again later.',
 });
 
-module.exports = { authRateLimiter, availabilityRateLimiter, bookingCreationRateLimiter };
+// Unauthenticated POST that triggers an outbound email on every request —
+// without a limiter, this is a cheap way to spam the configured recipient's
+// inbox (and burn Resend send quota) from a single IP.
+const contactFormRateLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: 'Too many contact form submissions. Please try again later.',
+});
+
+module.exports = { authRateLimiter, availabilityRateLimiter, bookingCreationRateLimiter, contactFormRateLimiter };
