@@ -25,12 +25,20 @@ export default function MarketingFooter() {
             </p>
           </div>
 
-          <Link
-            href="/auth/register"
-            className="text-sm font-semibold text-white hover:text-brand-redLight transition-colors"
-          >
-            Get a demo
-          </Link>
+          <div className="flex flex-col sm:items-end gap-3">
+            <Link href="/about" className="text-sm text-white/60 hover:text-white transition-colors">
+              About
+            </Link>
+            <Link href="/contact" className="text-sm text-white/60 hover:text-white transition-colors">
+              Contact
+            </Link>
+            <Link
+              href="/auth/register"
+              className="text-sm font-semibold text-white hover:text-brand-redLight transition-colors"
+            >
+              Get a demo
+            </Link>
+          </div>
         </div>
 
         {/* Bottom bar */}

@@ -9,6 +9,11 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '@/components/providers/auth-provider'
 import { resolvePostAuthDestination } from '@/lib/auth/post-auth-destination'
 
+const navLinks = [
+  { label: 'About', href: '/about' },
+  { label: 'Contact', href: '/contact' },
+]
+
 export default function MarketingHeader() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -49,6 +54,20 @@ export default function MarketingHeader() {
               next<span className="text-brand-red">Booq</span>
             </span>
           </Link>
+
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-8" aria-label="Main navigation">
+            {navLinks.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                className="text-brand-mocha hover:text-brand-brown font-medium text-sm transition-colors relative group"
+              >
+                {link.label}
+                <span className="absolute -bottom-0.5 left-0 w-0 h-0.5 bg-brand-red rounded-full transition-all duration-200 group-hover:w-full" />
+              </Link>
+            ))}
+          </nav>
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
@@ -110,7 +129,17 @@ export default function MarketingHeader() {
             className="md:hidden overflow-hidden bg-brand-cream/95 backdrop-blur-md border-b border-brand-tan"
           >
             <nav className="flex flex-col px-4 py-4 gap-4" aria-label="Mobile navigation">
-              <div className="flex flex-col gap-3">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className="text-brand-mocha hover:text-brand-brown font-medium text-base py-1 transition-colors"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <div className="flex flex-col gap-3 pt-2 border-t border-brand-tan">
                 {isAuthenticated ? (
                   <>
                     {hasDashboardLink && (
