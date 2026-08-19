@@ -1,6 +1,15 @@
 const { Resend } = require('resend');
 const config = require('../config/env');
 
+// Escape HTML special characters to prevent injection attacks
+const escapeHtml = (str) =>
+  str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 const sendPasswordResetEmail = async ({ to, resetUrl }) => {
   if (!config.RESEND_API_KEY) {
     console.log(
@@ -84,15 +93,23 @@ const sendContactEmail = async ({ name, email, message }) => {
   const resend = new Resend(config.RESEND_API_KEY);
 
   try {
+    // Escape HTML in user-supplied content to prevent injection attacks
+    const escapedName = escapeHtml(name);
+    const escapedEmail = escapeHtml(email);
+    const escapedMessage = escapeHtml(message);
+
+    // Strip newlines from name before using in subject to prevent email header injection
+    const safeNameForSubject = name.replace(/[\r\n]+/g, ' ');
+
     const { data, error } = await resend.emails.send({
       from: config.FROM_EMAIL,
       to: recipient,
       replyTo: email,
-      subject: `New contact form message from ${name}`,
+      subject: `New contact form message from ${safeNameForSubject}`,
       html: `
-        <p><strong>From:</strong> ${name} (${email})</p>
+        <p><strong>From:</strong> ${escapedName} (${escapedEmail})</p>
         <p><strong>Message:</strong></p>
-        <p>${message}</p>
+        <p>${escapedMessage}</p>
       `,
     });
 
