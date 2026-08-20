@@ -34,6 +34,7 @@ describe('Integration Test: PENDING_PAYMENT expiry', () => {
       email: 'expiry@test.com',
       phone: '+1112229999',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     table = await Table.create({
       cafe_id: cafe._id,

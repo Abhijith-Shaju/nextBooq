@@ -35,6 +35,7 @@ describe('Integration Test: booking is blocked for a cafe without payments confi
       email: 'blocked-booker@test.com',
       phone: '+1555900003',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     token = jwt.sign({ id: user._id.toString() }, config.JWT_SECRET);
   });

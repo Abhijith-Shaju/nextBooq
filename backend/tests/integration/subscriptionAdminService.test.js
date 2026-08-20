@@ -33,6 +33,7 @@ describe('recordSubscriptionTerm', () => {
       email: 'admin-record@test.com',
       phone: '+1555992001',
       password_hash: 'pass',
+      is_email_verified: true,
       is_platform_admin: true,
     });
 
@@ -70,6 +71,7 @@ describe('recordSubscriptionTerm', () => {
       email: 'admin-renew@test.com',
       phone: '+1555992002',
       password_hash: 'pass',
+      is_email_verified: true,
       is_platform_admin: true,
     });
 
@@ -108,6 +110,7 @@ describe('setSubscriptionStatus', () => {
       email: 'admin-status@test.com',
       phone: '+1555992003',
       password_hash: 'pass',
+      is_email_verified: true,
       is_platform_admin: true,
     });
 
@@ -143,6 +146,7 @@ describe('setSubscriptionStatus', () => {
       email: 'admin-unconf@test.com',
       phone: '+1555992004',
       password_hash: 'pass',
+      is_email_verified: true,
       is_platform_admin: true,
     });
 
@@ -160,6 +164,7 @@ describe('getCafeSubscriptionHistory', () => {
       email: 'admin-history@test.com',
       phone: '+1555992005',
       password_hash: 'pass',
+      is_email_verified: true,
       is_platform_admin: true,
     });
 
@@ -194,6 +199,7 @@ describe('listOrgsWithCafes', () => {
       email: 'admin-list@test.com',
       phone: '+1555992006',
       password_hash: 'pass',
+      is_email_verified: true,
       is_platform_admin: true,
     });
     await recordSubscriptionTerm({ cafeId: cafe._id, orgId: org._id, termMonths: 18, pricePerMonth: 6000, adminUserId: admin._id });
@@ -214,6 +220,7 @@ describe('getOverviewStats', () => {
       email: 'admin-overview@test.com',
       phone: '+1555992007',
       password_hash: 'pass',
+      is_email_verified: true,
       is_platform_admin: true,
     });
 
@@ -240,6 +247,7 @@ describe('getOverviewStats', () => {
       email: 'admin-pending@test.com',
       phone: '+1555992008',
       password_hash: 'pass',
+      is_email_verified: true,
       is_platform_admin: true,
     });
     const { org, cafe } = await makeOrgCafe('Pending Org', 'Pending Cafe', 'pending-cafe');

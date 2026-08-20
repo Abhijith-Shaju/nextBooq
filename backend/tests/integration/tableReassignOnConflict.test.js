@@ -34,6 +34,7 @@ describe('getSeatedTableIds', () => {
       email: 'seated-ids@test.com',
       phone: '+1555920001',
       password_hash: 'pass',
+      is_email_verified: true,
     });
 
     const makeRes = (tableIds, status) =>
@@ -80,6 +81,7 @@ describe('suggestAlternateTable', () => {
       email: 'suggest@test.com',
       phone: '+1555930001',
       password_hash: 'pass',
+      is_email_verified: true,
     });
   });
 
@@ -189,6 +191,7 @@ describe('transitionState tableIdsUpdate', () => {
       email: 'transition@test.com',
       phone: '+1555940001',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     const tableA = await Table.create({ cafe_id: cafe._id, table_number: 'A1', capacity: 4 });
     const tableB = await Table.create({ cafe_id: cafe._id, table_number: 'B1', capacity: 4 });
@@ -230,6 +233,7 @@ describe('transitionState tableIdsUpdate', () => {
       email: 'transition2@test.com',
       phone: '+1555940002',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     const tableA = await Table.create({ cafe_id: cafe._id, table_number: 'A1', capacity: 4 });
 
@@ -296,6 +300,7 @@ describe('PUT /reservations/:resId/status — alternate table suggestion', () =>
       email: 'host-endpoint@test.com',
       phone: '+1555950001',
       password_hash: 'pass',
+      is_email_verified: true,
       staff_memberships: [
         { cafe_id: cafe._id, role: 'host', permissions: ['edit_reservations', 'cancel_reservations'] },
       ],
@@ -310,12 +315,14 @@ describe('PUT /reservations/:resId/status — alternate table suggestion', () =>
       email: 'ga-endpoint@test.com',
       phone: '+1555950002',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     guestB = await User.create({
       name: 'Guest B',
       email: 'gb-endpoint@test.com',
       phone: '+1555950003',
       password_hash: 'pass',
+      is_email_verified: true,
     });
   });
 
@@ -337,6 +344,7 @@ describe('PUT /reservations/:resId/status — alternate table suggestion', () =>
       email: 'gc-endpoint@test.com',
       phone: '+1555950004',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     await makeRes(guestA, [tableA._id], 'SEATED', -1);
     await makeRes(guestC, [tableB._id], 'SEATED', -1);
@@ -375,6 +383,7 @@ describe('PUT /reservations/:resId/status — alternate table suggestion', () =>
       email: 'gc2-endpoint@test.com',
       phone: '+1555950005',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     await makeRes(guestC, [tableB._id], 'SEATED', -1);
 

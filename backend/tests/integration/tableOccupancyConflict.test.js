@@ -39,6 +39,7 @@ describe('Integration Test: seating a reservation warns (but does not block) on 
       email: 'host-occupancy@test.com',
       phone: '+1555900001',
       password_hash: 'pass',
+      is_email_verified: true,
       staff_memberships: [
         { cafe_id: cafe._id, role: 'host', permissions: ['edit_reservations', 'cancel_reservations'] },
       ],
@@ -52,12 +53,14 @@ describe('Integration Test: seating a reservation warns (but does not block) on 
       email: 'guest-a-occ@test.com',
       phone: '+1555900002',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     guestB = await User.create({
       name: 'Guest B',
       email: 'guest-b-occ@test.com',
       phone: '+1555900003',
       password_hash: 'pass',
+      is_email_verified: true,
     });
   });
 

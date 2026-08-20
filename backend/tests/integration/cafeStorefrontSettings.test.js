@@ -27,6 +27,7 @@ describe('Integration Test: cafe storefront settings (description, hero image, m
       email: 'owner-storefront@test.com',
       phone: '+1555900001',
       password_hash: 'pass',
+      is_email_verified: true,
       staff_memberships: [{ cafe_id: cafe._id, role: 'owner', permissions: [] }],
     });
     ownerToken = jwt.sign({ id: owner._id.toString() }, config.JWT_SECRET);

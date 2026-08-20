@@ -36,6 +36,7 @@ describe('Integration Test: available-slots reflects cafe operating hours', () =
       email: `guest-hours-${Date.now()}@test.com`,
       phone: '+1555700001',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     customerToken = jwt.sign({ id: customer._id.toString() }, config.JWT_SECRET);
   });

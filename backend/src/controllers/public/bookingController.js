@@ -10,6 +10,10 @@ const createReservation = async (req, res, next) => {
     const cafeId = req.tenantId;
     const userId = req.user._id;
 
+    if (!req.user.is_email_verified) {
+      throw new BadRequestError('Please verify your email address before making a reservation.');
+    }
+
     if (!start_time || !party_size) {
       throw new BadRequestError('start_time (ISO Date string) and party_size are required');
     }

@@ -39,6 +39,7 @@ describe('Integration Test: Razorpay Webhook Signature Verification (raw body)',
       email: 'webhook-sig@test.com',
       phone: '+1112223344',
       password_hash: 'pass',
+      is_email_verified: true,
     });
 
     const table = await Table.create({

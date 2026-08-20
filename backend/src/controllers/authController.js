@@ -424,14 +424,24 @@ const customerQuickAuth = async (req, res, next) => {
       const salt = await bcrypt.genSalt(10);
       const password_hash = await bcrypt.hash(password, salt);
 
+      const { code, codeHash, expiresAt } = generateVerificationCode();
+
       user = new User({
         name: name.trim(),
         email: cleanEmail,
         phone: cleanPhone,
         password_hash,
         staff_memberships: [],
+        email_verification_code_hash: codeHash,
+        email_verification_expires_at: expiresAt,
       });
       await user.save();
+
+      // Fire-and-forget — same rationale as registerUser: email delivery
+      // must never block or fail account creation / table hold.
+      sendVerificationEmail({ to: user.email, code }).catch((err) => {
+        console.error('[customerQuickAuth] Failed to send verification email:', err);
+      });
     } else {
       const isMatch = await bcrypt.compare(password, user.password_hash);
       if (!isMatch) {

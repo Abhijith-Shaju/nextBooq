@@ -54,6 +54,7 @@ describe('Integration Test: cafe Payments settings (Razorpay credentials)', () =
       email: 'owner-payments@test.com',
       phone: '+1555900002',
       password_hash: 'pass',
+      is_email_verified: true,
       staff_memberships: [{ cafe_id: cafe._id, role: 'owner', permissions: [] }],
     });
     ownerToken = jwt.sign({ id: owner._id.toString() }, config.JWT_SECRET);

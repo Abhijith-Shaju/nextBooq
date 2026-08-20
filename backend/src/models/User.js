@@ -75,10 +75,10 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
     // 6-digit code, hashed (SHA-256) and time-limited, sent via email at
-    // registration (see backend/src/utils/emailVerification.js). Cleared on
-    // successful verification, or overwritten by a newer code request (only
-    // the most recently issued code is ever valid). Non-blocking: nothing
-    // in the app currently gates on is_email_verified.
+    // registration and customerQuickAuth (see backend/src/utils/emailVerification.js).
+    // Cleared on successful verification, or overwritten by a newer code request (only
+    // the most recently issued code is ever valid). Gates reservation creation:
+    // POST /:cafeId/reservations returns 400 for unverified users.
     is_email_verified: {
       type: Boolean,
       default: false,

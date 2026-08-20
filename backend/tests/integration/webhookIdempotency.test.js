@@ -41,6 +41,7 @@ describe('Integration Test: Razorpay Webhook Idempotency & Terminal State Handli
       email: 'webhook@test.com',
       phone: '+1112223333',
       password_hash: 'pass',
+      is_email_verified: true,
     });
 
     const table = await Table.create({

@@ -29,6 +29,7 @@ describe('Integration Test: merge resolution excludes soft-deleted tables', () =
       email: 'owner-merge-resolution@test.com',
       phone: '+1555666001',
       password_hash: 'pass',
+      is_email_verified: true,
       staff_memberships: [{ cafe_id: cafe._id, role: 'owner', permissions: [] }],
     });
     ownerToken = jwt.sign({ id: owner._id.toString() }, config.JWT_SECRET);

@@ -4,6 +4,7 @@ import "./globals.css";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { EmailVerificationBanner } from "@/components/shared/email-verification-banner";
 
 // Self-hosted (not next/font/google) so dev/build never depends on reaching
 // fonts.gstatic.com over the network — that dependency was causing
@@ -48,6 +49,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${spaceGrotesk.variable} ${spaceMono.variable} font-sans`}>
         <QueryProvider>
           <AuthProvider>
+            <EmailVerificationBanner />
             {children}
             <Toaster richColors position="top-center" />
           </AuthProvider>

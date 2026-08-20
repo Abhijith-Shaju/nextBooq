@@ -46,6 +46,7 @@ describe('Integration Test: Client-side payment verification endpoint', () => {
       email: 'verify@test.com',
       phone: '+1112225555',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     token = jwt.sign({ id: user._id.toString() }, config.JWT_SECRET);
 
@@ -149,6 +150,7 @@ describe('Integration Test: Client-side payment verification endpoint', () => {
         email: 'devmode@test.com',
         phone: '+1112226666',
         password_hash: 'pass',
+      is_email_verified: true,
       });
 
       const devModeTable = await Table.create({ cafe_id: devModeCafe._id, table_number: 'T2', capacity: 2 });

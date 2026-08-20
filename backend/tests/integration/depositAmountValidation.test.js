@@ -61,6 +61,7 @@ describe('Integration Test: deposit_amount validation on booking creation', () =
       email: 'deposit-user@test.com',
       phone: '+1555444001',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     token = jwt.sign({ id: user._id.toString() }, config.JWT_SECRET);
     await Table.create({ cafe_id: cafe._id, table_number: 'T1', capacity: 4 });

@@ -25,6 +25,7 @@ describe('Integration Test: GET /tables populates can_merge_with with table_numb
       email: 'owner-merge-pop@test.com',
       phone: '+1555700001',
       password_hash: 'pass',
+      is_email_verified: true,
       staff_memberships: [{ cafe_id: cafe._id, role: 'owner', permissions: [] }],
     });
     const token = jwt.sign({ id: owner._id.toString() }, config.JWT_SECRET);

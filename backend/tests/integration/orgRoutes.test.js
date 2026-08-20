@@ -35,6 +35,7 @@ describe('Org routes', () => {
       email: 'org-routes-owner@test.com',
       phone: '+15559930001',
       password_hash: 'pass',
+      is_email_verified: true,
       staff_memberships: [
         { cafe_id: cafeA._id, role: 'owner', permissions: [] },
         { cafe_id: cafeB._id, role: 'owner', permissions: [] },
@@ -47,6 +48,7 @@ describe('Org routes', () => {
       email: 'org-routes-manager@test.com',
       phone: '+15559930002',
       password_hash: 'pass',
+      is_email_verified: true,
       staff_memberships: [{ cafe_id: cafeA._id, role: 'manager', permissions: [] }],
     });
     managerToken = jwt.sign({ id: manager._id.toString() }, config.JWT_SECRET);
@@ -73,6 +75,7 @@ describe('Org routes', () => {
         email: 'org-routes-guest@test.com',
         phone: '+15559930003',
         password_hash: 'pass',
+      is_email_verified: true,
       }))._id,
       table_ids: [],
       start_time: now,
@@ -112,6 +115,7 @@ describe('Org routes', () => {
         email: 'org-routes-assignable@test.com',
         phone: '+15559930010',
         password_hash: 'pass',
+      is_email_verified: true,
       });
     });
 

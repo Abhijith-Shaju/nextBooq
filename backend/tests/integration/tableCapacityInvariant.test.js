@@ -32,6 +32,7 @@ describe('Integration Test: table capacity reduction is validated against active
       email: 'owner-capacity@test.com',
       phone: '+1555111222',
       password_hash: 'pass',
+      is_email_verified: true,
       staff_memberships: [{ cafe_id: cafe._id, role: 'owner', permissions: [] }],
     });
     ownerToken = jwt.sign({ id: ownerUser._id.toString() }, config.JWT_SECRET);
@@ -41,6 +42,7 @@ describe('Integration Test: table capacity reduction is validated against active
       email: 'guest-capacity@test.com',
       phone: '+1555333444',
       password_hash: 'pass',
+      is_email_verified: true,
     });
 
     table = await Table.create({ cafe_id: cafe._id, table_number: 'T1', capacity: 8 });

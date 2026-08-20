@@ -34,6 +34,7 @@ describe('Integration Test: updating cafe operating hours', () => {
       email: 'owner-hours@test.com',
       phone: '+1555800001',
       password_hash: 'pass',
+      is_email_verified: true,
       staff_memberships: [{ cafe_id: cafe._id, role: 'owner', permissions: [] }],
     });
     ownerToken = jwt.sign({ id: owner._id.toString() }, config.JWT_SECRET);
@@ -137,6 +138,7 @@ describe('Integration Test: updating cafe operating hours', () => {
       email: 'guest-hours@test.com',
       phone: '+1555800002',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     const guestToken = jwt.sign({ id: guest._id.toString() }, config.JWT_SECRET);
 

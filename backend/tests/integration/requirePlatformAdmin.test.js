@@ -26,6 +26,7 @@ describe('requirePlatformAdmin middleware', () => {
       email: 'regular-mw@test.com',
       phone: '+1555991001',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     const token = jwt.sign({ id: user._id.toString() }, config.JWT_SECRET);
 
@@ -42,6 +43,7 @@ describe('requirePlatformAdmin middleware', () => {
       email: 'admin-mw@test.com',
       phone: '+1555991002',
       password_hash: 'pass',
+      is_email_verified: true,
       is_platform_admin: true,
     });
     const token = jwt.sign({ id: admin._id.toString() }, config.JWT_SECRET);

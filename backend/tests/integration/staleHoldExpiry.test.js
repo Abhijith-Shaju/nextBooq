@@ -32,6 +32,7 @@ describe('Integration Test: stale HOLD reservations', () => {
       email: 'host-stalehold@test.com',
       phone: '+1555222001',
       password_hash: 'pass',
+      is_email_verified: true,
       staff_memberships: [{ cafe_id: cafe._id, role: 'host', permissions: ['view_reservations'] }],
     });
     hostToken = jwt.sign({ id: hostUser._id.toString() }, config.JWT_SECRET);
@@ -40,6 +41,7 @@ describe('Integration Test: stale HOLD reservations', () => {
       email: 'guest-stalehold@test.com',
       phone: '+1555222002',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     table = await Table.create({ cafe_id: cafe._id, table_number: 'T1', capacity: 2 });
   });

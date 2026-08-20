@@ -36,7 +36,13 @@ function RegisterForm() {
       { name, email, phone, password },
       {
         onSuccess: (user) => {
-          router.push(resolvePostAuthDestination(user, callbackUrl));
+          const destination = resolvePostAuthDestination(user, callbackUrl);
+          // Always gate new registrations through email verification before
+          // they reach the app. source=register lets verify-email show the
+          // "Registration complete!" toast after the code is accepted.
+          router.push(
+            `/auth/verify-email?callbackUrl=${encodeURIComponent(destination)}&source=register`
+          );
         },
       }
     );

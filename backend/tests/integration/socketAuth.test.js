@@ -23,6 +23,7 @@ describe('Integration Test: WebSocket authentication and cafe-room authorization
       email: 'staff-a@test.com',
       phone: '+1112220001',
       password_hash: 'pass',
+      is_email_verified: true,
       staff_memberships: [{ cafe_id: cafeA._id, role: 'host', permissions: ['view_reservations'] }],
     });
   });

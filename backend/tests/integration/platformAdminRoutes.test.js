@@ -29,6 +29,7 @@ describe('Platform admin routes', () => {
       email: 'platform-admin@test.com',
       phone: '+1555993001',
       password_hash: 'pass',
+      is_email_verified: true,
       is_platform_admin: true,
     });
     adminToken = jwt.sign({ id: admin._id.toString() }, config.JWT_SECRET);
@@ -38,6 +39,7 @@ describe('Platform admin routes', () => {
       email: 'cafe-owner-route@test.com',
       phone: '+1555993002',
       password_hash: 'pass',
+      is_email_verified: true,
       staff_memberships: [{ cafe_id: cafe._id, role: 'owner', permissions: [] }],
     });
     cafeStaffToken = jwt.sign({ id: cafeStaff._id.toString() }, config.JWT_SECRET);
@@ -230,6 +232,7 @@ describe('GET /api/v1/auth/me includes is_platform_admin', () => {
       email: 'me-admin@test.com',
       phone: '+1555993003',
       password_hash: 'pass',
+      is_email_verified: true,
       is_platform_admin: true,
     });
     const token = jwt.sign({ id: admin._id.toString() }, config.JWT_SECRET);
@@ -246,6 +249,7 @@ describe('GET /api/v1/auth/me includes is_platform_admin', () => {
       email: 'me-regular@test.com',
       phone: '+1555993004',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     const token = jwt.sign({ id: user._id.toString() }, config.JWT_SECRET);
 

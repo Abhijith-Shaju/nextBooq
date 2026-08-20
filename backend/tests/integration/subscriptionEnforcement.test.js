@@ -36,6 +36,7 @@ describe('Integration Test: Subscription Enforcement Middleware', () => {
       email: 'owner@sub.com',
       phone: '+1234123412',
       password_hash: 'pass',
+      is_email_verified: true,
       staff_memberships: [
         {
           cafe_id: cafe._id,

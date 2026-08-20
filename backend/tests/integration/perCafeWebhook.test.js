@@ -53,6 +53,7 @@ describe('Integration Test: per-cafe Razorpay webhook', () => {
       email: 'percafe-webhook@test.com',
       phone: '+1555900004',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     const table = await Table.create({ cafe_id: cafeA._id, table_number: 'T1', capacity: 2 });
     reservationA = await Reservation.create({

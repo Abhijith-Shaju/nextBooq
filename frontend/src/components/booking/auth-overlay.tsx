@@ -11,7 +11,7 @@ import { useCustomerQuickAuth } from '@/hooks/auth/use-customer-quick-auth';
 import { useBookingStore } from '@/store/use-booking-store';
 import { useTenant } from '@/components/providers/tenant-provider';
 import { format } from 'date-fns';
-import { Loader2, ArrowRight, Calendar, User, Mail, Phone, Lock, CheckCircle2, Shield, HeartHandshake } from 'lucide-react';
+import { Loader2, ArrowRight, Calendar, User, Mail, Phone, Lock, CheckCircle2, Shield, MailWarning } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -60,6 +60,13 @@ export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChang
 
     const dateStr = format(date, 'yyyy-MM-dd');
     const isoDateTime = new Date(`${dateStr}T${time}:00`).toISOString();
+
+    // Block if email is not verified — the backend will reject anyway, but
+    // we surface a clear message before wasting a round-trip.
+    if (isAuthenticated && !user?.is_email_verified) {
+      toast.error('Please verify your email address before booking a table.');
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -126,7 +133,29 @@ export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChang
           </div>
 
           {/* Form Fields */}
-          {isAuthenticated ? (
+          {isAuthenticated && !user?.is_email_verified ? (
+            /* Unverified user — block the hold and prompt to verify. */
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <MailWarning className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-amber-900">
+                    Email verification required
+                  </p>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    Please verify <span className="font-semibold">{user?.email}</span> before
+                    holding a table. It only takes 30 seconds.
+                  </p>
+                </div>
+              </div>
+              <a
+                href={`/auth/verify-email?callbackUrl=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname : '/')}`}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-600 transition-colors px-4 py-2.5 text-sm font-bold text-white shadow-sm"
+              >
+                <MailWarning className="w-4 h-4" /> Verify my email
+              </a>
+            </div>
+          ) : isAuthenticated ? (
             <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-sm shadow-sm">
@@ -224,7 +253,12 @@ export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChang
           {/* Submit Action Button */}
           <Button
             onClick={handleHoldReservation}
-            disabled={isSubmitting || bookTable.isPending || quickAuth.isPending}
+            disabled={
+              isSubmitting ||
+              bookTable.isPending ||
+              quickAuth.isPending ||
+              (isAuthenticated && !user?.is_email_verified)
+            }
             className="w-full cta-hero py-4 justify-center mt-2 text-base font-bold shadow-brand-md rounded-2xl"
           >
             {isSubmitting || bookTable.isPending || quickAuth.isPending ? (

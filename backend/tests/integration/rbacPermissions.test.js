@@ -29,6 +29,7 @@ describe('Integration Test: RBAC Matrix Permissions Enforcement', () => {
       email: 'host@rbac.com',
       phone: '+1555000111',
       password_hash: 'pass',
+      is_email_verified: true,
       staff_memberships: [
         {
           cafe_id: cafe._id,
@@ -44,6 +45,7 @@ describe('Integration Test: RBAC Matrix Permissions Enforcement', () => {
       email: 'owner@rbac.com',
       phone: '+1555000222',
       password_hash: 'pass',
+      is_email_verified: true,
       staff_memberships: [
         {
           cafe_id: cafe._id,

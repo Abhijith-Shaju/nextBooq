@@ -50,6 +50,7 @@ describe('Integration Test: CafeCustomer visit/no-show counters', () => {
       email: 'host-counters@test.com',
       phone: '+1555777001',
       password_hash: 'pass',
+      is_email_verified: true,
       staff_memberships: [
         {
           cafe_id: cafe._id,
@@ -69,6 +70,7 @@ describe('Integration Test: CafeCustomer visit/no-show counters', () => {
       email: 'guest-visits@test.com',
       phone: '+1555888001',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     const reservation = await makeConfirmedReservation(guest);
 
@@ -90,6 +92,7 @@ describe('Integration Test: CafeCustomer visit/no-show counters', () => {
       email: 'guest-noshow@test.com',
       phone: '+1555888002',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     const reservation = await makeConfirmedReservation(guest);
 
@@ -108,6 +111,7 @@ describe('Integration Test: CafeCustomer visit/no-show counters', () => {
       email: 'guest-repeat@test.com',
       phone: '+1555888003',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     await CafeCustomer.create({ cafe_id: cafe._id, user_id: guest._id, total_visits: 3, total_no_shows: 1 });
 

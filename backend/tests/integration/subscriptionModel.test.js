@@ -66,6 +66,7 @@ describe('User.is_platform_admin', () => {
       email: 'regular@test.com',
       phone: '+1555990001',
       password_hash: 'pass',
+      is_email_verified: true,
     });
     expect(user.is_platform_admin).toBe(false);
   });
@@ -76,6 +77,7 @@ describe('User.is_platform_admin', () => {
       email: 'admin@test.com',
       phone: '+1555990002',
       password_hash: 'pass',
+      is_email_verified: true,
       is_platform_admin: true,
     });
     expect(user.is_platform_admin).toBe(true);

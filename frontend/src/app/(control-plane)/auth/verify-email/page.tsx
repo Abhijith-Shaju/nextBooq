@@ -1,46 +1,87 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Coffee, ArrowRight, Loader2, Mail } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useVerifyEmail } from '@/hooks/auth/use-verify-email';
 import { useResendVerificationEmail } from '@/hooks/auth/use-resend-verification-email';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 function VerifyEmailContent() {
   const { user } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
+
+  const rawCallbackUrl = searchParams.get('callbackUrl');
+  const source = searchParams.get('source'); // 'register' | null
+  // Sanitise: only allow same-origin relative paths.
+  const callbackUrl =
+    rawCallbackUrl && rawCallbackUrl.startsWith('/') ? rawCallbackUrl : '/';
+
   const [code, setCode] = useState('');
   const [succeeded, setSucceeded] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const verifyEmailMutation = useVerifyEmail();
   const resendMutation = useResendVerificationEmail();
 
+  // After success, invalidate /me so the banner knows verification is done,
+  // then show a contextual toast and redirect.
+  const handleSuccess = async () => {
+    setSucceeded(true);
+    await queryClient.invalidateQueries({ queryKey: ['me'] });
+
+    if (source === 'register') {
+      toast.success('Registration complete! Your email has been verified.', { duration: 4000 });
+    } else {
+      toast.success('Email verified successfully!', { duration: 3000 });
+    }
+
+    // Short delay so the user sees the success state before navigating.
+    setTimeout(() => {
+      router.push(callbackUrl);
+    }, 1500);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage(null);
     verifyEmailMutation.mutate(
       { code },
       {
-        onSuccess: () => setSucceeded(true),
-        onError: () => setErrorMessage('Invalid or expired code.'),
+        onSuccess: handleSuccess,
+        onError: () => toast.error('Invalid or expired code. Please try again.'),
       }
     );
   };
 
   const handleResend = () => {
-    resendMutation.mutate();
+    resendMutation.mutate(undefined, {
+      onSuccess: () => toast.success('A new code has been sent to your inbox.'),
+      onError: () => toast.error('Could not resend code. Please try again.'),
+    });
   };
 
-  if (user?.is_email_verified || succeeded) {
+  // Already verified — redirect immediately.
+  useEffect(() => {
+    if (user?.is_email_verified && !succeeded) {
+      router.replace(callbackUrl);
+    }
+  }, [user?.is_email_verified, succeeded, callbackUrl, router]);
+
+  if (succeeded) {
     return (
       <div className="space-y-4 text-center">
+        <div className="w-16 h-16 mx-auto bg-emerald-100 rounded-full flex items-center justify-center">
+          <Mail className="w-8 h-8 text-emerald-600" />
+        </div>
         <p className="font-sans text-brand-brown text-sm bg-brand-tan/40 rounded-xl p-4">
-          {succeeded ? 'Email verified.' : 'Your email is already verified.'}
+          {source === 'register'
+            ? 'Registration complete! Taking you to the app…'
+            : 'Email verified! Taking you back…'}
         </p>
-        <Link href="/" className="text-brand-red font-semibold hover:underline text-sm">
-          Continue to nextBooq
-        </Link>
+        <Loader2 className="w-5 h-5 mx-auto animate-spin text-brand-mocha" />
       </div>
     );
   }
@@ -60,22 +101,20 @@ function VerifyEmailContent() {
             maxLength={6}
             placeholder="6-digit code"
             value={code}
-            onChange={(e) => setCode(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 rounded-xl border border-brand-brown/20 bg-white/80 focus:bg-white focus:ring-2 focus:ring-brand-red focus:outline-none transition-all text-sm"
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+            className="w-full pl-10 pr-4 py-3 rounded-xl border border-brand-brown/20 bg-white/80 focus:bg-white focus:ring-2 focus:ring-brand-red focus:outline-none transition-all text-sm tracking-widest font-mono"
           />
         </div>
       </div>
 
-      {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
-
       <button
         type="submit"
-        disabled={verifyEmailMutation.isPending}
+        disabled={verifyEmailMutation.isPending || code.length < 6}
         className="w-full cta-hero py-3.5 justify-center mt-2 text-base font-semibold shadow-brand-md"
       >
         {verifyEmailMutation.isPending ? (
           <>
-            <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Verifying...
+            <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Verifying…
           </>
         ) : (
           <>
@@ -90,22 +129,27 @@ function VerifyEmailContent() {
         disabled={resendMutation.isPending}
         className="w-full text-center text-sm text-brand-mocha hover:text-brand-brown underline disabled:opacity-50"
       >
-        {resendMutation.isPending ? 'Sending...' : "Didn't get a code? Resend"}
+        {resendMutation.isPending ? 'Sending…' : "Didn't get a code? Resend"}
       </button>
     </form>
   );
 }
 
-export default function VerifyEmailPage() {
+function VerifyEmailGuard() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();
+  const searchParams = useSearchParams();
+
+  const rawCallbackUrl = searchParams.get('callbackUrl');
+  const callbackUrl =
+    rawCallbackUrl && rawCallbackUrl.startsWith('/') ? rawCallbackUrl : '/';
 
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) {
-      router.replace('/auth/login?callbackUrl=%2Fauth%2Fverify-email');
+      router.replace(`/auth/login?callbackUrl=${encodeURIComponent('/auth/verify-email?' + searchParams.toString())}`);
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, router, searchParams]);
 
   if (isLoading || !isAuthenticated) {
     return null;
@@ -127,7 +171,8 @@ export default function VerifyEmailPage() {
           <div className="text-center">
             <h1 className="font-display text-3xl font-bold text-brand-brown">Verify your email</h1>
             <p className="font-sans text-brand-mocha text-sm mt-1">
-              Enter the 6-digit code we sent to {user?.email}.
+              Enter the 6-digit code we sent to{' '}
+              <span className="font-semibold text-brand-brown">{user?.email}</span>.
             </p>
           </div>
 
@@ -135,11 +180,22 @@ export default function VerifyEmailPage() {
         </div>
 
         <div className="text-center">
-          <Link href="/" className="inline-block text-brand-mocha hover:text-brand-brown text-sm transition-colors">
-            ← Back to home
+          <Link
+            href={callbackUrl}
+            className="inline-block text-brand-mocha hover:text-brand-brown text-sm transition-colors"
+          >
+            ← Back
           </Link>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={null}>
+      <VerifyEmailGuard />
+    </Suspense>
   );
 }

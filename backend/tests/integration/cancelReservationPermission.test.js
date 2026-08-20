@@ -21,6 +21,7 @@ describe('Integration Test: cancel_reservations permission is enforced separatel
       email,
       phone: '+1555' + Math.floor(Math.random() * 1000000),
       password_hash: 'pass',
+      is_email_verified: true,
       staff_memberships: [{ cafe_id: cafe._id, role: 'staff', permissions }],
     });
     return jwt.sign({ id: user._id.toString() }, config.JWT_SECRET);
@@ -32,6 +33,7 @@ describe('Integration Test: cancel_reservations permission is enforced separatel
       email: `guest-${Date.now()}-${Math.random()}@test.com`,
       phone: '+1444' + Math.floor(Math.random() * 1000000),
       password_hash: 'pass',
+      is_email_verified: true,
     });
     return Reservation.create({
       cafe_id: cafe._id,
