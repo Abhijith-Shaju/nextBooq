@@ -1,9 +1,13 @@
+'use client'
+
 import React from 'react'
 import Link from 'next/link'
 import { Coffee } from 'lucide-react'
+import { useAuth } from '@/components/providers/auth-provider'
 
 export default function MarketingFooter() {
   const currentYear = new Date().getFullYear()
+  const { isAuthenticated, isLoading } = useAuth()
 
   return (
     <footer className="bg-brand-brown text-white/80">
@@ -32,12 +36,14 @@ export default function MarketingFooter() {
             <Link href="/contact" className="text-sm text-white/60 hover:text-white transition-colors">
               Contact
             </Link>
-            <Link
-              href="/auth/register"
-              className="text-sm font-semibold text-white hover:text-brand-redLight transition-colors"
-            >
-              Get a demo
-            </Link>
+            {!isLoading && !isAuthenticated && (
+              <Link
+                href="/auth/register"
+                className="text-sm font-semibold text-white hover:text-brand-redLight transition-colors"
+              >
+                Get a demo
+              </Link>
+            )}
           </div>
         </div>
 
