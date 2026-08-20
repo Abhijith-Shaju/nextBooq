@@ -16,6 +16,9 @@ frontend/.env.local
 frontend/.next/
 frontend/out/
 
+# Local Git worktrees
+.worktrees/
+
 # Debug logs
 logs
 *.log
