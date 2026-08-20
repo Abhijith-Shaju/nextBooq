@@ -4,9 +4,16 @@ import React from 'react';
 import VerifyEmailPage from './page';
 
 const replaceMock = vi.fn();
+const pushMock = vi.fn();
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ replace: replaceMock }),
+  useRouter: () => ({ replace: replaceMock, push: pushMock }),
+  useSearchParams: () => new URLSearchParams(),
 }));
+
+const { toastMock } = vi.hoisted(() => ({
+  toastMock: { success: vi.fn(), error: vi.fn() },
+}));
+vi.mock('sonner', () => ({ toast: toastMock }));
 
 const useAuthMock = vi.fn();
 vi.mock('@/components/providers/auth-provider', () => ({
@@ -23,11 +30,18 @@ vi.mock('@/hooks/auth/use-resend-verification-email', () => ({
   useResendVerificationEmail: () => ({ mutate: resendMutateMock, isPending: false }),
 }));
 
+vi.mock('@tanstack/react-query', () => ({
+  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+}));
+
 describe('VerifyEmailPage', () => {
   beforeEach(() => {
     replaceMock.mockReset();
+    pushMock.mockReset();
     verifyMutateMock.mockReset();
     resendMutateMock.mockReset();
+    toastMock.success.mockReset();
+    toastMock.error.mockReset();
   });
 
   test('redirects to login when there is no authenticated user', async () => {
@@ -47,7 +61,7 @@ describe('VerifyEmailPage', () => {
     expect(replaceMock).not.toHaveBeenCalled();
   });
 
-  test('shows an already-verified state without a form when the user is already verified', () => {
+  test('returns an already-verified user to the requested destination', async () => {
     useAuthMock.mockReturnValue({
       user: { id: 'u1', email: 'user@example.com', is_email_verified: true },
       isAuthenticated: true,
@@ -56,8 +70,7 @@ describe('VerifyEmailPage', () => {
 
     render(<VerifyEmailPage />);
 
-    expect(screen.getByText(/your email is already verified/i)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /verify email/i })).not.toBeInTheDocument();
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/'));
   });
 
   test('submits the entered code to the mutation', () => {
@@ -91,7 +104,7 @@ describe('VerifyEmailPage', () => {
     fireEvent.change(screen.getByPlaceholderText('6-digit code'), { target: { value: '123456' } });
     fireEvent.click(screen.getByRole('button', { name: /verify email/i }));
 
-    await waitFor(() => expect(screen.getByText('Email verified.')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/email verified! taking you back/i)).toBeInTheDocument());
   });
 
   test('shows an inline error and keeps the form when verification fails', async () => {
@@ -107,7 +120,7 @@ describe('VerifyEmailPage', () => {
     fireEvent.change(screen.getByPlaceholderText('6-digit code'), { target: { value: '000000' } });
     fireEvent.click(screen.getByRole('button', { name: /verify email/i }));
 
-    await waitFor(() => expect(screen.getByText(/invalid or expired code/i)).toBeInTheDocument());
+    await waitFor(() => expect(toastMock.error).toHaveBeenCalledWith('Invalid or expired code. Please try again.'));
     expect(screen.getByPlaceholderText('6-digit code')).toBeInTheDocument();
   });
 

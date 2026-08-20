@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, Coffee, LogOut, LayoutDashboard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -10,13 +11,14 @@ import { useAuth } from '@/components/providers/auth-provider'
 import { resolvePostAuthDestination } from '@/lib/auth/post-auth-destination'
 
 const navLinks = [
-  { label: 'About', href: '/about' },
-  { label: 'Contact', href: '/contact' },
+  { label: 'About', href: '/#about' },
+  { label: 'Contact', href: '/#contact' },
 ]
 
 export default function MarketingHeader() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const pathname = usePathname()
   const { user, isAuthenticated, logout } = useAuth()
 
   useEffect(() => {
@@ -28,6 +30,7 @@ export default function MarketingHeader() {
   const dashboardHref = user ? resolvePostAuthDestination(user) : null
   const hasDashboardLink = dashboardHref !== null && dashboardHref !== '/'
   const dashboardLabel = user?.is_platform_admin ? 'Admin' : 'Dashboard'
+  const showSectionNavigation = pathname === '/'
 
   return (
     <header
@@ -56,18 +59,20 @@ export default function MarketingHeader() {
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-8" aria-label="Main navigation">
-            {navLinks.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                className="text-brand-mocha hover:text-brand-brown font-medium text-sm transition-colors relative group"
-              >
-                {link.label}
-                <span className="absolute -bottom-0.5 left-0 w-0 h-0.5 bg-brand-red rounded-full transition-all duration-200 group-hover:w-full" />
-              </Link>
-            ))}
-          </nav>
+          {showSectionNavigation && (
+            <nav className="hidden md:flex items-center gap-8" aria-label="Main navigation">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className="text-brand-mocha hover:text-brand-brown font-medium text-sm transition-colors relative group"
+                >
+                  {link.label}
+                  <span className="absolute -bottom-0.5 left-0 w-0 h-0.5 bg-brand-red rounded-full transition-all duration-200 group-hover:w-full" />
+                </Link>
+              ))}
+            </nav>
+          )}
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
@@ -129,7 +134,7 @@ export default function MarketingHeader() {
             className="md:hidden overflow-hidden bg-brand-cream/95 backdrop-blur-md border-b border-brand-tan"
           >
             <nav className="flex flex-col px-4 py-4 gap-4" aria-label="Mobile navigation">
-              {navLinks.map((link) => (
+              {showSectionNavigation && navLinks.map((link) => (
                 <Link
                   key={link.label}
                   href={link.href}

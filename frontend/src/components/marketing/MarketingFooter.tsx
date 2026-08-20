@@ -30,10 +30,10 @@ export default function MarketingFooter() {
           </div>
 
           <div className="flex flex-col sm:items-end gap-3">
-            <Link href="/about" className="text-sm text-white/60 hover:text-white transition-colors">
+            <Link href="/#about" className="text-sm text-white/60 hover:text-white transition-colors">
               About
             </Link>
-            <Link href="/contact" className="text-sm text-white/60 hover:text-white transition-colors">
+            <Link href="/#contact" className="text-sm text-white/60 hover:text-white transition-colors">
               Contact
             </Link>
             {!isLoading && !isAuthenticated && (

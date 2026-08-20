@@ -27,6 +27,10 @@ vi.mock('@/components/auth/customer-auth-modal', () => ({
   CustomerAuthModal: () => null,
 }));
 
+vi.mock('@/components/shared/email-verification-banner', () => ({
+  EmailVerificationBanner: () => null,
+}));
+
 const reservation = {
   _id: 'res_pending_1',
   status: 'PENDING_PAYMENT',

@@ -12,12 +12,6 @@ const features = [
   { icon: MapPin,label: 'Find Us Nearby' },
 ]
 
-// ─── Small floating stat cards ────────────────────────────────────────────────
-const stats = [
-  { value: '50K+', label: 'Happy Customers' },
-  { value: '4.9★', label: 'Average Rating' },
-]
-
 export default function LandingHero() {
   return (
     <section
@@ -58,13 +52,6 @@ export default function LandingHero() {
 
           {/* ── Left column — copy & CTA ──────────────────────────────────── */}
           <div className="space-y-8 animate-fade-up">
-
-            {/* Eyebrow badge */}
-            <div className="inline-flex items-center gap-2 bg-brand-blush/40 border border-brand-blush
-                            text-brand-red text-sm font-semibold px-4 py-1.5 rounded-full">
-              <span className="w-2 h-2 bg-brand-red rounded-full animate-pulse" />
-              Now serving — across 200+ venues
-            </div>
 
             {/* Main headline */}
             <div>
@@ -184,21 +171,6 @@ export default function LandingHero() {
                 </p>
               </div>
 
-              {/* Stat bubbles */}
-              {stats.map((stat, i) => (
-                <div
-                  key={stat.value}
-                  className={`absolute glass rounded-xl px-3 py-2 shadow-card-glass text-center animate-fade-up ${
-                    i === 0
-                      ? 'bottom-16 right-0 sm:-right-8 lg:-right-16'
-                      : 'top-24 -left-8 sm:-left-16'
-                  }`}
-                  style={{ animationDelay: `${0.6 + i * 0.15}s` }}
-                >
-                  <p className="font-display font-bold text-brand-brown text-lg leading-none">{stat.value}</p>
-                  <p className="font-sans text-brand-mocha text-xs mt-0.5">{stat.label}</p>
-                </div>
-              ))}
             </div>
           </div>
 

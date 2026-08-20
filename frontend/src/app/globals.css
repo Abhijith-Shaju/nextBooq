@@ -126,7 +126,7 @@
       }
 
       html {
-        /* scroll-behavior handled via data-scroll-behavior="smooth" on <html> element in layout.tsx */
+        scroll-behavior: smooth;
       }
 
       body {

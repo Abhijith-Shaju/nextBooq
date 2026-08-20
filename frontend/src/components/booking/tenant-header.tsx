@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTenant } from '@/components/providers/tenant-provider';
 import { useAuth } from '@/components/providers/auth-provider';
 import { CustomerAuthModal } from '@/components/auth/customer-auth-modal';
+import { EmailVerificationBanner } from '@/components/shared/email-verification-banner';
 import { Coffee, User, Calendar, LogOut, Shield } from 'lucide-react';
 
 export function TenantPublicHeader() {
@@ -75,6 +76,8 @@ export function TenantPublicHeader() {
           </div>
         </div>
       </header>
+
+      <EmailVerificationBanner className="sticky top-16 md:top-[72px] z-40" />
 
       <CustomerAuthModal open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen} />
     </>

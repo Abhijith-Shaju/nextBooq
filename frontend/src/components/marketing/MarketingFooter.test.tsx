@@ -10,6 +10,15 @@ vi.mock('@/components/providers/auth-provider', () => ({
 }));
 
 describe('MarketingFooter', () => {
+  test('links About and Contact to their home-page sections', () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: false, isLoading: false });
+
+    render(<MarketingFooter />);
+
+    expect(screen.getByRole('link', { name: 'About' })).toHaveAttribute('href', '/#about');
+    expect(screen.getByRole('link', { name: 'Contact' })).toHaveAttribute('href', '/#contact');
+  });
+
   test('shows the registration link for a signed-out visitor', () => {
     mockUseAuth.mockReturnValue({ isAuthenticated: false, isLoading: false });
 

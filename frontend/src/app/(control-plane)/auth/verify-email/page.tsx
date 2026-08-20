@@ -143,13 +143,15 @@ function VerifyEmailGuard() {
   const rawCallbackUrl = searchParams.get('callbackUrl');
   const callbackUrl =
     rawCallbackUrl && rawCallbackUrl.startsWith('/') ? rawCallbackUrl : '/';
+  const verificationQuery = searchParams.toString();
+  const verificationPath = `/auth/verify-email${verificationQuery ? `?${verificationQuery}` : ''}`;
 
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) {
-      router.replace(`/auth/login?callbackUrl=${encodeURIComponent('/auth/verify-email?' + searchParams.toString())}`);
+      router.replace(`/auth/login?callbackUrl=${encodeURIComponent(verificationPath)}`);
     }
-  }, [isLoading, isAuthenticated, router, searchParams]);
+  }, [isLoading, isAuthenticated, router, verificationPath]);
 
   if (isLoading || !isAuthenticated) {
     return null;

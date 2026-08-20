@@ -3,6 +3,10 @@ import type { NextConfig } from "next";
 const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    // Keep Turbopack scoped to this frontend even when another lockfile exists above it.
+    root: process.cwd(),
+  },
   // Proxies browser API calls through this app's own origin so the backend's
   // httpOnly session cookie (set on login) is visible to both the app and its
   // route-protection middleware — a cookie set directly by a separate backend

@@ -11,6 +11,9 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('sonner', () => ({ toast: { error: vi.fn() } }));
+vi.mock('@/components/shared/email-verification-banner', () => ({
+  EmailVerificationBanner: () => null,
+}));
 
 const useAuthMock = vi.fn();
 vi.mock('@/components/providers/auth-provider', () => ({

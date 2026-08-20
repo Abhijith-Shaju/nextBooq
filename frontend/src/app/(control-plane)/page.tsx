@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import AboutSection from '@/components/marketing/AboutSection'
+import ContactSection from '@/components/marketing/ContactSection'
 import LandingHero from '@/components/marketing/LandingHero'
 
 // ─── Page metadata ────────────────────────────────────────────────────────────
@@ -17,12 +19,11 @@ export const metadata: Metadata = {
 // Server Component — no client-side data fetching.
 export default function HomePage() {
   return (
-    <main>
+    <main id="home">
       {/* Hero section — asymmetric layout with headline, CTA, and product photography */}
       <LandingHero />
-
-      {/* TODO: testimonials section */}
-      {/* TODO: app download / mobile CTA section */}
+      <AboutSection />
+      <ContactSection />
     </main>
   )
 }
