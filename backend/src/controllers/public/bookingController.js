@@ -6,7 +6,7 @@ const config = require('../../config/env');
 
 const createReservation = async (req, res, next) => {
   try {
-    const { start_time, duration_minutes, party_size, deposit_amount } = req.body;
+    const { start_time, duration_minutes, party_size } = req.body;
     const cafeId = req.tenantId;
     const userId = req.user._id;
 
@@ -58,17 +58,12 @@ const createReservation = async (req, res, next) => {
     }
     const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
 
-    const MAX_DEPOSIT_AMOUNT_RUPEES = 100000;
-    let deposit;
-    if (deposit_amount === undefined || deposit_amount === null || deposit_amount === '') {
-      deposit = 100; // default test deposit amount in INR
-    } else {
-      deposit = Number(deposit_amount);
-    }
-    if (!Number.isFinite(deposit) || deposit <= 0 || deposit > MAX_DEPOSIT_AMOUNT_RUPEES) {
-      throw new BadRequestError(
-        `deposit_amount must be a positive number no greater than ${MAX_DEPOSIT_AMOUNT_RUPEES}`
-      );
+    // The amount charged is the cafe's own configured reservation fee — never
+    // client-supplied, so a tampered request body can't under- or over-charge
+    // the customer relative to what the cafe owner set in Settings.
+    const reservationFee = Number(req.cafe.reservation_rules?.reservation_fee ?? 100);
+    if (!Number.isFinite(reservationFee) || reservationFee <= 0) {
+      throw new BadRequestError('This cafe has not configured a valid reservation fee.');
     }
 
     if (!req.cafe.payments?.configured && config.NODE_ENV !== 'development') {
@@ -86,7 +81,7 @@ const createReservation = async (req, res, next) => {
     });
 
     // 2. Generate Razorpay Payment Order
-    const { order } = await createOrderForReservation(reservation._id, cafeId, deposit);
+    const { order } = await createOrderForReservation(reservation._id, cafeId, reservationFee);
 
     // 3. Upsert CafeCustomer rolodex record
     try {
@@ -105,7 +100,7 @@ const createReservation = async (req, res, next) => {
         reservation_id: reservation._id,
         status: 'PENDING_PAYMENT',
         razorpay_order_id: order.id,
-        amount: order.amount,
+        amount: reservationFee, // rupees, matching payment_data.amount — not order.amount (paise)
         currency: order.currency,
         hold_expires_at: reservation.hold_expires_at,
       },

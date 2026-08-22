@@ -3,6 +3,7 @@ export interface ReservationRules {
   max_party_size: number;
   booking_lead_time_hours: number;
   hold_duration_minutes: number;
+  reservation_fee: number; // rupees, charged to the customer at checkout
 }
 
 export interface OperatingHourEntry {

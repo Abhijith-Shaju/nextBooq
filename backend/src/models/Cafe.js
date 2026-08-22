@@ -30,6 +30,7 @@ const cafeSchema = new mongoose.Schema(
       booking_lead_time_hours: { type: Number, default: 24 },
       hold_duration_minutes: { type: Number, default: 10 },
       payment_timeout_minutes: { type: Number, default: 15 },
+      reservation_fee: { type: Number, default: 100 },
     },
     operating_hours: [
       {

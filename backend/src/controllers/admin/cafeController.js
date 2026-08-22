@@ -7,6 +7,9 @@ const config = require('../../config/env');
 
 const POSITIVE_INT_RULES = ['default_turn_time_minutes', 'max_party_size', 'hold_duration_minutes'];
 const NON_NEGATIVE_INT_RULES = ['booking_lead_time_hours'];
+// Rupees, not paise — decimals allowed (e.g. 149.50), unlike the other rules above.
+const POSITIVE_NUMBER_RULES = ['reservation_fee'];
+const MAX_RESERVATION_FEE_RUPEES = 100000;
 
 const VALID_DAYS_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const TIME_STRING_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -122,6 +125,15 @@ const updateCafe = async (req, res, next) => {
         const value = reservation_rules[field];
         if (!Number.isInteger(value) || value < 0) {
           throw new BadRequestError(`reservation_rules.${field} must be a non-negative integer`);
+        }
+      }
+      for (const field of POSITIVE_NUMBER_RULES) {
+        if (reservation_rules[field] === undefined) continue;
+        const value = reservation_rules[field];
+        if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0 || value > MAX_RESERVATION_FEE_RUPEES) {
+          throw new BadRequestError(
+            `reservation_rules.${field} must be a positive number no greater than ${MAX_RESERVATION_FEE_RUPEES}`
+          );
         }
       }
 

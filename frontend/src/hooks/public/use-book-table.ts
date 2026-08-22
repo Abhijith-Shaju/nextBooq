@@ -10,7 +10,6 @@ export interface BookTablePayload {
   start_time: string; // ISO 8601 UTC String
   party_size: number;
   duration_minutes?: number;
-  deposit_amount?: number;
 }
 
 export interface HoldReservationResponse {

@@ -28,7 +28,7 @@ vi.mock('@/components/providers/tenant-provider', () => ({
       id: 'cafe_1',
       slug: 'demo-cafe',
       name: 'Demo Cafe',
-      reservation_rules: {},
+      reservation_rules: { reservation_fee: 100 },
       timezone: 'UTC',
       payments: { razorpay_key_id: 'rzp_test_cafespecific', configured: true },
     },
@@ -56,7 +56,7 @@ describe('CheckoutCard', () => {
       id: 'res_123',
       status: 'PENDING_PAYMENT',
       razorpay_order_id: 'order_real_abc',
-      amount: 10000,
+      amount: 249,
       currency: 'INR',
       hold_expires_at: '2026-08-20T19:10:00Z',
     });
@@ -98,7 +98,7 @@ describe('CheckoutCard', () => {
       id: 'res_123',
       status: 'PENDING_PAYMENT',
       razorpay_order_id: 'order_real_abc',
-      amount: 10000,
+      amount: 249,
       currency: 'INR',
       hold_expires_at: '2026-08-20T19:10:00Z',
     });
@@ -113,5 +113,36 @@ describe('CheckoutCard', () => {
 
     await waitFor(() => expect(openRazorpayCheckout).toHaveBeenCalled());
     expect(capturedKey).toBe('rzp_test_cafespecific');
+  });
+
+  test('charges the reservation\'s real amount (in paise) and displays it — not a hardcoded value', async () => {
+    useBookingStore.getState().setReservation({
+      id: 'res_123',
+      status: 'PENDING_PAYMENT',
+      razorpay_order_id: 'order_real_abc',
+      amount: 249,
+      currency: 'INR',
+      hold_expires_at: '2026-08-20T19:10:00Z',
+    });
+
+    let capturedAmount: number | undefined;
+    vi.mocked(openRazorpayCheckout).mockImplementation(async (options: any) => {
+      capturedAmount = options.amount;
+    });
+
+    render(<CheckoutCard />);
+
+    const payButton = screen.getByRole('button', { name: /pay ₹249 & confirm table/i });
+
+    fireEvent.click(payButton);
+
+    await waitFor(() => expect(openRazorpayCheckout).toHaveBeenCalled());
+    expect(capturedAmount).toBe(24900); // paise
+  });
+
+  test('falls back to the cafe\'s configured reservation_fee for display before the order has loaded', () => {
+    render(<CheckoutCard />);
+
+    expect(screen.getByRole('button', { name: /pay ₹100 & confirm table/i })).toBeInTheDocument();
   });
 });

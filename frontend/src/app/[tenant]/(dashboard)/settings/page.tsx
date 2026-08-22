@@ -10,7 +10,7 @@ import {
   validateOperatingHoursForSubmit,
   OperatingHourEntry,
 } from '@/lib/dashboard/operating-hours';
-import { Save, Settings as SettingsIcon, Clock, Users, ShieldAlert, Hourglass, Loader2, CalendarClock } from 'lucide-react';
+import { Save, Settings as SettingsIcon, Clock, Users, ShieldAlert, Hourglass, Loader2, CalendarClock, IndianRupee } from 'lucide-react';
 import { toast } from 'sonner';
 import { StorefrontEditor } from '@/components/dashboard/storefront-editor';
 import { PaymentsEditor } from '@/components/dashboard/payments-editor';
@@ -21,6 +21,7 @@ const DEFAULT_RULES = {
   max_party_size: 12,
   booking_lead_time_hours: 24,
   hold_duration_minutes: 10,
+  reservation_fee: 100,
 };
 
 export default function CafeSettingsPage() {
@@ -33,6 +34,7 @@ export default function CafeSettingsPage() {
   const [maxParty, setMaxParty] = useState(rules.max_party_size || 12);
   const [leadTime, setLeadTime] = useState(rules.booking_lead_time_hours || 24);
   const [holdDuration, setHoldDuration] = useState(rules.hold_duration_minutes || 10);
+  const [reservationFee, setReservationFee] = useState(rules.reservation_fee || 100);
   const [operatingHours, setOperatingHours] = useState<OperatingHourEntry[]>(
     mergeOperatingHours(cafe.operating_hours)
   );
@@ -54,6 +56,7 @@ export default function CafeSettingsPage() {
     setMaxParty(rules.max_party_size || 12);
     setLeadTime(rules.booking_lead_time_hours || 24);
     setHoldDuration(rules.hold_duration_minutes || 10);
+    setReservationFee(rules.reservation_fee || 100);
     setOperatingHours(mergeOperatingHours(cafe.operating_hours));
     setDescription(cafe.description || '');
     setHeroImageUrl(cafe.hero_image_url || '');
@@ -64,6 +67,7 @@ export default function CafeSettingsPage() {
     rules.max_party_size,
     rules.booking_lead_time_hours,
     rules.hold_duration_minutes,
+    rules.reservation_fee,
     operatingHoursKey,
     cafe.description,
     cafe.hero_image_url,
@@ -98,6 +102,7 @@ export default function CafeSettingsPage() {
           max_party_size: maxParty,
           booking_lead_time_hours: leadTime,
           hold_duration_minutes: holdDuration,
+          reservation_fee: reservationFee,
         },
         operating_hours: operatingHours,
         description,
@@ -204,6 +209,24 @@ export default function CafeSettingsPage() {
                 className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm font-mono tabular-nums"
               />
               <p className="text-[11px] text-brand-mochaMid mt-1">Time allowed for customer to complete deposit payment.</p>
+            </div>
+
+            <div>
+              <label htmlFor="reservation-fee" className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
+                <IndianRupee className="w-4 h-4 text-brand-red" /> Reservation Fee (₹)
+              </label>
+              <input
+                id="reservation-fee"
+                type="number"
+                min={1}
+                max={100000}
+                step={0.01}
+                required
+                value={reservationFee}
+                onChange={(e) => setReservationFee(parseFloat(e.target.value) || 100)}
+                className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm font-mono tabular-nums"
+              />
+              <p className="text-[11px] text-brand-mochaMid mt-1">Charged to the customer via Razorpay to confirm each booking.</p>
             </div>
           </div>
 

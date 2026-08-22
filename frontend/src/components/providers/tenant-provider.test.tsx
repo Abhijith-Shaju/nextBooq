@@ -16,6 +16,7 @@ const makeCafe = (id: string): Cafe => ({
     max_party_size: 12,
     booking_lead_time_hours: 24,
     hold_duration_minutes: 10,
+    reservation_fee: 100,
   },
 });
 

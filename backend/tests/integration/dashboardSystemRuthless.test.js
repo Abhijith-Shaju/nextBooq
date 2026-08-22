@@ -182,6 +182,38 @@ describe('Ruthless dashboard system audit', () => {
 
       expect(res.status).toBe(400);
     });
+
+    test('an owner can set a reservation_fee, including decimal rupees', async () => {
+      const res = await request(app)
+        .put(`/api/v1/cafes/${cafe._id}`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ reservation_rules: { reservation_fee: 149.5 } });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.reservation_rules.reservation_fee).toBe(149.5);
+
+      const dbCafe = await Cafe.findById(cafe._id);
+      expect(dbCafe.reservation_rules.reservation_fee).toBe(149.5);
+    });
+
+    test.each([
+      ['zero', 0],
+      ['negative', -10],
+      ['absurdly large', 200000],
+      ['non-numeric', 'free'],
+    ])('server-side validation rejects a %s reservation_fee', async (_label, badFee) => {
+      const res = await request(app)
+        .put(`/api/v1/cafes/${cafe._id}`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ reservation_rules: { reservation_fee: badFee } });
+
+      expect(res.status).toBe(400);
+    });
+
+    test('a cafe that never sets reservation_fee keeps the ₹100 schema default', async () => {
+      const dbCafe = await Cafe.findById(cafe._id);
+      expect(dbCafe.reservation_rules.reservation_fee).toBe(100);
+    });
   });
 
   describe('FIXED: error responses carry a nested error.message the frontend actually reads', () => {

@@ -16,7 +16,12 @@ export function CheckoutCard() {
   const { cafe } = useTenant();
   const router = useRouter();
 
-  const depositAmount = 100; // ₹100 deposit per specs
+  // Authoritative: the exact rupee amount the Razorpay order was created
+  // for (backend-derived from the cafe's reservation_fee setting), not a
+  // client-side guess — Razorpay Checkout requires the amount it's opened
+  // with to match the order it's paying, or the payment fails outright.
+  const depositAmount = reservation?.amount ?? cafe.reservation_rules?.reservation_fee ?? 100;
+  const depositAmountLabel = Number.isInteger(depositAmount) ? String(depositAmount) : depositAmount.toFixed(2);
 
   const handlePay = async () => {
     if (!reservation?.razorpay_order_id) {
@@ -27,7 +32,7 @@ export function CheckoutCard() {
     try {
       await openRazorpayCheckout({
         key: cafe.payments?.razorpay_key_id || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_mockkey',
-        amount: depositAmount * 100, // in paise
+        amount: Math.round(depositAmount * 100), // in paise
         currency: 'INR',
         name: cafe.name,
         description: 'Table Hold Security Deposit',
@@ -88,7 +93,7 @@ export function CheckoutCard() {
       <div className="flex items-baseline justify-between border-t border-dashed border-brand-brown/15 px-5 py-4 mt-4">
         <span className="text-sm text-brand-mocha">Deposit to confirm</span>
         <span className="font-mono text-2xl font-bold text-brand-brown">
-          ₹{depositAmount}
+          ₹{depositAmountLabel}
           <span className="ml-1 font-sans text-xs font-normal text-brand-mochaMid">refundable</span>
         </span>
       </div>
@@ -98,7 +103,7 @@ export function CheckoutCard() {
           onClick={handlePay}
           className="w-full cta-hero justify-center py-3.5 text-base font-bold shadow-brand-lg"
         >
-          <Lock className="mr-1.5 h-4 w-4" /> Pay ₹{depositAmount} &amp; confirm table
+          <Lock className="mr-1.5 h-4 w-4" /> Pay ₹{depositAmountLabel} &amp; confirm table
         </button>
         <p className="mt-3 text-center text-xs text-brand-mochaMid">
           Deposit is held by Razorpay and adjusted against your bill at the cafe.
