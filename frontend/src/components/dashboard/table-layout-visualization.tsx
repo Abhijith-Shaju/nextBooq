@@ -26,9 +26,20 @@ interface Edge {
 // single unbroken chain even when most of those in-between nodes share no
 // merge relationship at all. An arc stays visually distinct no matter how
 // many nodes it passes over.
-const MIN_ARC_HEIGHT = 16;
+const MIN_ARC_HEIGHT = 20;
 const MAX_ARC_HEIGHT = 90;
 const ARC_HEIGHT_RATIO = 0.28;
+
+// Plain brand-gold is an accent tone meant for small fills, and at hairline
+// width on the cream zone bubble it barely separates from its own
+// background. Darkening it toward the ink colour keeps the connector
+// unmistakably "gold" while giving it enough contrast to trace at a glance.
+const CONNECTOR_STROKE = 'color-mix(in srgb, var(--brand-gold, #A8752E) 78%, #2C1810)';
+
+// Drawn underneath the connector in the bubble's own tone, so an arc stays
+// readable where it crosses another arc or grazes a table — without a halo,
+// two overlapping arcs merge into one ambiguous shape.
+const CONNECTOR_HALO = 'rgba(255, 252, 245, 0.95)';
 
 function arcPath(from: Point, to: Point): string {
   const dx = to.x - from.x;
@@ -159,16 +170,25 @@ export function TableLayoutVisualization({ tables }: TableLayoutVisualizationPro
             const from = positions[edge.from];
             const to = positions[edge.to];
             if (!from || !to) return null;
+            const d = arcPath(from, to);
             return (
-              <path
-                key={`${edge.from}-${edge.to}`}
-                d={arcPath(from, to)}
-                fill="none"
-                stroke="var(--brand-gold, #A8752E)"
-                strokeWidth={2}
-                strokeDasharray="5 4"
-                strokeLinecap="round"
-              />
+              <g key={`${edge.from}-${edge.to}`}>
+                <path
+                  d={d}
+                  fill="none"
+                  style={{ stroke: CONNECTOR_HALO }}
+                  strokeWidth={7}
+                  strokeLinecap="round"
+                />
+                <path
+                  data-testid="table-connector"
+                  d={d}
+                  fill="none"
+                  style={{ stroke: CONNECTOR_STROKE }}
+                  strokeWidth={2.75}
+                  strokeLinecap="round"
+                />
+              </g>
             );
           })}
         </svg>
