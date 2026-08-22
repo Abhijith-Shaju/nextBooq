@@ -40,9 +40,10 @@ describe('TableLayoutVisualization', () => {
     render(<TableLayoutVisualization tables={[table({ id: 'a', floor: 1 })]} />);
 
     expect(screen.queryByRole('button', { name: /floor 1/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /all floors/i })).not.toBeInTheDocument();
   });
 
-  test('shows floor tabs when tables span more than one floor, and switching filters the tables shown', () => {
+  test('defaults to showing every floor at once, so a cross-floor merge is never hidden', () => {
     render(
       <TableLayoutVisualization
         tables={[
@@ -52,12 +53,29 @@ describe('TableLayoutVisualization', () => {
       />
     );
 
+    expect(screen.getByRole('button', { name: /all floors/i })).toBeInTheDocument();
     expect(screen.getByText('G1')).toBeInTheDocument();
-    expect(screen.queryByText('F2-1')).not.toBeInTheDocument();
+    expect(screen.getByText('F2-1')).toBeInTheDocument();
+  });
+
+  test('selecting a single floor narrows to just that floor', () => {
+    render(
+      <TableLayoutVisualization
+        tables={[
+          table({ id: 'a', table_number: 'G1', floor: 1 }),
+          table({ id: 'b', table_number: 'F2-1', floor: 2 }),
+        ]}
+      />
+    );
 
     fireEvent.click(screen.getByRole('button', { name: /floor 2/i }));
 
     expect(screen.queryByText('G1')).not.toBeInTheDocument();
+    expect(screen.getByText('F2-1')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /all floors/i }));
+
+    expect(screen.getByText('G1')).toBeInTheDocument();
     expect(screen.getByText('F2-1')).toBeInTheDocument();
   });
 
@@ -83,7 +101,7 @@ describe('TableLayoutVisualization', () => {
     expect(svg.querySelectorAll('[data-testid="table-connector"]')).toHaveLength(1);
   });
 
-  test('does not draw a line to a merge partner on a different floor', () => {
+  test('draws a connector for a merge that spans two floors', () => {
     render(
       <TableLayoutVisualization
         tables={[
@@ -93,8 +111,40 @@ describe('TableLayoutVisualization', () => {
       />
     );
 
-    // Only floor 1's table is rendered by default, so its partner isn't in
-    // the current node set and no line can be drawn to it.
+    // Merges are not confined to a floor — the booking engine merges purely
+    // on can_merge_with adjacency — so the relationship has to be visible.
+    const svg = screen.getByTestId('table-layout-connectors');
+    expect(svg.querySelectorAll('[data-testid="table-connector"]')).toHaveLength(1);
+  });
+
+  test('draws a connector for a merge that spans two zones', () => {
+    render(
+      <TableLayoutVisualization
+        tables={[
+          table({ id: 'a', table_number: '1', zone: 'indoor', can_merge_with: [{ _id: 'b', table_number: '2' }] }),
+          table({ id: 'b', table_number: '2', zone: 'outdoor', can_merge_with: [{ _id: 'a', table_number: '1' }] }),
+        ]}
+      />
+    );
+
+    expect(screen.getByText('Indoor')).toBeInTheDocument();
+    expect(screen.getByText('Outdoor')).toBeInTheDocument();
+    const svg = screen.getByTestId('table-layout-connectors');
+    expect(svg.querySelectorAll('[data-testid="table-connector"]')).toHaveLength(1);
+  });
+
+  test('drops a cross-floor connector when narrowed to one floor, since its partner is off screen', () => {
+    render(
+      <TableLayoutVisualization
+        tables={[
+          table({ id: 'a', table_number: '1', floor: 1, can_merge_with: [{ _id: 'b', table_number: '2' }] }),
+          table({ id: 'b', table_number: '2', floor: 2, can_merge_with: [{ _id: 'a', table_number: '1' }] }),
+        ]}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /floor 1/i }));
+
     const svg = screen.getByTestId('table-layout-connectors');
     expect(svg.querySelectorAll('[data-testid="table-connector"]')).toHaveLength(0);
   });

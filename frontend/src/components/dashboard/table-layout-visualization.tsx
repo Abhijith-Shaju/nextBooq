@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Table } from '@/lib/types/models';
-import { groupTablesByZone } from '@/lib/dashboard/table-zones';
+import { groupTablesByZone, TableZoneGroup } from '@/lib/dashboard/table-zones';
 import { getMergePartnerIds } from '@/lib/dashboard/table-merge';
 import { Hash, Users } from 'lucide-react';
 
@@ -19,6 +19,16 @@ interface Edge {
   from: string;
   to: string;
 }
+
+interface FloorSection {
+  floor: number;
+  groups: TableZoneGroup<Table>[];
+}
+
+// 'all' keeps every floor on screen at once. Merges are not confined to a
+// single floor (or a single zone), so filtering to one floor would silently
+// hide a real relationship — see the comment on floorSections below.
+type FloorSelection = number | 'all';
 
 // Bows every connector upward into an arc instead of a straight line. A
 // straight line between two far-apart nodes runs collinear with — and
@@ -56,7 +66,7 @@ function tableId(table: Table): string | null {
 }
 
 export function TableLayoutVisualization({ tables }: TableLayoutVisualizationProps) {
-  const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
+  const [selectedFloor, setSelectedFloor] = useState<FloorSelection | null>(null);
   const [positions, setPositions] = useState<Record<string, Point>>({});
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -67,20 +77,47 @@ export function TableLayoutVisualization({ tables }: TableLayoutVisualizationPro
     return Array.from(set).sort((a, b) => a - b);
   }, [tables]);
 
-  const activeFloor = selectedFloor !== null && floors.includes(selectedFloor) ? selectedFloor : (floors[0] ?? 1);
+  const isMultiFloor = floors.length > 1;
 
-  const floorTables = useMemo(() => tables.filter((t) => (t.floor || 1) === activeFloor), [tables, activeFloor]);
+  // Defaults to every floor at once when the cafe has more than one, so a
+  // merge that spans floors is visible without the host having to go looking
+  // for it. Picking a single floor is then a deliberate narrowing.
+  const activeFloor: FloorSelection = useMemo(() => {
+    if (selectedFloor === 'all') return 'all';
+    if (typeof selectedFloor === 'number' && floors.includes(selectedFloor)) return selectedFloor;
+    return isMultiFloor ? 'all' : (floors[0] ?? 1);
+  }, [selectedFloor, floors, isMultiFloor]);
 
-  const zoneGroups = useMemo(() => groupTablesByZone(floorTables), [floorTables]);
+  const visibleTables = useMemo(
+    () => (activeFloor === 'all' ? tables : tables.filter((t) => (t.floor || 1) === activeFloor)),
+    [tables, activeFloor]
+  );
 
+  // Zones are nested inside floors rather than the other way round: a zone
+  // name means something different per floor (the indoor seating on 2 is not
+  // the indoor seating on 1), whereas a floor is a real physical division.
+  const floorSections = useMemo<FloorSection[]>(() => {
+    const floorsToRender = activeFloor === 'all' ? floors : [activeFloor];
+    return floorsToRender.map((floor) => ({
+      floor,
+      groups: groupTablesByZone(tables.filter((t) => (t.floor || 1) === floor)),
+    }));
+  }, [activeFloor, floors, tables]);
+
+  // Merges are not restricted to a zone or a floor — the booking engine
+  // merges purely on can_merge_with adjacency — so an edge is drawn whenever
+  // both of its tables are on screen, however far apart they sit.
   const edges = useMemo<Edge[]>(() => {
+    const visibleIds = new Set(
+      visibleTables.map(tableId).filter((id): id is string => Boolean(id))
+    );
     const seen = new Set<string>();
     const result: Edge[] = [];
-    for (const table of floorTables) {
+    for (const table of visibleTables) {
       const id = tableId(table);
       if (!id) continue;
       for (const partnerId of getMergePartnerIds(table)) {
-        if (partnerId === id) continue;
+        if (partnerId === id || !visibleIds.has(partnerId)) continue;
         const key = [id, partnerId].sort().join('|');
         if (seen.has(key)) continue;
         seen.add(key);
@@ -88,7 +125,7 @@ export function TableLayoutVisualization({ tables }: TableLayoutVisualizationPro
       }
     }
     return result;
-  }, [floorTables]);
+  }, [visibleTables]);
 
   const measure = useCallback(() => {
     const container = containerRef.current;
@@ -111,7 +148,7 @@ export function TableLayoutVisualization({ tables }: TableLayoutVisualizationPro
   // the browser actually put each node.
   useLayoutEffect(() => {
     measure();
-  }, [measure, floorTables]);
+  }, [measure, visibleTables]);
 
   useEffect(() => {
     window.addEventListener('resize', measure);
@@ -128,28 +165,33 @@ export function TableLayoutVisualization({ tables }: TableLayoutVisualizationPro
     }
   };
 
+  const tabClasses = (isActive: boolean) =>
+    `px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+      isActive ? 'bg-brand-red text-white shadow-brand-sm' : 'text-brand-mocha hover:bg-white'
+    }`;
+
   return (
     <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-brand-brown/10 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div>
           <h2 className="text-lg font-bold font-display text-brand-brown">Layout Visualization</h2>
           <p className="text-xs text-brand-mochaMid mt-0.5">
-            Tables grouped by zone, with an arc drawn between any two marked as mergeable.
+            Tables grouped by floor and zone. An arc joins any two marked as mergeable — including
+            across different zones and floors.
           </p>
         </div>
 
-        {floors.length > 1 && (
+        {isMultiFloor && (
           <div className="flex items-center gap-1.5 bg-brand-cream rounded-xl p-1 border border-brand-brown/10">
+            <button type="button" onClick={() => setSelectedFloor('all')} className={tabClasses(activeFloor === 'all')}>
+              All floors
+            </button>
             {floors.map((floor) => (
               <button
                 key={floor}
                 type="button"
                 onClick={() => setSelectedFloor(floor)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                  floor === activeFloor
-                    ? 'bg-brand-red text-white shadow-brand-sm'
-                    : 'text-brand-mocha hover:bg-white'
-                }`}
+                className={tabClasses(activeFloor === floor)}
               >
                 Floor {floor}
               </button>
@@ -193,40 +235,52 @@ export function TableLayoutVisualization({ tables }: TableLayoutVisualizationPro
           })}
         </svg>
 
-        <div className="relative flex flex-wrap gap-4">
-          {zoneGroups.map((group) => (
-            <div
-              key={group.zone}
-              className="rounded-3xl border-2 border-dashed border-brand-brown/15 bg-brand-cream/40 p-4 min-w-[180px]"
-            >
-              <span className="inline-flex items-center rounded-full bg-brand-tan/60 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-brand-brown mb-3">
-                {group.label}
-              </span>
+        <div className="relative flex flex-col gap-5">
+          {floorSections.map((section) => (
+            <div key={section.floor}>
+              {activeFloor === 'all' && isMultiFloor && (
+                <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-wide text-brand-mochaMid">
+                  Floor {section.floor}
+                </p>
+              )}
 
-              <div className="flex flex-wrap gap-3">
-                {group.tables.map((table) => {
-                  const id = tableId(table);
-                  const isOutOfService = table.status === 'out_of_service';
-                  return (
-                    <div
-                      key={id || table.table_number}
-                      ref={id ? setNodeRef(id) : undefined}
-                      className={`flex flex-col items-center justify-center w-16 h-16 rounded-full border-2 text-center shrink-0 ${
-                        isOutOfService
-                          ? 'bg-brand-tan/40 border-brand-brown/15 text-brand-mochaMid opacity-60'
-                          : 'bg-white border-emerald-400 text-emerald-900'
-                      }`}
-                      title={`Table ${table.table_number} · seats ${table.capacity}${isOutOfService ? ' · out of service' : ''}`}
-                    >
-                      <span className="font-mono font-bold text-xs flex items-center gap-0.5 tabular-nums">
-                        <Hash className="w-2.5 h-2.5 opacity-60" /> {table.table_number}
-                      </span>
-                      <span className="text-[10px] font-semibold flex items-center gap-0.5 opacity-70 tabular-nums">
-                        <Users className="w-2.5 h-2.5" /> {table.capacity}
-                      </span>
+              <div className="flex flex-wrap gap-4">
+                {section.groups.map((group) => (
+                  <div
+                    key={`${section.floor}-${group.zone}`}
+                    className="rounded-3xl border-2 border-dashed border-brand-brown/15 bg-brand-cream/40 p-4 min-w-[180px]"
+                  >
+                    <span className="inline-flex items-center rounded-full bg-brand-tan/60 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-brand-brown mb-3">
+                      {group.label}
+                    </span>
+
+                    <div className="flex flex-wrap gap-3">
+                      {group.tables.map((table) => {
+                        const id = tableId(table);
+                        const isOutOfService = table.status === 'out_of_service';
+                        return (
+                          <div
+                            key={id || table.table_number}
+                            ref={id ? setNodeRef(id) : undefined}
+                            className={`flex flex-col items-center justify-center w-16 h-16 rounded-full border-2 text-center shrink-0 ${
+                              isOutOfService
+                                ? 'bg-brand-tan/40 border-brand-brown/15 text-brand-mochaMid opacity-60'
+                                : 'bg-white border-emerald-400 text-emerald-900'
+                            }`}
+                            title={`Table ${table.table_number} · seats ${table.capacity}${isOutOfService ? ' · out of service' : ''}`}
+                          >
+                            <span className="font-mono font-bold text-xs flex items-center gap-0.5 tabular-nums">
+                              <Hash className="w-2.5 h-2.5 opacity-60" /> {table.table_number}
+                            </span>
+                            <span className="text-[10px] font-semibold flex items-center gap-0.5 opacity-70 tabular-nums">
+                              <Users className="w-2.5 h-2.5" /> {table.capacity}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             </div>
           ))}
