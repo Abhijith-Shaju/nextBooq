@@ -29,6 +29,11 @@ const tableSchema = new mongoose.Schema(
       enum: ['indoor', 'window', 'outdoor', 'patio', 'private'],
       default: 'indoor',
     },
+    floor: {
+      type: Number,
+      default: 1,
+      min: [1, 'Floor must be at least 1'],
+    },
     status: {
       type: String,
       enum: ['active', 'out_of_service'],

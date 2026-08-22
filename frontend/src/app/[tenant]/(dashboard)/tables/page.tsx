@@ -6,6 +6,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { useTables } from '@/hooks/admin/use-tables';
 import { Table } from '@/lib/types/models';
 import { TableEditorModal } from '@/components/dashboard/table-editor-modal';
+import { TableLayoutVisualization } from '@/components/dashboard/table-layout-visualization';
 import { describeTableStatus } from '@/lib/dashboard/table-status';
 import { getMergePartnerTableNumbers } from '@/lib/dashboard/table-merge';
 import { TABLE_ZONE_LABELS } from '@/lib/dashboard/table-zones';
@@ -66,6 +67,7 @@ export default function TablesInventoryPage() {
               <tr>
                 <th className="p-4">Table</th>
                 <th className="p-4">Capacity</th>
+                <th className="p-4">Floor</th>
                 <th className="p-4">Zone</th>
                 <th className="p-4">Status</th>
                 <th className="p-4">Can merge with</th>
@@ -75,19 +77,19 @@ export default function TablesInventoryPage() {
             <tbody className="divide-y divide-brand-brown/10">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-brand-mochaMid animate-pulse">
+                  <td colSpan={7} className="p-8 text-center text-brand-mochaMid animate-pulse">
                     Loading floorplan tables...
                   </td>
                 </tr>
               ) : isError ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-sm font-medium text-red-700">
+                  <td colSpan={7} className="p-8 text-center text-sm font-medium text-red-700">
                     Couldn&apos;t load tables. Please try again.
                   </td>
                 </tr>
               ) : tables.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-brand-mochaMid">
+                  <td colSpan={7} className="p-8 text-center text-brand-mochaMid">
                     {canEditTables
                       ? 'No physical tables created yet. Click "Add table" to start.'
                       : 'No physical tables have been added yet.'}
@@ -103,6 +105,9 @@ export default function TablesInventoryPage() {
                       <span className="tone-neutral inline-flex items-center gap-1 px-2.5 py-1 rounded-full">
                         <Users className="w-3.5 h-3.5" /> {table.capacity}
                       </span>
+                    </td>
+                    <td className="p-4 text-xs font-mono font-semibold text-brand-mocha tabular-nums">
+                      {table.floor || 1}
                     </td>
                     <td className="p-4 text-xs font-semibold text-brand-mocha">
                       {TABLE_ZONE_LABELS[table.zone] || TABLE_ZONE_LABELS.indoor}
@@ -136,6 +141,9 @@ export default function TablesInventoryPage() {
           </table>
         </div>
       </div>
+
+      {/* Layout Visualization */}
+      <TableLayoutVisualization tables={tables} />
 
       {/* Add / Edit Table Modal */}
       <TableEditorModal

@@ -163,6 +163,7 @@ export interface Table {
   capacity: number;
   can_merge_with?: TableMergeRef[];
   zone: TableZone;
+  floor: number;
   status: TableStatus;
   is_deleted?: boolean;
 }

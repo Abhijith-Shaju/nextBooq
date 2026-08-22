@@ -178,6 +178,68 @@ describe('Ruthless dashboard system audit', () => {
     });
   });
 
+  describe('Table floor', () => {
+    test('defaults to 1 when not specified', async () => {
+      const res = await request(app)
+        .post(`/api/v1/cafes/${cafe._id}/tables`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ table_number: 'F1', capacity: 2 });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.floor).toBe(1);
+    });
+
+    test('accepts an explicit valid floor on create', async () => {
+      const res = await request(app)
+        .post(`/api/v1/cafes/${cafe._id}/tables`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ table_number: 'F2', capacity: 2, floor: 2 });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.floor).toBe(2);
+    });
+
+    test.each([
+      ['zero', 0],
+      ['negative', -1],
+      ['non-integer', 1.5],
+      ['non-numeric', 'ground'],
+    ])('rejects a %s floor on create', async (_label, badFloor) => {
+      const res = await request(app)
+        .post(`/api/v1/cafes/${cafe._id}/tables`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ table_number: 'F3', capacity: 2, floor: badFloor });
+
+      expect(res.status).toBe(400);
+    });
+
+    test('updates floor via PUT', async () => {
+      const table = await Table.create({ cafe_id: cafe._id, table_number: 'F4', capacity: 2 });
+
+      const res = await request(app)
+        .put(`/api/v1/cafes/${cafe._id}/tables/${table._id}`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ floor: 3 });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.floor).toBe(3);
+
+      const dbTable = await Table.findById(table._id);
+      expect(dbTable.floor).toBe(3);
+    });
+
+    test('rejects an invalid floor on update', async () => {
+      const table = await Table.create({ cafe_id: cafe._id, table_number: 'F5', capacity: 2 });
+
+      const res = await request(app)
+        .put(`/api/v1/cafes/${cafe._id}/tables/${table._id}`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ floor: 0 });
+
+      expect(res.status).toBe(400);
+    });
+  });
+
   describe('FIXED: PUT /api/v1/cafes/:cafeId updates reservation_rules (what settings/page.tsx calls)', () => {
     test('an owner can update reservation_rules with valid values', async () => {
       const res = await request(app)

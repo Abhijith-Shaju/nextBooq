@@ -13,6 +13,7 @@ const occupiedTable: Table = {
   table_number: 'T1',
   capacity: 4,
   zone: 'indoor',
+  floor: 1,
   status: 'active',
 };
 
@@ -23,6 +24,7 @@ const emptyTable: Table = {
   table_number: 'T2',
   capacity: 2,
   zone: 'indoor',
+  floor: 1,
   status: 'active',
 };
 

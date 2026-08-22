@@ -10,6 +10,7 @@ export interface CreateTablePayload {
   can_merge_with?: string[];
   status?: 'active' | 'out_of_service';
   zone?: TableZone;
+  floor?: number;
 }
 
 export const useCreateTable = (cafeId: string | undefined) => {

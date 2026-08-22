@@ -21,6 +21,7 @@ const editingTable: Table = {
   table_number: 'T1',
   capacity: 4,
   zone: 'indoor',
+  floor: 1,
   status: 'active',
 };
 
@@ -31,6 +32,7 @@ const otherTable: Table = {
   table_number: 'T2',
   capacity: 6,
   zone: 'outdoor',
+  floor: 1,
   status: 'out_of_service',
 };
 

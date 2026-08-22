@@ -11,6 +11,7 @@ export interface EditTablePayload {
   can_merge_with?: string[];
   status?: 'active' | 'out_of_service';
   zone?: TableZone;
+  floor?: number;
   is_deleted?: boolean;
 }
 

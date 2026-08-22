@@ -6,6 +6,8 @@ const { logAuditEvent } = require('../../services/auditService');
 const ACTIVE_RESERVATION_STATUSES = ['HOLD', 'PENDING_PAYMENT', 'CONFIRMED', 'CHECKED_IN', 'SEATED'];
 const VALID_ZONES = ['indoor', 'window', 'outdoor', 'patio', 'private'];
 
+const isValidFloor = (value) => Number.isInteger(value) && value >= 1;
+
 /**
  * Rejects a table capacity reduction that would leave any active reservation's
  * party_size over the combined capacity of its assigned tables (accounting for
@@ -90,13 +92,16 @@ const getTables = async (req, res, next) => {
 const createTable = async (req, res, next) => {
   try {
     const cafeId = req.tenantId;
-    const { table_number, capacity, can_merge_with, status, zone } = req.body;
+    const { table_number, capacity, can_merge_with, status, zone, floor } = req.body;
 
     if (!table_number || !capacity) {
       throw new BadRequestError('table_number and capacity are required');
     }
     if (zone !== undefined && !VALID_ZONES.includes(zone)) {
       throw new BadRequestError(`zone must be one of: ${VALID_ZONES.join(', ')}`);
+    }
+    if (floor !== undefined && !isValidFloor(floor)) {
+      throw new BadRequestError('floor must be a positive integer');
     }
 
     const mergeTableIds = await resolveMergeTableIds(cafeId, can_merge_with);
@@ -108,6 +113,7 @@ const createTable = async (req, res, next) => {
       can_merge_with: mergeTableIds,
       status: status || 'active',
       zone: zone || 'indoor',
+      floor: floor || 1,
     });
 
     await table.save();
@@ -142,10 +148,13 @@ const updateTable = async (req, res, next) => {
   try {
     const cafeId = req.tenantId;
     const { tableId } = req.params;
-    const { table_number, capacity, can_merge_with, status, is_deleted, zone } = req.body;
+    const { table_number, capacity, can_merge_with, status, is_deleted, zone, floor } = req.body;
 
     if (zone !== undefined && !VALID_ZONES.includes(zone)) {
       throw new BadRequestError(`zone must be one of: ${VALID_ZONES.join(', ')}`);
+    }
+    if (floor !== undefined && !isValidFloor(floor)) {
+      throw new BadRequestError('floor must be a positive integer');
     }
 
     const existingTable = await Table.findOne({ _id: tableId, cafe_id: cafeId });
@@ -163,6 +172,7 @@ const updateTable = async (req, res, next) => {
     if (capacity !== undefined) existingTable.capacity = capacity;
     if (status !== undefined) existingTable.status = status;
     if (zone !== undefined) existingTable.zone = zone;
+    if (floor !== undefined) existingTable.floor = floor;
     if (is_deleted !== undefined) existingTable.is_deleted = is_deleted;
 
     // Deleting a table must not leave it as a phantom merge partner for
