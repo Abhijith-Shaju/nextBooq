@@ -64,7 +64,7 @@ describe('TableLayoutVisualization', () => {
   test('a table with no merge partners renders with no connector lines', () => {
     render(<TableLayoutVisualization tables={[table({ id: 'a' })]} />);
 
-    expect(screen.getByTestId('table-layout-connectors').querySelectorAll('line')).toHaveLength(0);
+    expect(screen.getByTestId('table-layout-connectors').querySelectorAll('path')).toHaveLength(0);
   });
 
   test('draws exactly one connector line for a symmetric merge pair, not two', () => {
@@ -80,7 +80,7 @@ describe('TableLayoutVisualization', () => {
     );
 
     const svg = screen.getByTestId('table-layout-connectors');
-    expect(svg.querySelectorAll('line')).toHaveLength(1);
+    expect(svg.querySelectorAll('path')).toHaveLength(1);
   });
 
   test('does not draw a line to a merge partner on a different floor', () => {
@@ -96,6 +96,26 @@ describe('TableLayoutVisualization', () => {
     // Only floor 1's table is rendered by default, so its partner isn't in
     // the current node set and no line can be drawn to it.
     const svg = screen.getByTestId('table-layout-connectors');
+    expect(svg.querySelectorAll('path')).toHaveLength(0);
+  });
+
+  test('draws connectors as curves, not straight lines — a straight line between distant tables would visually pass through every table in between', () => {
+    const partnerRef = { _id: 'b', table_number: '2' };
+    const selfRef = { _id: 'a', table_number: '1' };
+    render(
+      <TableLayoutVisualization
+        tables={[
+          table({ id: 'a', table_number: '1', can_merge_with: [partnerRef] }),
+          table({ id: 'b', table_number: '2', can_merge_with: [selfRef] }),
+        ]}
+      />
+    );
+
+    const svg = screen.getByTestId('table-layout-connectors');
     expect(svg.querySelectorAll('line')).toHaveLength(0);
+    const [connector] = svg.querySelectorAll('path');
+    // A quadratic Bezier ("Q") control point bows the connector away from
+    // the straight line between its endpoints.
+    expect(connector.getAttribute('d')).toMatch(/^M .* Q .* .*$/);
   });
 });

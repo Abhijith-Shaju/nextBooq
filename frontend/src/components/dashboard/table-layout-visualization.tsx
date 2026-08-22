@@ -20,6 +20,26 @@ interface Edge {
   to: string;
 }
 
+// Bows every connector upward into an arc instead of a straight line. A
+// straight line between two far-apart nodes runs collinear with — and
+// disappears behind — every node and line in between, which reads as a
+// single unbroken chain even when most of those in-between nodes share no
+// merge relationship at all. An arc stays visually distinct no matter how
+// many nodes it passes over.
+const MIN_ARC_HEIGHT = 16;
+const MAX_ARC_HEIGHT = 90;
+const ARC_HEIGHT_RATIO = 0.28;
+
+function arcPath(from: Point, to: Point): string {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  const arcHeight = Math.min(Math.max(distance * ARC_HEIGHT_RATIO, MIN_ARC_HEIGHT), MAX_ARC_HEIGHT);
+  const midX = (from.x + to.x) / 2;
+  const midY = (from.y + to.y) / 2 - arcHeight;
+  return `M ${from.x} ${from.y} Q ${midX} ${midY} ${to.x} ${to.y}`;
+}
+
 function tableId(table: Table): string | null {
   return table.id || table._id || null;
 }
@@ -76,7 +96,7 @@ export function TableLayoutVisualization({ tables }: TableLayoutVisualizationPro
 
   // Re-measure whenever the rendered node set (or its layout) could have
   // changed — the graph is auto-laid-out via ordinary flex-wrap, not
-  // drag-positioned, so connector lines have to be recomputed from wherever
+  // drag-positioned, so connector arcs have to be recomputed from wherever
   // the browser actually put each node.
   useLayoutEffect(() => {
     measure();
@@ -103,7 +123,7 @@ export function TableLayoutVisualization({ tables }: TableLayoutVisualizationPro
         <div>
           <h2 className="text-lg font-bold font-display text-brand-brown">Layout Visualization</h2>
           <p className="text-xs text-brand-mochaMid mt-0.5">
-            Tables grouped by zone, with a line drawn between any two marked as mergeable.
+            Tables grouped by zone, with an arc drawn between any two marked as mergeable.
           </p>
         </div>
 
@@ -127,7 +147,9 @@ export function TableLayoutVisualization({ tables }: TableLayoutVisualizationPro
         )}
       </div>
 
-      <div ref={containerRef} className="relative">
+      {/* pt-10 reserves headroom above the top row of table nodes so an arc
+          to a distant partner has room to bow upward without clipping. */}
+      <div ref={containerRef} className="relative pt-10">
         <svg
           data-testid="table-layout-connectors"
           className="absolute inset-0 w-full h-full pointer-events-none"
@@ -138,12 +160,10 @@ export function TableLayoutVisualization({ tables }: TableLayoutVisualizationPro
             const to = positions[edge.to];
             if (!from || !to) return null;
             return (
-              <line
+              <path
                 key={`${edge.from}-${edge.to}`}
-                x1={from.x}
-                y1={from.y}
-                x2={to.x}
-                y2={to.y}
+                d={arcPath(from, to)}
+                fill="none"
                 stroke="var(--brand-gold, #A8752E)"
                 strokeWidth={2}
                 strokeDasharray="5 4"
