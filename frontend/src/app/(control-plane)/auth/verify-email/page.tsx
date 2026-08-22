@@ -86,6 +86,23 @@ function VerifyEmailContent() {
     );
   }
 
+  // Already verified on arrival (e.g. a stale link revisited) — the effect
+  // above redirects away, but show this instead of flashing the code form
+  // while that redirect is in flight.
+  if (user?.is_email_verified) {
+    return (
+      <div className="space-y-4 text-center">
+        <div className="w-16 h-16 mx-auto bg-emerald-100 rounded-full flex items-center justify-center">
+          <Mail className="w-8 h-8 text-emerald-600" />
+        </div>
+        <p className="font-sans text-brand-brown text-sm bg-brand-tan/40 rounded-xl p-4">
+          Your email is already verified. Redirecting…
+        </p>
+        <Loader2 className="w-5 h-5 mx-auto animate-spin text-brand-mocha" />
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4 text-left">
       <div>
@@ -147,7 +164,8 @@ function VerifyEmailGuard() {
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) {
-      router.replace(`/auth/login?callbackUrl=${encodeURIComponent('/auth/verify-email?' + searchParams.toString())}`);
+      const query = searchParams.toString();
+      router.replace(`/auth/login?callbackUrl=${encodeURIComponent('/auth/verify-email' + (query ? `?${query}` : ''))}`);
     }
   }, [isLoading, isAuthenticated, router, searchParams]);
 

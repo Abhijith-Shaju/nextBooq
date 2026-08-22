@@ -60,6 +60,7 @@ describe('Integration Test: High Concurrency Double-Booking Stress Test', () => 
       email: 'concurrent@example.com',
       phone: '+1234567890',
       password_hash: 'hashedpassword',
+      is_email_verified: true,
     });
     userId = user._id;
     userToken = jwt.sign({ id: user._id.toString() }, config.JWT_SECRET);

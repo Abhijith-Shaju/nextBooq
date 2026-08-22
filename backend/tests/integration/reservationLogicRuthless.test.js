@@ -76,6 +76,7 @@ describe('Ruthless reservation logic audit', () => {
       email: `ruthless-${Date.now()}@test.com`,
       phone: '+1999888700',
       password_hash: 'secret',
+      is_email_verified: true,
     });
     customerToken = jwt.sign({ id: customerUser._id.toString() }, config.JWT_SECRET);
 
@@ -312,6 +313,7 @@ describe('Ruthless reservation logic audit', () => {
       email: `other-${Date.now()}@test.com`,
       phone: '+1999888701',
       password_hash: 'secret',
+      is_email_verified: true,
     });
     const otherToken = jwt.sign({ id: otherUser._id.toString() }, config.JWT_SECRET);
 

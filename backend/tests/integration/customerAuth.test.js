@@ -104,6 +104,11 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
     const token = authRes.body.data.token;
     const userId = authRes.body.data.user.id;
 
+    // customer-quick-auth creates an unverified account (same as register) —
+    // verify it directly so this test can exercise the booking flow, which
+    // now requires a verified email.
+    await User.findByIdAndUpdate(userId, { is_email_verified: true });
+
     // 2. Hold reservation
     const startTime = new Date(Date.now() + 86400000).toISOString();
     const res = await request(app)

@@ -62,6 +62,7 @@ describe('End-to-End E2E Test: Full Reservation Lifecycle Flow', () => {
       email: 'jane@e2e.com',
       phone: '+1999888777',
       password_hash: 'secret',
+      is_email_verified: true,
     });
     customerToken = jwt.sign({ id: customerUser._id.toString() }, config.JWT_SECRET);
 
