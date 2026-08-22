@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/components/providers/auth-provider'
 import { resolvePostAuthDestination } from '@/lib/auth/post-auth-destination'
+import { AccountMenu } from '@/components/shared/account-menu'
 
 const navLinks = [
-  { label: 'About', href: '/about' },
-  { label: 'Contact', href: '/contact' },
+  { label: 'About', href: '/#about' },
+  { label: 'Contact', href: '/#contact' },
 ]
 
 export default function MarketingHeader() {
@@ -72,36 +73,20 @@ export default function MarketingHeader() {
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
             {isAuthenticated ? (
-              <>
-                {hasDashboardLink && (
-                  <Button variant="brand" size="default" asChild>
-                    <Link href={dashboardHref} className="flex items-center gap-1.5">
-                      <LayoutDashboard className="w-4 h-4" />
-                      {dashboardLabel}
-                    </Link>
-                  </Button>
-                )}
-                <button
-                  onClick={() => logout()}
-                  className="p-2 rounded-xl text-brand-mocha hover:text-brand-red hover:bg-brand-tan/50 transition-colors"
-                  title="Sign Out"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/auth/login"
-                  className="text-brand-mocha hover:text-brand-brown font-medium text-sm transition-colors"
-                >
-                  Log in
-                </Link>
+              hasDashboardLink && (
                 <Button variant="brand" size="default" asChild>
-                  <Link href="/auth/register">Get Started</Link>
+                  <Link href={dashboardHref} className="flex items-center gap-1.5">
+                    <LayoutDashboard className="w-4 h-4" />
+                    {dashboardLabel}
+                  </Link>
                 </Button>
-              </>
+              )
+            ) : (
+              <Button variant="brand" size="default" asChild>
+                <Link href="/auth/register">Get Started</Link>
+              </Button>
             )}
+            <AccountMenu theme="light" />
           </div>
 
           {/* Mobile menu toggle */}
@@ -149,6 +134,13 @@ export default function MarketingHeader() {
                         </Link>
                       </Button>
                     )}
+                    <Link
+                      href="/profile"
+                      onClick={() => setMobileOpen(false)}
+                      className="text-brand-mocha font-medium text-base py-1"
+                    >
+                      View Account
+                    </Link>
                     <button
                       onClick={() => {
                         setMobileOpen(false)

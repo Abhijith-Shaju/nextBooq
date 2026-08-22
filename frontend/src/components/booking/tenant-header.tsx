@@ -3,13 +3,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useTenant } from '@/components/providers/tenant-provider';
-import { useAuth } from '@/components/providers/auth-provider';
 import { CustomerAuthModal } from '@/components/auth/customer-auth-modal';
-import { Coffee, User, Calendar, LogOut, Shield } from 'lucide-react';
+import { AccountMenu } from '@/components/shared/account-menu';
+import { Coffee, Calendar, Shield } from 'lucide-react';
 
 export function TenantPublicHeader() {
   const { cafe } = useTenant();
-  const { isAuthenticated, user, logout } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   return (
@@ -37,32 +36,9 @@ export function TenantPublicHeader() {
               <Calendar className="w-3.5 h-3.5" /> <span className="hidden sm:inline">My Bookings</span>
             </Link>
 
-            {isAuthenticated ? (
-              <div className="flex items-center gap-1 sm:gap-2 pl-1 sm:pl-2 border-l border-white/15">
-                <div className="flex items-center gap-2 bg-white/10 px-2 sm:px-3 py-1.5 rounded-xl text-xs">
-                  <div className="w-5 h-5 shrink-0 rounded-full bg-brand-red flex items-center justify-center font-bold text-[10px]">
-                    {user?.name?.charAt(0).toUpperCase() || 'U'}
-                  </div>
-                  <span className="hidden sm:inline font-semibold max-w-[100px] truncate">{user?.name}</span>
-                </div>
-
-                <button
-                  onClick={() => logout()}
-                  title="Sign Out"
-                  className="p-1.5 rounded-xl hover:bg-rose-500/20 text-rose-300 hover:text-rose-100 transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setIsAuthModalOpen(true)}
-                title="Guest Sign In"
-                className="flex items-center gap-1.5 bg-brand-red hover:bg-brand-red/90 text-white px-2.5 sm:px-4 py-1.5 rounded-xl text-xs font-bold transition-all shadow-brand-sm"
-              >
-                <User className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Guest Sign In</span>
-              </button>
-            )}
+            <div className="pl-1 sm:pl-2 border-l border-white/15">
+              <AccountMenu theme="dark" onLoginClick={() => setIsAuthModalOpen(true)} />
+            </div>
 
             {/* Operator Login Quicklink */}
             <Link

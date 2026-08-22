@@ -3,8 +3,9 @@
 import { Suspense, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Coffee, LogOut } from 'lucide-react';
+import { Coffee } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
+import { AccountMenu } from '@/components/shared/account-menu';
 import { toast } from 'sonner';
 
 /**
@@ -22,7 +23,7 @@ function OrgDashboardGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
     if (isLoading) return;
@@ -61,14 +62,7 @@ function OrgDashboardGuard({ children }: { children: React.ReactNode }) {
             {user?.name && (
               <span className="hidden max-w-[10rem] truncate text-sm text-brand-mocha sm:inline">{user.name}</span>
             )}
-            <button
-              type="button"
-              onClick={() => logout()}
-              className="inline-flex items-center gap-1.5 rounded-full border border-brand-brown/15 px-3 py-1.5 text-sm font-medium text-brand-mocha transition-colors hover:border-brand-red/30 hover:text-brand-red"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Sign out</span>
-            </button>
+            <AccountMenu theme="light" />
           </div>
         </div>
       </header>
