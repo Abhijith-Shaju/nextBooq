@@ -66,6 +66,25 @@ describe('Org routes', () => {
     expect(res.status).toBe(403);
   });
 
+  describe('GET /api/v1/org', () => {
+    test('an unauthenticated request gets 401', async () => {
+      const res = await request(app).get('/api/v1/org');
+      expect(res.status).toBe(401);
+    });
+
+    test('a manager (not org owner) gets 403', async () => {
+      const res = await request(app).get('/api/v1/org').set('Authorization', `Bearer ${managerToken}`);
+      expect(res.status).toBe(403);
+    });
+
+    test('an org owner gets their organization id and name', async () => {
+      const res = await request(app).get('/api/v1/org').set('Authorization', `Bearer ${ownerToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual({ id: org._id.toString(), name: 'Org Routes Test Org' });
+    });
+  });
+
   test('an org owner gets their org\'s cafes with subscription status and today\'s reservation count', async () => {
     const now = new Date();
     await Reservation.create({

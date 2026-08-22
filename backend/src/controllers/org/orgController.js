@@ -1,4 +1,5 @@
 const Cafe = require('../../models/Cafe');
+const Organization = require('../../models/Organization');
 const Reservation = require('../../models/Reservation');
 const User = require('../../models/User');
 const { BadRequestError, NotFoundError, ForbiddenError } = require('../../utils/errors');
@@ -13,6 +14,24 @@ const DEFAULT_PERMISSIONS_BY_ROLE = {
   manager: ['edit_tables', 'edit_settings', 'view_reservations', 'edit_reservations', 'cancel_reservations'],
   host: ['view_reservations', 'edit_reservations', 'cancel_reservations'],
   staff: ['view_reservations'],
+};
+
+// req.ownerOrgId is set by requireOrgOwner, which has already verified the
+// caller owns every cafe in this org — no further ownership check needed.
+const getOrganization = async (req, res, next) => {
+  try {
+    const organization = await Organization.findById(req.ownerOrgId).lean();
+    if (!organization) {
+      throw new NotFoundError('Organization not found');
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: { id: organization._id.toString(), name: organization.name },
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 const getCafes = async (req, res, next) => {
@@ -149,4 +168,4 @@ const deleteStaff = async (req, res, next) => {
   }
 };
 
-module.exports = { getCafes, postAssignStaff, deleteStaff };
+module.exports = { getOrganization, getCafes, postAssignStaff, deleteStaff };

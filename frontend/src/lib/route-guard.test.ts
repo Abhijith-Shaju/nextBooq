@@ -61,6 +61,17 @@ describe('resolveRedirect', () => {
   test('returns null for /org when a session cookie is present', () => {
     expect(resolveRedirect('/org/dashboard', validSessionCookie())).toBeNull();
   });
+
+  test('redirects /profile to login when there is no session', () => {
+    expect(resolveRedirect('/profile', null)).toEqual({
+      redirectTo: '/auth/login',
+      callbackUrl: '/profile',
+    });
+  });
+
+  test('returns null for /profile when a session cookie is present', () => {
+    expect(resolveRedirect('/profile', validSessionCookie())).toBeNull();
+  });
 });
 
 describe('isDashboardRoute', () => {
@@ -88,5 +99,9 @@ describe('isDashboardRoute', () => {
 
   test('/org/dashboard is a protected route', () => {
     expect(isDashboardRoute('/org/dashboard')).toBe(true);
+  });
+
+  test('/profile is a protected route', () => {
+    expect(isDashboardRoute('/profile')).toBe(true);
   });
 });

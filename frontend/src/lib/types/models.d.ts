@@ -116,10 +116,16 @@ export type ReservationTableRef = string | { _id?: string; id?: string; table_nu
 // lib/dashboard/reservation-guest.ts for the helpers that read this safely.
 export type ReservationUserRef = string | { _id?: string; id?: string; name: string; email: string; phone?: string };
 
+// Populated with {name, slug, timezone, brand_primary, brand_accent} by
+// GET /customer/reservations (see backend customerController) — the same
+// populate-for-reads-but-send-cafe_id-for-writes contract as user_id/table_ids
+// on this model.
+export type ReservationCafeRef = string | { _id?: string; id?: string; name: string; slug: string };
+
 export interface Reservation {
   id: string;
   _id?: string;
-  cafe_id: string;
+  cafe_id: ReservationCafeRef;
   user_id?: ReservationUserRef;
   start_time: string; // ISO 8601 UTC string
   end_time: string; // ISO 8601 UTC string
