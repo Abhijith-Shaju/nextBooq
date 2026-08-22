@@ -45,14 +45,30 @@ const assertCapacityReductionIsSafe = async (cafeId, tableId, newCapacity) => {
   }
 };
 
+// Merging means physically pushing two tables together, so partners have to
+// be in the same part of the room: same floor, same zone. Nothing downstream
+// re-checks this — generateMergeCombinations (allocationEngine.js) builds
+// seating combos purely from can_merge_with adjacency — so an indoor table
+// linked to an outdoor one would let the booking engine allocate a party
+// across a combination that cannot physically exist, and the host would be
+// handed an impossible seating on the night.
+const sectionOf = (table) => ({ zone: table.zone || 'indoor', floor: table.floor || 1 });
+
+const isSameSection = (a, b) => a.zone === b.zone && a.floor === b.floor;
+
+const describeSection = ({ zone, floor }) => `${zone} on floor ${floor}`;
+
 /**
  * The Table Editor UI lets a host pick merge partners by their human-readable
  * table_number (what's printed on the actual table), not by Mongo _id. This
  * resolves those table_numbers to real Table documents within the same cafe,
  * rejecting anything that doesn't resolve instead of letting an ObjectId cast
  * fail deep inside a .save() call.
+ *
+ * `section` is the {zone, floor} the owning table will have once this request
+ * is applied — every partner must match it.
  */
-const resolveMergeTableIds = async (cafeId, tableNumbers, excludeTableId = null) => {
+const resolveMergeTableIds = async (cafeId, tableNumbers, excludeTableId = null, section = null) => {
   if (!tableNumbers || tableNumbers.length === 0) return [];
 
   const query = { cafe_id: cafeId, table_number: { $in: tableNumbers }, is_deleted: false };
@@ -67,6 +83,19 @@ const resolveMergeTableIds = async (cafeId, tableNumbers, excludeTableId = null)
     throw new BadRequestError(
       `can_merge_with references unknown table_number(s): ${unresolved.join(', ')}`
     );
+  }
+
+  if (section) {
+    const mismatched = matches.filter((t) => !isSameSection(sectionOf(t), section));
+    if (mismatched.length > 0) {
+      const details = mismatched
+        .map((t) => `${t.table_number} is ${describeSection(sectionOf(t))}`)
+        .join('; ');
+      throw new UnprocessableEntityError(
+        `Tables can only merge with tables in the same zone and on the same floor. ` +
+          `This table is ${describeSection(section)}, but ${details}.`
+      );
+    }
   }
 
   return matches.map((t) => t._id);
@@ -104,7 +133,8 @@ const createTable = async (req, res, next) => {
       throw new BadRequestError('floor must be a positive integer');
     }
 
-    const mergeTableIds = await resolveMergeTableIds(cafeId, can_merge_with);
+    const section = { zone: zone || 'indoor', floor: floor || 1 };
+    const mergeTableIds = await resolveMergeTableIds(cafeId, can_merge_with, null, section);
 
     const table = new Table({
       cafe_id: cafeId,
@@ -112,8 +142,8 @@ const createTable = async (req, res, next) => {
       capacity,
       can_merge_with: mergeTableIds,
       status: status || 'active',
-      zone: zone || 'indoor',
-      floor: floor || 1,
+      zone: section.zone,
+      floor: section.floor,
     });
 
     await table.save();
@@ -184,8 +214,16 @@ const updateTable = async (req, res, next) => {
       );
     }
 
+    const nextSection = sectionOf(existingTable);
+    let droppedMergePartners = [];
+
     if (can_merge_with !== undefined) {
-      const newMergeTableIds = await resolveMergeTableIds(cafeId, can_merge_with, existingTable._id);
+      const newMergeTableIds = await resolveMergeTableIds(
+        cafeId,
+        can_merge_with,
+        existingTable._id,
+        nextSection
+      );
       const newMergeIdStrings = new Set(newMergeTableIds.map((id) => id.toString()));
 
       // Remove symmetric reference from old neighbors no longer in array
@@ -208,6 +246,31 @@ const updateTable = async (req, res, next) => {
       }
 
       existingTable.can_merge_with = newMergeTableIds;
+    } else if ((zone !== undefined || floor !== undefined) && existingTable.can_merge_with.length > 0) {
+      // The table just moved to a different zone or floor without the client
+      // restating its merge list. Any partner left behind in the old section
+      // is now a physically impossible pairing, so drop those links (both
+      // ways) rather than leaving invalid data the allocation engine trusts.
+      const partners = await Table.find({
+        _id: { $in: existingTable.can_merge_with },
+        cafe_id: cafeId,
+      });
+      const stranded = partners.filter((p) => !isSameSection(sectionOf(p), nextSection));
+
+      if (stranded.length > 0) {
+        const strandedIds = stranded.map((p) => p._id);
+        const strandedIdStrings = new Set(strandedIds.map((id) => id.toString()));
+
+        await Table.updateMany(
+          { _id: { $in: strandedIds }, cafe_id: cafeId },
+          { $pull: { can_merge_with: existingTable._id } }
+        );
+
+        existingTable.can_merge_with = existingTable.can_merge_with.filter(
+          (id) => !strandedIdStrings.has(id.toString())
+        );
+        droppedMergePartners = stranded.map((p) => p.table_number);
+      }
     }
 
     await existingTable.save();
@@ -224,6 +287,9 @@ const updateTable = async (req, res, next) => {
 
     res.status(200).json({
       status: 'success',
+      // Surfaced so the editor can tell the host which merge links its zone/
+      // floor change silently invalidated, rather than them noticing later.
+      ...(droppedMergePartners.length > 0 && { dropped_merge_partners: droppedMergePartners }),
       data: existingTable,
     });
   } catch (error) {

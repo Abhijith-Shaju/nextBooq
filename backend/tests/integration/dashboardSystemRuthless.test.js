@@ -240,6 +240,118 @@ describe('Ruthless dashboard system audit', () => {
     });
   });
 
+  // Merging is physically pushing two tables together, so partners must be in
+  // the same part of the room. Nothing downstream re-checks this — the
+  // allocation engine builds seating combos purely from can_merge_with — so an
+  // invalid pairing here becomes an impossible table the host is handed on the
+  // night.
+  describe('Merge partners must share a zone and floor', () => {
+    const createTable = (body) =>
+      request(app)
+        .post(`/api/v1/cafes/${cafe._id}/tables`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send(body);
+
+    test('allows a merge between two tables in the same zone and floor', async () => {
+      await createTable({ table_number: 'M1', capacity: 2, zone: 'indoor', floor: 1 });
+      const res = await createTable({
+        table_number: 'M2',
+        capacity: 2,
+        zone: 'indoor',
+        floor: 1,
+        can_merge_with: ['M1'],
+      });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.can_merge_with).toHaveLength(1);
+    });
+
+    test('rejects a merge across zones on create', async () => {
+      await createTable({ table_number: 'M3', capacity: 2, zone: 'indoor', floor: 1 });
+      const res = await createTable({
+        table_number: 'M4',
+        capacity: 2,
+        zone: 'outdoor',
+        floor: 1,
+        can_merge_with: ['M3'],
+      });
+
+      expect(res.status).toBe(422);
+      expect(res.body.message).toMatch(/same zone and on the same floor/i);
+    });
+
+    test('rejects a merge across floors on create', async () => {
+      await createTable({ table_number: 'M5', capacity: 2, zone: 'indoor', floor: 1 });
+      const res = await createTable({
+        table_number: 'M6',
+        capacity: 2,
+        zone: 'indoor',
+        floor: 2,
+        can_merge_with: ['M5'],
+      });
+
+      expect(res.status).toBe(422);
+      const stored = await Table.findOne({ cafe_id: cafe._id, table_number: 'M6' });
+      expect(stored).toBeNull();
+    });
+
+    test('rejects a cross-zone merge on update', async () => {
+      await createTable({ table_number: 'M7', capacity: 2, zone: 'indoor', floor: 1 });
+      const outdoor = await createTable({ table_number: 'M8', capacity: 2, zone: 'outdoor', floor: 1 });
+
+      const res = await request(app)
+        .put(`/api/v1/cafes/${cafe._id}/tables/${outdoor.body.data._id}`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ can_merge_with: ['M7'] });
+
+      expect(res.status).toBe(422);
+    });
+
+    test('moving a table to another zone drops the merge links it leaves behind, both ways', async () => {
+      const a = await createTable({ table_number: 'M9', capacity: 2, zone: 'indoor', floor: 1 });
+      const b = await createTable({
+        table_number: 'M10',
+        capacity: 2,
+        zone: 'indoor',
+        floor: 1,
+        can_merge_with: ['M9'],
+      });
+
+      const res = await request(app)
+        .put(`/api/v1/cafes/${cafe._id}/tables/${b.body.data._id}`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ zone: 'outdoor' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.dropped_merge_partners).toEqual(['M9']);
+      expect(res.body.data.can_merge_with).toHaveLength(0);
+
+      // The link must be gone from the partner too, not just the moved table.
+      const partner = await Table.findById(a.body.data._id);
+      expect(partner.can_merge_with).toHaveLength(0);
+    });
+
+    test('moving a table within its own section keeps its merge links', async () => {
+      await createTable({ table_number: 'M11', capacity: 2, zone: 'indoor', floor: 1 });
+      const b = await createTable({
+        table_number: 'M12',
+        capacity: 2,
+        zone: 'indoor',
+        floor: 1,
+        can_merge_with: ['M11'],
+      });
+
+      const res = await request(app)
+        .put(`/api/v1/cafes/${cafe._id}/tables/${b.body.data._id}`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ capacity: 4 });
+
+      expect(res.status).toBe(200);
+      expect(res.body.dropped_merge_partners).toBeUndefined();
+      expect(res.body.data.can_merge_with).toHaveLength(1);
+    });
+  });
+
   describe('FIXED: PUT /api/v1/cafes/:cafeId updates reservation_rules (what settings/page.tsx calls)', () => {
     test('an owner can update reservation_rules with valid values', async () => {
       const res = await request(app)

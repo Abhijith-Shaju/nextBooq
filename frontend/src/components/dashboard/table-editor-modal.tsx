@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Table, TableStatus, TableZone } from '@/lib/types/models';
 import { useCreateTable } from '@/hooks/admin/use-create-table';
 import { useEditTable } from '@/hooks/admin/use-edit-table';
@@ -55,6 +55,30 @@ export function TableEditorModal({
     setCanMergeWith(editingTable ? getMergePartnerTableNumbers(editingTable) : []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, editingTable?.id, editingTable?._id]);
+
+  // Merging physically pushes two tables together, so only tables sharing
+  // this one's zone and floor can be partners — offering the rest would just
+  // let the host pick something the server rejects with a 422.
+  const mergeCandidates = useMemo(
+    () =>
+      existingTables.filter(
+        (t) =>
+          t.table_number !== tableNumber &&
+          (t.zone || 'indoor') === zone &&
+          (t.floor || 1) === floor
+      ),
+    [existingTables, tableNumber, zone, floor]
+  );
+
+  // Switching zone or floor mid-edit strands any partner left in the old
+  // section, so drop it from the selection as soon as it stops being offered.
+  useEffect(() => {
+    const selectable = new Set(mergeCandidates.map((t) => t.table_number));
+    setCanMergeWith((prev) => {
+      const next = prev.filter((n) => selectable.has(n));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [mergeCandidates]);
 
   if (!isOpen) return null;
 
@@ -151,10 +175,11 @@ export function TableEditorModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1">
+            <label htmlFor="table-number" className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1">
               <Hash className="w-4 h-4 text-brand-mocha" /> Table Identifier / Number *
             </label>
             <input
+              id="table-number"
               type="text"
               required
               placeholder="e.g. Window-1 or 12"
@@ -165,10 +190,11 @@ export function TableEditorModal({
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1">
+            <label htmlFor="table-capacity" className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1">
               <Users className="w-4 h-4 text-brand-mocha" /> Guest Capacity *
             </label>
             <input
+              id="table-capacity"
               type="number"
               min={1}
               required
@@ -179,10 +205,11 @@ export function TableEditorModal({
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-brand-brown mb-1.5">
+            <label htmlFor="table-status" className="block text-sm font-semibold text-brand-brown mb-1.5">
               Service Status
             </label>
             <select
+              id="table-status"
               value={status}
               onChange={(e) => setStatus(e.target.value as TableStatus)}
               className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm"
@@ -193,10 +220,11 @@ export function TableEditorModal({
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1">
+            <label htmlFor="table-zone" className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1">
               <MapPin className="w-4 h-4 text-brand-mocha" /> Zone
             </label>
             <select
+              id="table-zone"
               value={zone}
               onChange={(e) => setZone(e.target.value as TableZone)}
               className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm"
@@ -211,10 +239,11 @@ export function TableEditorModal({
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1">
+            <label htmlFor="table-floor" className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1">
               <Building2 className="w-4 h-4 text-brand-mocha" /> Floor
             </label>
             <input
+              id="table-floor"
               type="number"
               min={1}
               required
@@ -233,11 +262,15 @@ export function TableEditorModal({
             <p className="text-[11px] text-brand-mocha mb-1.5">
               Check any tables physically next to this one. When a party is too big for a single
               table, the booking engine can seat them across this table plus a checked partner.
+              Only tables in the same zone and on the same floor can be merged.
             </p>
             <div className="p-3 bg-brand-cream rounded-xl border border-brand-brown/10 max-h-32 overflow-y-auto space-y-2 text-xs">
-              {existingTables
-                .filter((t) => t.table_number !== tableNumber)
-                .map((t) => (
+              {mergeCandidates.length === 0 ? (
+                <p className="text-brand-mochaMid">
+                  No other tables in {TABLE_ZONE_LABELS[zone]} on floor {floor} yet.
+                </p>
+              ) : (
+                mergeCandidates.map((t) => (
                   <label key={t.table_number} className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -247,7 +280,8 @@ export function TableEditorModal({
                     />
                     <span>Table T-{t.table_number} ({t.capacity}p)</span>
                   </label>
-                ))}
+                ))
+              )}
             </div>
           </div>
 

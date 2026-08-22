@@ -97,6 +97,55 @@ describe('TableEditorModal reflects the table being edited', () => {
   });
 });
 
+// Merging physically pushes two tables together, so the editor must not even
+// offer a partner in another zone or floor — the server rejects those with a
+// 422, and a checkbox that always fails is worse than no checkbox.
+describe('TableEditorModal merge partner candidates', () => {
+  const indoorF1 = { ...editingTable, id: 't1', _id: 't1', table_number: 'T1', zone: 'indoor' as const, floor: 1 };
+  const alsoIndoorF1 = { ...editingTable, id: 't2', _id: 't2', table_number: 'SAME', zone: 'indoor' as const, floor: 1 };
+  const outdoorF1 = { ...editingTable, id: 't3', _id: 't3', table_number: 'OTHERZONE', zone: 'outdoor' as const, floor: 1 };
+  const indoorF2 = { ...editingTable, id: 't4', _id: 't4', table_number: 'OTHERFLOOR', zone: 'indoor' as const, floor: 2 };
+
+  const renderWith = (editing: Table) => {
+    const queryClient = new QueryClient();
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <TableEditorModal
+          cafeId="cafe_1"
+          existingTables={[indoorF1, alsoIndoorF1, outdoorF1, indoorF2]}
+          editingTable={editing}
+          isOpen
+          onClose={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+  };
+
+  test('offers only tables sharing the edited table zone and floor', () => {
+    renderWith(indoorF1);
+
+    expect(screen.getByText(/T-SAME/)).toBeInTheDocument();
+    expect(screen.queryByText(/T-OTHERZONE/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/T-OTHERFLOOR/)).not.toBeInTheDocument();
+  });
+
+  test('changing the zone re-scopes the candidate list', () => {
+    renderWith(indoorF1);
+    expect(screen.getByText(/T-SAME/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/zone/i), { target: { value: 'outdoor' } });
+
+    expect(screen.queryByText(/T-SAME/)).not.toBeInTheDocument();
+    expect(screen.getByText(/T-OTHERZONE/)).toBeInTheDocument();
+  });
+
+  test('explains itself when nothing in this section can be merged with', () => {
+    renderWith(indoorF2);
+
+    expect(screen.getByText(/no other tables in indoor on floor 2/i)).toBeInTheDocument();
+  });
+});
+
 describe('TableEditorModal delete confirmation', () => {
   beforeEach(() => {
     vi.mocked(axiosInstance.put).mockReset().mockResolvedValue({ data: { data: editingTable } });

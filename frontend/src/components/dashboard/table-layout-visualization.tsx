@@ -25,9 +25,7 @@ interface FloorSection {
   groups: TableZoneGroup<Table>[];
 }
 
-// 'all' keeps every floor on screen at once. Merges are not confined to a
-// single floor (or a single zone), so filtering to one floor would silently
-// hide a real relationship — see the comment on floorSections below.
+// 'all' stacks every floor at once, as an overview of a multi-floor cafe.
 type FloorSelection = number | 'all';
 
 // Bows every connector upward into an arc instead of a straight line. A
@@ -79,14 +77,13 @@ export function TableLayoutVisualization({ tables }: TableLayoutVisualizationPro
 
   const isMultiFloor = floors.length > 1;
 
-  // Defaults to every floor at once when the cafe has more than one, so a
-  // merge that spans floors is visible without the host having to go looking
-  // for it. Picking a single floor is then a deliberate narrowing.
+  // Opens on a single floor, which is what a host is usually working from —
+  // and since merges can't span floors, nothing is hidden by doing so.
   const activeFloor: FloorSelection = useMemo(() => {
     if (selectedFloor === 'all') return 'all';
     if (typeof selectedFloor === 'number' && floors.includes(selectedFloor)) return selectedFloor;
-    return isMultiFloor ? 'all' : (floors[0] ?? 1);
-  }, [selectedFloor, floors, isMultiFloor]);
+    return floors[0] ?? 1;
+  }, [selectedFloor, floors]);
 
   const visibleTables = useMemo(
     () => (activeFloor === 'all' ? tables : tables.filter((t) => (t.floor || 1) === activeFloor)),
@@ -104,9 +101,11 @@ export function TableLayoutVisualization({ tables }: TableLayoutVisualizationPro
     }));
   }, [activeFloor, floors, tables]);
 
-  // Merges are not restricted to a zone or a floor — the booking engine
-  // merges purely on can_merge_with adjacency — so an edge is drawn whenever
-  // both of its tables are on screen, however far apart they sit.
+  // An edge is drawn whenever both its tables are on screen, wherever they
+  // sit. Merge partners are constrained to one zone and floor at write time
+  // (tableController), so in practice arcs stay inside a bubble — but drawing
+  // by position rather than by section means any legacy pair that predates
+  // that rule still shows up instead of being silently swallowed.
   const edges = useMemo<Edge[]>(() => {
     const visibleIds = new Set(
       visibleTables.map(tableId).filter((id): id is string => Boolean(id))
@@ -176,8 +175,7 @@ export function TableLayoutVisualization({ tables }: TableLayoutVisualizationPro
         <div>
           <h2 className="text-lg font-bold font-display text-brand-brown">Layout Visualization</h2>
           <p className="text-xs text-brand-mochaMid mt-0.5">
-            Tables grouped by floor and zone. An arc joins any two marked as mergeable — including
-            across different zones and floors.
+            Tables grouped by floor and zone, with an arc joining any two marked as mergeable.
           </p>
         </div>
 

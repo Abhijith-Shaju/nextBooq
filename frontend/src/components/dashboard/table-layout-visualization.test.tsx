@@ -43,7 +43,7 @@ describe('TableLayoutVisualization', () => {
     expect(screen.queryByRole('button', { name: /all floors/i })).not.toBeInTheDocument();
   });
 
-  test('defaults to showing every floor at once, so a cross-floor merge is never hidden', () => {
+  test('opens on the first floor, and offers an all-floors overview', () => {
     render(
       <TableLayoutVisualization
         tables={[
@@ -55,10 +55,10 @@ describe('TableLayoutVisualization', () => {
 
     expect(screen.getByRole('button', { name: /all floors/i })).toBeInTheDocument();
     expect(screen.getByText('G1')).toBeInTheDocument();
-    expect(screen.getByText('F2-1')).toBeInTheDocument();
+    expect(screen.queryByText('F2-1')).not.toBeInTheDocument();
   });
 
-  test('selecting a single floor narrows to just that floor', () => {
+  test('switching floors, and the all-floors view, show the right tables', () => {
     render(
       <TableLayoutVisualization
         tables={[
@@ -69,12 +69,10 @@ describe('TableLayoutVisualization', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: /floor 2/i }));
-
     expect(screen.queryByText('G1')).not.toBeInTheDocument();
     expect(screen.getByText('F2-1')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /all floors/i }));
-
     expect(screen.getByText('G1')).toBeInTheDocument();
     expect(screen.getByText('F2-1')).toBeInTheDocument();
   });
@@ -101,23 +99,11 @@ describe('TableLayoutVisualization', () => {
     expect(svg.querySelectorAll('[data-testid="table-connector"]')).toHaveLength(1);
   });
 
-  test('draws a connector for a merge that spans two floors', () => {
-    render(
-      <TableLayoutVisualization
-        tables={[
-          table({ id: 'a', table_number: '1', floor: 1, can_merge_with: [{ _id: 'b', table_number: '2' }] }),
-          table({ id: 'b', table_number: '2', floor: 2, can_merge_with: [{ _id: 'a', table_number: '1' }] }),
-        ]}
-      />
-    );
-
-    // Merges are not confined to a floor — the booking engine merges purely
-    // on can_merge_with adjacency — so the relationship has to be visible.
-    const svg = screen.getByTestId('table-layout-connectors');
-    expect(svg.querySelectorAll('[data-testid="table-connector"]')).toHaveLength(1);
-  });
-
-  test('draws a connector for a merge that spans two zones', () => {
+  // Merge partners are constrained to a single zone and floor at write time
+  // (see tableController), so these pairings can no longer be created. Data
+  // predating that rule can still exist though, and showing it beats hiding
+  // it — a host can't fix a bad link they can't see.
+  test('still renders a legacy cross-zone merge rather than hiding it', () => {
     render(
       <TableLayoutVisualization
         tables={[
@@ -133,7 +119,7 @@ describe('TableLayoutVisualization', () => {
     expect(svg.querySelectorAll('[data-testid="table-connector"]')).toHaveLength(1);
   });
 
-  test('drops a cross-floor connector when narrowed to one floor, since its partner is off screen', () => {
+  test('still renders a legacy cross-floor merge in the all-floors view', () => {
     render(
       <TableLayoutVisualization
         tables={[
@@ -143,10 +129,12 @@ describe('TableLayoutVisualization', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /floor 1/i }));
-
+    // Only floor 1 is on screen initially, so its partner isn't drawable yet.
     const svg = screen.getByTestId('table-layout-connectors');
     expect(svg.querySelectorAll('[data-testid="table-connector"]')).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole('button', { name: /all floors/i }));
+    expect(svg.querySelectorAll('[data-testid="table-connector"]')).toHaveLength(1);
   });
 
   test('draws connectors as curves, not straight lines — a straight line between distant tables would visually pass through every table in between', () => {
