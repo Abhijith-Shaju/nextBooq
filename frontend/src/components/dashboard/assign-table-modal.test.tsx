@@ -101,6 +101,56 @@ describe('AssignTableModal', () => {
     await waitFor(() => expect(useDashboardStore.getState().isAssignTableOpen).toBe(false));
   });
 
+  test('assigning a party that spans merged tables asks for confirmation first', async () => {
+    const merged = makeReservation({
+      party_size: 4,
+      table_ids: [
+        { _id: 'tA', table_number: '1', capacity: 2 },
+        { _id: 'tB', table_number: '2', capacity: 2 },
+      ],
+    });
+    renderModal([merged]);
+
+    fireEvent.click(screen.getByText('Priya Sharma'));
+
+    // Nothing committed yet — the host has to confirm losing the merge.
+    expect(axiosInstance.put).not.toHaveBeenCalled();
+    expect(await screen.findByText(/move this party off their merged tables/i)).toBeInTheDocument();
+    expect(screen.getByText(/currently across T-1 \+ T-2/i)).toBeInTheDocument();
+  });
+
+  test('confirming the merge warning performs the assignment', async () => {
+    vi.mocked(axiosInstance.put).mockResolvedValue({ data: { data: makeReservation() } });
+    const merged = makeReservation({
+      party_size: 4,
+      table_ids: [
+        { _id: 'tA', table_number: '1', capacity: 2 },
+        { _id: 'tB', table_number: '2', capacity: 2 },
+      ],
+    });
+    renderModal([merged]);
+
+    fireEvent.click(screen.getByText('Priya Sharma'));
+    fireEvent.click(await screen.findByRole('button', { name: /move party/i }));
+
+    await waitFor(() =>
+      expect(axiosInstance.put).toHaveBeenCalledWith('/api/v1/cafes/cafe_1/reservations/res_1/table', {
+        table_id: 't1',
+        version: 0,
+      })
+    );
+  });
+
+  test('a single-table party is assigned directly, with no confirmation', async () => {
+    vi.mocked(axiosInstance.put).mockResolvedValue({ data: { data: makeReservation() } });
+    renderModal([makeReservation({ table_ids: [{ _id: 'tA', table_number: '9', capacity: 4 }] })]);
+
+    fireEvent.click(screen.getByText('Priya Sharma'));
+
+    await waitFor(() => expect(axiosInstance.put).toHaveBeenCalled());
+    expect(screen.queryByText(/move this party off their merged tables/i)).not.toBeInTheDocument();
+  });
+
   test('renders nothing when closed', () => {
     useDashboardStore.setState({ isAssignTableOpen: false, assignTableTargetId: null });
     const queryClient = new QueryClient();

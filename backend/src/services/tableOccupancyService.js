@@ -26,12 +26,18 @@ const findSeatedOccupancyConflict = async (cafeId, tableIds, excludeReservationI
  * it after their slot has nominally ended, which is exactly the situation the
  * seating-conflict flow exists to surface.
  */
-const getSeatedTableIds = async (cafeId, excludeReservationId) => {
-  const seatedReservations = await Reservation.find({
+const getSeatedTableIds = async (cafeId, excludeReservationId, session = null) => {
+  const query = Reservation.find({
     cafe_id: cafeId,
     _id: { $ne: excludeReservationId },
     status: 'SEATED',
   }).select('table_ids');
+
+  if (session) {
+    query.session(session);
+  }
+
+  const seatedReservations = await query.exec();
 
   const tableIds = new Set();
   for (const reservation of seatedReservations) {

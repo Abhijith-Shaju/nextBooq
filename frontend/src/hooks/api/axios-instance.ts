@@ -51,14 +51,25 @@ axiosInstance.interceptors.response.use(
           toast.error('You do not have permission to perform this action.');
           break;
 
-        case 409:
+        case 409: {
+          const conflictCode = error.response.data?.error?.code;
           // TABLE_OCCUPIED carries a structured conflict payload the caller
           // uses to show a specific "seat anyway?" confirmation — the generic
           // toast here would just be noise on top of that.
-          if (error.response.data?.error?.code !== 'TABLE_OCCUPIED') {
-            toast.error('This table state has changed. Please refresh to see the latest updates.');
+          if (conflictCode === 'TABLE_OCCUPIED') {
+            break;
           }
+          // TABLE_UNAVAILABLE already says what's wrong and what to do next
+          // ("This table isn't free for this reservation's time"), so show it
+          // verbatim. Anything else is a stale-version clash, where the only
+          // useful advice really is to refresh.
+          toast.error(
+            conflictCode === 'TABLE_UNAVAILABLE' && error.response.data?.error?.message
+              ? error.response.data.error.message
+              : 'This table state has changed. Please refresh to see the latest updates.'
+          );
           break;
+        }
 
         case 422:
           const validationMsg = error.response.data?.error?.message || 'Invalid input data.';
