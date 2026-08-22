@@ -4,6 +4,7 @@ const { BadRequestError, NotFoundError, UnprocessableEntityError } = require('..
 const { logAuditEvent } = require('../../services/auditService');
 
 const ACTIVE_RESERVATION_STATUSES = ['HOLD', 'PENDING_PAYMENT', 'CONFIRMED', 'CHECKED_IN', 'SEATED'];
+const VALID_ZONES = ['indoor', 'window', 'outdoor', 'patio', 'private'];
 
 /**
  * Rejects a table capacity reduction that would leave any active reservation's
@@ -89,10 +90,13 @@ const getTables = async (req, res, next) => {
 const createTable = async (req, res, next) => {
   try {
     const cafeId = req.tenantId;
-    const { table_number, capacity, can_merge_with, status } = req.body;
+    const { table_number, capacity, can_merge_with, status, zone } = req.body;
 
     if (!table_number || !capacity) {
       throw new BadRequestError('table_number and capacity are required');
+    }
+    if (zone !== undefined && !VALID_ZONES.includes(zone)) {
+      throw new BadRequestError(`zone must be one of: ${VALID_ZONES.join(', ')}`);
     }
 
     const mergeTableIds = await resolveMergeTableIds(cafeId, can_merge_with);
@@ -103,6 +107,7 @@ const createTable = async (req, res, next) => {
       capacity,
       can_merge_with: mergeTableIds,
       status: status || 'active',
+      zone: zone || 'indoor',
     });
 
     await table.save();
@@ -137,7 +142,11 @@ const updateTable = async (req, res, next) => {
   try {
     const cafeId = req.tenantId;
     const { tableId } = req.params;
-    const { table_number, capacity, can_merge_with, status, is_deleted } = req.body;
+    const { table_number, capacity, can_merge_with, status, is_deleted, zone } = req.body;
+
+    if (zone !== undefined && !VALID_ZONES.includes(zone)) {
+      throw new BadRequestError(`zone must be one of: ${VALID_ZONES.join(', ')}`);
+    }
 
     const existingTable = await Table.findOne({ _id: tableId, cafe_id: cafeId });
     if (!existingTable) {
@@ -153,6 +162,7 @@ const updateTable = async (req, res, next) => {
     if (table_number !== undefined) existingTable.table_number = table_number;
     if (capacity !== undefined) existingTable.capacity = capacity;
     if (status !== undefined) existingTable.status = status;
+    if (zone !== undefined) existingTable.zone = zone;
     if (is_deleted !== undefined) existingTable.is_deleted = is_deleted;
 
     // Deleting a table must not leave it as a phantom merge partner for

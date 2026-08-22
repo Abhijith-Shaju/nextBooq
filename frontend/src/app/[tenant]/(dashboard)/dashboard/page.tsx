@@ -7,6 +7,7 @@ import { useTables } from '@/hooks/admin/use-tables';
 import { ManifestTable } from '@/components/dashboard/manifest-table';
 import { FloorplanCanvas } from '@/components/dashboard/floorplan-canvas';
 import { ReservationDrawer } from '@/components/dashboard/reservation-drawer';
+import { AssignTableModal } from '@/components/dashboard/assign-table-modal';
 import { computeShiftMetrics } from '@/lib/dashboard/shift-metrics';
 import { Calendar as CalendarIcon, Users, CheckCircle2, Clock } from 'lucide-react';
 
@@ -77,6 +78,9 @@ export default function HostStandDashboardPage() {
 
       {/* Slide-out Status Update Action Drawer */}
       <ReservationDrawer cafeId={cafe?.id} reservations={reservations} />
+
+      {/* Assign an existing reservation to a table clicked on the floorplan */}
+      <AssignTableModal cafeId={cafe?.id} tables={tables} reservations={reservations} />
     </div>
   );
 }

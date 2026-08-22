@@ -24,6 +24,11 @@ const tableSchema = new mongoose.Schema(
         ref: 'Table',
       },
     ],
+    zone: {
+      type: String,
+      enum: ['indoor', 'window', 'outdoor', 'patio', 'private'],
+      default: 'indoor',
+    },
     status: {
       type: String,
       enum: ['active', 'out_of_service'],

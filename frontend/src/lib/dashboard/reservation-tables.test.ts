@@ -18,6 +18,7 @@ const table = (overrides: Partial<Table> = {}): Table => ({
   cafe_id: 'cafe1',
   table_number: '3',
   capacity: 4,
+  zone: 'indoor',
   status: 'active',
   ...overrides,
 });

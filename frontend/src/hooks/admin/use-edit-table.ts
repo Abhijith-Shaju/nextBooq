@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { axiosInstance } from '@/hooks/api/axios-instance';
-import { Table } from '@/lib/types/models';
+import { Table, TableZone } from '@/lib/types/models';
 import { ApiResponse } from '@/lib/types/api-responses';
 import { toast } from 'sonner';
 
@@ -10,6 +10,7 @@ export interface EditTablePayload {
   capacity?: number;
   can_merge_with?: string[];
   status?: 'active' | 'out_of_service';
+  zone?: TableZone;
   is_deleted?: boolean;
 }
 

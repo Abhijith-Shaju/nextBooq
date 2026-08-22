@@ -8,6 +8,7 @@ import { Table } from '@/lib/types/models';
 import { TableEditorModal } from '@/components/dashboard/table-editor-modal';
 import { describeTableStatus } from '@/lib/dashboard/table-status';
 import { getMergePartnerTableNumbers } from '@/lib/dashboard/table-merge';
+import { TABLE_ZONE_LABELS } from '@/lib/dashboard/table-zones';
 import { hasCafePermission } from '@/lib/dashboard/tenant-membership';
 import { StatusTone } from '@/lib/booking/reservation-status';
 import { Plus, Edit2, Users, Layers, Hash, Grid } from 'lucide-react';
@@ -65,6 +66,7 @@ export default function TablesInventoryPage() {
               <tr>
                 <th className="p-4">Table</th>
                 <th className="p-4">Capacity</th>
+                <th className="p-4">Zone</th>
                 <th className="p-4">Status</th>
                 <th className="p-4">Can merge with</th>
                 <th className="p-4 text-right">Actions</th>
@@ -73,19 +75,19 @@ export default function TablesInventoryPage() {
             <tbody className="divide-y divide-brand-brown/10">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-brand-mochaMid animate-pulse">
+                  <td colSpan={6} className="p-8 text-center text-brand-mochaMid animate-pulse">
                     Loading floorplan tables...
                   </td>
                 </tr>
               ) : isError ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-sm font-medium text-red-700">
+                  <td colSpan={6} className="p-8 text-center text-sm font-medium text-red-700">
                     Couldn&apos;t load tables. Please try again.
                   </td>
                 </tr>
               ) : tables.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-brand-mochaMid">
+                  <td colSpan={6} className="p-8 text-center text-brand-mochaMid">
                     {canEditTables
                       ? 'No physical tables created yet. Click "Add table" to start.'
                       : 'No physical tables have been added yet.'}
@@ -101,6 +103,9 @@ export default function TablesInventoryPage() {
                       <span className="tone-neutral inline-flex items-center gap-1 px-2.5 py-1 rounded-full">
                         <Users className="w-3.5 h-3.5" /> {table.capacity}
                       </span>
+                    </td>
+                    <td className="p-4 text-xs font-semibold text-brand-mocha">
+                      {TABLE_ZONE_LABELS[table.zone] || TABLE_ZONE_LABELS.indoor}
                     </td>
                     <td className="p-4 text-xs font-bold">
                       {(() => {

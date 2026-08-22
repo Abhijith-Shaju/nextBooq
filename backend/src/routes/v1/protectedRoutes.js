@@ -8,6 +8,7 @@ const { enforceSubscriptionForWrite } = require('../../middleware/validateSubscr
 const {
   getDailyManifest,
   updateReservationStatus,
+  assignTable,
 } = require('../../controllers/host/reservationController');
 const {
   getTables,
@@ -42,6 +43,14 @@ router.put(
   extractTenant,
   requirePermission((req) => (req.body?.status === 'CANCELLED' ? 'cancel_reservations' : 'edit_reservations')),
   updateReservationStatus
+);
+
+// Assign an existing reservation to a specific table (host-chosen, from the floorplan)
+router.put(
+  '/cafes/:cafeId/reservations/:resId/table',
+  extractTenant,
+  requirePermission('edit_reservations'),
+  assignTable
 );
 
 // Table Inventory Management (edit_tables permission required)

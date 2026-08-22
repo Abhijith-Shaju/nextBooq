@@ -148,6 +148,7 @@ export interface Reservation {
 }
 
 export type TableStatus = 'active' | 'out_of_service';
+export type TableZone = 'indoor' | 'window' | 'outdoor' | 'patio' | 'private';
 
 // Populated with {_id, table_number} by GET /tables — the same
 // populate-for-reads-but-send-table_number-for-writes contract as
@@ -161,6 +162,7 @@ export interface Table {
   table_number: string;
   capacity: number;
   can_merge_with?: TableMergeRef[];
+  zone: TableZone;
   status: TableStatus;
   is_deleted?: boolean;
 }

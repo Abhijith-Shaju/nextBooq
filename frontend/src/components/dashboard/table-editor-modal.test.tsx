@@ -20,6 +20,7 @@ const editingTable: Table = {
   cafe_id: 'cafe_1',
   table_number: 'T1',
   capacity: 4,
+  zone: 'indoor',
   status: 'active',
 };
 
@@ -29,6 +30,7 @@ const otherTable: Table = {
   cafe_id: 'cafe_1',
   table_number: 'T2',
   capacity: 6,
+  zone: 'outdoor',
   status: 'out_of_service',
 };
 

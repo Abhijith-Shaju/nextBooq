@@ -6,11 +6,12 @@ const { getSeatedTableIds } = require('./tableOccupancyService');
 /**
  * Finds overlapping active reservations for a given cafe and time window.
  */
-const getBlockedTableIds = async (cafeId, startTime, endTime, session = null) => {
+const getBlockedTableIds = async (cafeId, startTime, endTime, session = null, excludeReservationId = null) => {
   const now = new Date();
 
   const query = Reservation.find({
     cafe_id: cafeId,
+    ...(excludeReservationId ? { _id: { $ne: excludeReservationId } } : {}),
     status: { $in: ['HOLD', 'PENDING_PAYMENT', 'CONFIRMED', 'CHECKED_IN', 'SEATED'] },
     start_time: { $lt: endTime },
     end_time: { $gt: startTime },

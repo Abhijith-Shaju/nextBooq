@@ -5,6 +5,7 @@ import { Users, Hash } from 'lucide-react';
 import { useDashboardStore } from '@/store/use-dashboard-store';
 import { resolveTableVisualState, TableTone } from '@/lib/dashboard/table-visual-state';
 import { getReservationGuestName } from '@/lib/dashboard/reservation-guest';
+import { groupTablesByZone } from '@/lib/dashboard/table-zones';
 
 interface FloorplanCanvasProps {
   tables: Table[];
@@ -19,7 +20,7 @@ const TONE_CLASSES: Record<TableTone, string> = {
 };
 
 export function FloorplanCanvas({ tables, reservations }: FloorplanCanvasProps) {
-  const { openDrawer } = useDashboardStore();
+  const { openDrawer, openAssignTable } = useDashboardStore();
 
   if (!tables || tables.length === 0) {
     return (
@@ -29,6 +30,8 @@ export function FloorplanCanvas({ tables, reservations }: FloorplanCanvasProps) 
       </div>
     );
   }
+
+  const zoneGroups = groupTablesByZone(tables);
 
   return (
     <div className="p-5 bg-white/70 backdrop-blur-sm rounded-2xl border border-brand-brown/10 min-h-[500px]">
@@ -47,51 +50,81 @@ export function FloorplanCanvas({ tables, reservations }: FloorplanCanvasProps) 
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-        {tables.map((table) => {
-          const { tone, assignedReservation } = resolveTableVisualState(table, reservations);
-          const resId = assignedReservation?._id || assignedReservation?.id;
-          const Tag = resId ? 'button' : 'div';
+      <div className="space-y-6">
+        {zoneGroups.map((group) => (
+          <div key={group.zone}>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="inline-flex items-center rounded-full bg-brand-tan/60 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-brown">
+                {group.label}
+              </span>
+              <span className="text-[11px] font-mono text-brand-mochaMid tabular-nums">
+                {group.tables.length} table{group.tables.length === 1 ? '' : 's'}
+              </span>
+            </div>
 
-          const content = (
-            <>
-              <div className="flex items-center justify-between">
-                <span className="font-mono font-bold text-sm flex items-center gap-1 tabular-nums">
-                  <Hash className="w-3.5 h-3.5 opacity-60" /> {table.table_number}
-                </span>
-                <span className="text-xs font-bold flex items-center gap-1 opacity-70 tabular-nums">
-                  <Users className="w-3.5 h-3.5" /> {table.capacity}
-                </span>
-              </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {group.tables.map((table) => {
+                const { tone, assignedReservation } = resolveTableVisualState(table, reservations);
+                const resId = assignedReservation?._id || assignedReservation?.id;
+                const tableId = table.id || table._id;
+                const isClickable = Boolean(resId) || tone === 'empty';
 
-              <div>
-                {assignedReservation ? (
-                  <div className="truncate space-y-0.5">
-                    <p className="font-bold text-xs truncate">{getReservationGuestName(assignedReservation)}</p>
-                    <p className="text-[10px] font-semibold opacity-70 uppercase tracking-wide">
-                      {assignedReservation.status}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-xs font-medium opacity-60">Empty</p>
-                )}
-              </div>
-            </>
-          );
+                const content = (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-sm flex items-center gap-1 tabular-nums">
+                        <Hash className="w-3.5 h-3.5 opacity-60" /> {table.table_number}
+                      </span>
+                      <span className="text-xs font-bold flex items-center gap-1 opacity-70 tabular-nums">
+                        <Users className="w-3.5 h-3.5" /> {table.capacity}
+                      </span>
+                    </div>
 
-          return (
-            <Tag
-              key={table.id || table.table_number}
-              type={resId ? 'button' : undefined}
-              onClick={resId ? () => openDrawer(resId) : undefined}
-              className={`p-4 rounded-2xl border-2 transition-colors duration-150 flex flex-col justify-between h-32 text-left ${
-                resId ? 'cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-red focus-visible:outline-offset-2' : ''
-              } ${TONE_CLASSES[tone]}`}
-            >
-              {content}
-            </Tag>
-          );
-        })}
+                    <div>
+                      {assignedReservation ? (
+                        <div className="truncate space-y-0.5">
+                          <p className="font-bold text-xs truncate">{getReservationGuestName(assignedReservation)}</p>
+                          <p className="text-[10px] font-semibold opacity-70 uppercase tracking-wide">
+                            {assignedReservation.status}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-xs font-medium opacity-60">
+                          {tone === 'empty' ? 'Empty · tap to seat' : 'Empty'}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                );
+
+                const handleClick = () => {
+                  if (resId) {
+                    openDrawer(resId);
+                  } else if (tone === 'empty' && tableId) {
+                    openAssignTable(tableId);
+                  }
+                };
+
+                const Tag = isClickable ? 'button' : 'div';
+
+                return (
+                  <Tag
+                    key={table.id || table.table_number}
+                    type={isClickable ? 'button' : undefined}
+                    onClick={isClickable ? handleClick : undefined}
+                    className={`p-4 rounded-2xl border-2 transition-colors duration-150 flex flex-col justify-between h-32 text-left ${
+                      isClickable
+                        ? 'cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-red focus-visible:outline-offset-2'
+                        : ''
+                    } ${TONE_CLASSES[tone]}`}
+                  >
+                    {content}
+                  </Tag>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

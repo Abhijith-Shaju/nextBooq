@@ -3,6 +3,7 @@ const Reservation = require('../../models/Reservation');
 const { transitionState } = require('../../services/stateMachine');
 const { findSeatedOccupancyConflict } = require('../../services/tableOccupancyService');
 const { suggestAlternateTable } = require('../../services/allocationEngine');
+const { assignReservationToTable } = require('../../services/tableAssignmentService');
 const { BadRequestError, NotFoundError } = require('../../utils/errors');
 
 const getDailyManifest = async (req, res, next) => {
@@ -150,7 +151,38 @@ const updateReservationStatus = async (req, res, next) => {
   }
 };
 
+const assignTable = async (req, res, next) => {
+  try {
+    const cafeId = req.tenantId;
+    const { resId } = req.params;
+    const { table_id, version } = req.body;
+
+    if (!resId || resId === 'undefined' || !mongoose.Types.ObjectId.isValid(resId)) {
+      throw new BadRequestError('Invalid or missing reservation ID');
+    }
+    if (!table_id || version === undefined) {
+      throw new BadRequestError('table_id and version token (__v) are required');
+    }
+
+    const updatedReservation = await assignReservationToTable({
+      reservationId: resId,
+      tenantId: cafeId,
+      tableId: table_id,
+      expectedVersion: version,
+      updatedByUserId: req.user._id,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      data: updatedReservation,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDailyManifest,
   updateReservationStatus,
+  assignTable,
 };

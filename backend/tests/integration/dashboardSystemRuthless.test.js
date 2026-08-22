@@ -121,6 +121,63 @@ describe('Ruthless dashboard system audit', () => {
     });
   });
 
+  describe('Table zone', () => {
+    test('defaults to indoor when not specified', async () => {
+      const res = await request(app)
+        .post(`/api/v1/cafes/${cafe._id}/tables`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ table_number: 'Z1', capacity: 2 });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.zone).toBe('indoor');
+    });
+
+    test('accepts an explicit valid zone on create', async () => {
+      const res = await request(app)
+        .post(`/api/v1/cafes/${cafe._id}/tables`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ table_number: 'Z2', capacity: 2, zone: 'outdoor' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.zone).toBe('outdoor');
+    });
+
+    test('rejects an invalid zone on create', async () => {
+      const res = await request(app)
+        .post(`/api/v1/cafes/${cafe._id}/tables`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ table_number: 'Z3', capacity: 2, zone: 'rooftop' });
+
+      expect(res.status).toBe(400);
+    });
+
+    test('updates zone via PUT', async () => {
+      const table = await Table.create({ cafe_id: cafe._id, table_number: 'Z4', capacity: 2 });
+
+      const res = await request(app)
+        .put(`/api/v1/cafes/${cafe._id}/tables/${table._id}`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ zone: 'window' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.zone).toBe('window');
+
+      const dbTable = await Table.findById(table._id);
+      expect(dbTable.zone).toBe('window');
+    });
+
+    test('rejects an invalid zone on update', async () => {
+      const table = await Table.create({ cafe_id: cafe._id, table_number: 'Z5', capacity: 2 });
+
+      const res = await request(app)
+        .put(`/api/v1/cafes/${cafe._id}/tables/${table._id}`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ zone: 'not-a-zone' });
+
+      expect(res.status).toBe(400);
+    });
+  });
+
   describe('FIXED: PUT /api/v1/cafes/:cafeId updates reservation_rules (what settings/page.tsx calls)', () => {
     test('an owner can update reservation_rules with valid values', async () => {
       const res = await request(app)

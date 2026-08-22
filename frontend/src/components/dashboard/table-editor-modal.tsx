@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Table, TableStatus } from '@/lib/types/models';
+import { Table, TableStatus, TableZone } from '@/lib/types/models';
 import { useCreateTable } from '@/hooks/admin/use-create-table';
 import { useEditTable } from '@/hooks/admin/use-edit-table';
 import { useModalDismiss } from '@/hooks/use-modal-dismiss';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { getMergePartnerTableNumbers } from '@/lib/dashboard/table-merge';
-import { X, Plus, Save, Trash2, Hash, Users, Layers } from 'lucide-react';
+import { TABLE_ZONE_ORDER, TABLE_ZONE_LABELS } from '@/lib/dashboard/table-zones';
+import { X, Plus, Save, Trash2, Hash, Users, Layers, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface TableEditorModalProps {
@@ -28,6 +29,7 @@ export function TableEditorModal({
   const [tableNumber, setTableNumber] = useState(editingTable?.table_number || '');
   const [capacity, setCapacity] = useState(editingTable?.capacity || 2);
   const [status, setStatus] = useState<TableStatus>(editingTable?.status || 'active');
+  const [zone, setZone] = useState<TableZone>(editingTable?.zone || 'indoor');
   const [canMergeWith, setCanMergeWith] = useState<string[]>(
     editingTable ? getMergePartnerTableNumbers(editingTable) : []
   );
@@ -47,6 +49,7 @@ export function TableEditorModal({
     setTableNumber(editingTable?.table_number || '');
     setCapacity(editingTable?.capacity || 2);
     setStatus(editingTable?.status || 'active');
+    setZone(editingTable?.zone || 'indoor');
     setCanMergeWith(editingTable ? getMergePartnerTableNumbers(editingTable) : []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, editingTable?.id, editingTable?._id]);
@@ -73,6 +76,7 @@ export function TableEditorModal({
           table_number: tableNumber,
           capacity,
           status,
+          zone,
           can_merge_with: canMergeWith,
         },
         {
@@ -85,6 +89,7 @@ export function TableEditorModal({
           table_number: tableNumber,
           capacity,
           status,
+          zone,
           can_merge_with: canMergeWith,
         },
         {
@@ -181,6 +186,24 @@ export function TableEditorModal({
               <option value="active">Active (Available for booking)</option>
               <option value="out_of_service">Out of Service</option>
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1">
+              <MapPin className="w-4 h-4 text-brand-mocha" /> Zone
+            </label>
+            <select
+              value={zone}
+              onChange={(e) => setZone(e.target.value as TableZone)}
+              className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm"
+            >
+              {TABLE_ZONE_ORDER.map((z) => (
+                <option key={z} value={z}>
+                  {TABLE_ZONE_LABELS[z]}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-[11px] text-brand-mocha">Groups this table on the floorplan for easier reference.</p>
           </div>
 
           {/* Mergeable Tables */}

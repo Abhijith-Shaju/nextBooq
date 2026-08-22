@@ -12,6 +12,7 @@ const occupiedTable: Table = {
   cafe_id: 'cafe_1',
   table_number: 'T1',
   capacity: 4,
+  zone: 'indoor',
   status: 'active',
 };
 
@@ -21,6 +22,7 @@ const emptyTable: Table = {
   cafe_id: 'cafe_1',
   table_number: 'T2',
   capacity: 2,
+  zone: 'indoor',
   status: 'active',
 };
 
@@ -39,7 +41,12 @@ const seatedReservation: Reservation = {
 
 describe('FloorplanCanvas keyboard accessibility', () => {
   beforeEach(() => {
-    useDashboardStore.setState({ selectedReservationId: null, isDrawerOpen: false });
+    useDashboardStore.setState({
+      selectedReservationId: null,
+      isDrawerOpen: false,
+      assignTableTargetId: null,
+      isAssignTableOpen: false,
+    });
   });
 
   test('an occupied table is a real button reachable by keyboard, and Enter opens the drawer', async () => {
@@ -56,10 +63,23 @@ describe('FloorplanCanvas keyboard accessibility', () => {
     expect(useDashboardStore.getState().isDrawerOpen).toBe(true);
   });
 
-  test('an empty table with no reservation to open is not a focusable button', () => {
+  test('an empty table is a focusable button, and clicking it opens the assign-table modal for that table', async () => {
+    const user = userEvent.setup();
     render(<FloorplanCanvas tables={[emptyTable]} reservations={[]} />);
 
+    const empty = screen.getByRole('button', { name: /t2/i });
+    empty.focus();
+    expect(empty).toHaveFocus();
+
+    await user.keyboard('{Enter}');
+
+    expect(useDashboardStore.getState().assignTableTargetId).toBe('t2');
+    expect(useDashboardStore.getState().isAssignTableOpen).toBe(true);
+  });
+
+  test('an out-of-service table is not a focusable button', () => {
+    render(<FloorplanCanvas tables={[{ ...emptyTable, status: 'out_of_service' }]} reservations={[]} />);
+
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
-    expect(screen.getByText('Empty')).toBeInTheDocument();
   });
 });
