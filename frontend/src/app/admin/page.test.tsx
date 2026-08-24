@@ -233,4 +233,102 @@ describe('AdminOverviewPage', () => {
     expect(screen.queryByText('Cafe 01')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^next$/i })).toBeDisabled();
   });
+
+  test('shows "No cafes yet." when there are zero cafes and no search query', async () => {
+    mockOverviewAnd({ data: { data: [] } });
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('No cafes yet.')).toBeInTheDocument());
+    expect(screen.queryByText('No cafes match your search.')).not.toBeInTheDocument();
+  });
+
+  test('shows "No cafes match your search." when a search query matches nothing', async () => {
+    mockOverviewAnd({
+      data: {
+        data: [
+          { _id: 'org1', name: 'Org A', cafes: [{ _id: 'c1', name: 'Roastery North', slug: 'rn', subscription: null, subscription_status: 'active', owner: null, created_at: '2026-01-01T00:00:00.000Z' }] },
+        ],
+      },
+    });
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('Roastery North')).toBeInTheDocument());
+    fireEvent.change(screen.getByLabelText(/search cafes/i), { target: { value: 'nonexistent cafe xyz' } });
+
+    expect(screen.queryByText('Roastery North')).not.toBeInTheDocument();
+    expect(screen.getByText('No cafes match your search.')).toBeInTheDocument();
+    expect(screen.queryByText('No cafes yet.')).not.toBeInTheDocument();
+  });
+
+  test('opens the drawer with the correct cafe owner when clicking a row from a filtered list', async () => {
+    const firstOwner = { name: 'Alice First', email: 'alice@example.com', phone: '+15550000001' };
+    const secondOwner = { name: 'Bob Second', email: 'bob@example.com', phone: '+15550000002' };
+
+    vi.mocked(axiosInstance.get).mockImplementation((url: string) => {
+      if (url === '/api/v1/platform-admin/overview') {
+        return Promise.resolve({
+          data: { data: { org_count: 2, cafe_count: 2, status_counts: { trial: 0, active: 0, past_due: 0, inactive: 0 }, pending_count: 0, revenue: 0 } },
+        });
+      }
+      if (url === '/api/v1/platform-admin/orgs') {
+        return Promise.resolve({
+          data: {
+            data: [
+              {
+                _id: 'org1',
+                name: 'Org A',
+                cafes: [{
+                  _id: 'cafe1',
+                  name: 'Alpha Cafe',
+                  slug: 'alpha-cafe',
+                  subscription: null,
+                  subscription_status: 'active',
+                  owner: firstOwner,
+                  created_at: '2026-01-01T00:00:00.000Z',
+                }],
+              },
+              {
+                _id: 'org2',
+                name: 'Org B',
+                cafes: [{
+                  _id: 'cafe2',
+                  name: 'Beta Cafe',
+                  slug: 'beta-cafe',
+                  subscription: null,
+                  subscription_status: 'active',
+                  owner: secondOwner,
+                  created_at: '2026-01-01T00:00:00.000Z',
+                }],
+              },
+            ],
+          },
+        });
+      }
+      if (url === '/api/v1/platform-admin/cafes/cafe2/subscriptions') {
+        return Promise.resolve({ data: { data: [] } });
+      }
+      return Promise.reject(new Error(`unexpected url ${url}`));
+    });
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('Alpha Cafe')).toBeInTheDocument());
+    fireEvent.change(screen.getByLabelText(/search cafes/i), { target: { value: 'beta' } });
+
+    expect(screen.queryByText('Alpha Cafe')).not.toBeInTheDocument();
+    expect(screen.getByText('Beta Cafe')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Beta Cafe'));
+
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: secondOwner.email })).toHaveAttribute(
+        'href',
+        `mailto:${secondOwner.email}`
+      )
+    );
+    expect(screen.queryByText(firstOwner.email)).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: firstOwner.email })).not.toBeInTheDocument();
+  });
 });

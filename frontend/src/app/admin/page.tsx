@@ -63,7 +63,8 @@ export default function AdminOverviewPage() {
     [filteredRows, sortField, sortDir]
   );
   const totalPages = Math.max(1, Math.ceil(sortedRows.length / PAGE_SIZE));
-  const pageRows = sortedRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const safePage = Math.min(page, totalPages);
+  const pageRows = sortedRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const handleSelectCafe = (cafeId: string) => setSelectedCafeId(cafeId);
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,7 +119,7 @@ export default function AdminOverviewPage() {
         <button
           type="button"
           onClick={handleSortDirToggle}
-          aria-label={sortDir === 'asc' ? 'Sort ascending' : 'Sort descending'}
+          aria-label={sortDir === 'asc' ? 'Sort descending' : 'Sort ascending'}
           className="rounded-md border border-slate-300 px-2.5 py-2 text-sm font-semibold hover:bg-slate-50"
         >
           {sortDir === 'asc' ? '↑' : '↓'}
@@ -140,7 +141,7 @@ export default function AdminOverviewPage() {
             {pageRows.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
-                  No cafes match your search.
+                  {searchQuery.trim() ? 'No cafes match your search.' : 'No cafes yet.'}
                 </td>
               </tr>
             ) : (
@@ -190,16 +191,16 @@ export default function AdminOverviewPage() {
         <button
           type="button"
           onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page <= 1}
+          disabled={safePage <= 1}
           className="rounded-md border border-slate-300 px-3 py-1.5 font-semibold disabled:cursor-not-allowed disabled:opacity-40"
         >
           Previous
         </button>
-        <span>Page {page} of {totalPages}</span>
+        <span>Page {safePage} of {totalPages}</span>
         <button
           type="button"
           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-          disabled={page >= totalPages}
+          disabled={safePage >= totalPages}
           className="rounded-md border border-slate-300 px-3 py-1.5 font-semibold disabled:cursor-not-allowed disabled:opacity-40"
         >
           Next
