@@ -154,10 +154,18 @@ const verifyCheckoutPayment = async ({
   }
 
   const cafe = await Cafe.findById(tenantId);
-  const keySecret =
-    cafe?.payments?.configured || process.env.NODE_ENV !== 'development'
-      ? decrypt(cafe.payments.razorpay_key_secret_encrypted)
-      : DEV_MOCK_KEY_SECRET; // development mock-order fallback keeps working
+  // config (validated at startup) rather than process.env directly, matching
+  // every other environment check in this codebase (L-10). An unconfigured
+  // cafe outside development previously fell through to decrypt('') here,
+  // throwing "Malformed encrypted value" as an unhandled 500 instead of a
+  // clear 400 telling the caller what's actually wrong.
+  const useDevMockKey = config.NODE_ENV === 'development' && !cafe?.payments?.configured;
+  if (!useDevMockKey && !cafe?.payments?.configured) {
+    throw new BadRequestError("This cafe hasn't finished setting up payments yet.");
+  }
+  const keySecret = useDevMockKey
+    ? DEV_MOCK_KEY_SECRET // development mock-order fallback keeps working
+    : decrypt(cafe.payments.razorpay_key_secret_encrypted);
 
   const expectedSignature = crypto
     .createHmac('sha256', keySecret)

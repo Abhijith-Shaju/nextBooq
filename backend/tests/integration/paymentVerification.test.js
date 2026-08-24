@@ -119,6 +119,45 @@ describe('Integration Test: Client-side payment verification endpoint', () => {
     expect(updated.status).toBe('PENDING_PAYMENT');
   });
 
+  // L-10: an unconfigured cafe outside development used to fall through to
+  // decrypt('') on the empty razorpay_key_secret_encrypted default,
+  // throwing "Malformed encrypted value" as an unhandled 500 instead of a
+  // clear 400 explaining what's actually wrong.
+  test('returns a clear 400 (not a 500) verifying payment for an unconfigured cafe outside development', async () => {
+    const unconfiguredOrg = await Organization.create({ name: 'Unconfigured Verify Org' });
+    const unconfiguredCafe = await Cafe.create({
+      org_id: unconfiguredOrg._id,
+      name: 'Unconfigured Verify Cafe',
+      slug: 'unconfigured-verify-cafe',
+      timezone: 'UTC',
+      // payments.configured defaults to false -- deliberately not set here.
+    });
+    const table = await Table.create({ cafe_id: unconfiguredCafe._id, table_number: 'T1', capacity: 2 });
+    const unconfiguredReservation = await Reservation.create({
+      cafe_id: unconfiguredCafe._id,
+      user_id: user._id,
+      table_ids: [table._id],
+      start_time: new Date('2026-08-20T19:00:00Z'),
+      end_time: new Date('2026-08-20T20:30:00Z'),
+      party_size: 2,
+      reservation_timezone: 'UTC',
+      status: 'PENDING_PAYMENT',
+      payment_data: { order_id: 'order_unconfigured_1', amount: 100, currency: 'INR', webhook_processed: false },
+    });
+
+    const res = await request(app)
+      .post(`/api/v1/cafes/${unconfiguredCafe._id}/reservations/${unconfiguredReservation._id}/verify-payment`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        razorpay_order_id: 'order_unconfigured_1',
+        razorpay_payment_id: 'pay_unconfigured_1',
+        razorpay_signature: 'irrelevant',
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/hasn't finished setting up payments/i);
+  });
+
   describe('dev-mode unconfigured cafe payment verification', () => {
     const DEV_MOCK_KEY_SECRET = 'dev_mock_key_secret_not_a_real_razorpay_secret';
 
@@ -168,15 +207,19 @@ describe('Integration Test: Client-side payment verification endpoint', () => {
         payment_data: { order_id: 'order_mock_dev_12345', amount: 100, currency: 'INR', webhook_processed: false },
       });
 
-      // Temporarily set NODE_ENV to development for this test
-      originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
+      // Temporarily set NODE_ENV to development for this test. Mutating the
+      // parsed `config` object -- not process.env -- because paymentService.js
+      // reads config.NODE_ENV (validated at startup), not process.env
+      // directly (L-10); config is a plain object snapshot, so this is the
+      // correct way to flip it for a single test.
+      originalEnv = config.NODE_ENV;
+      config.NODE_ENV = 'development';
 
       devModeToken = jwt.sign({ id: devModeUser._id.toString() }, config.JWT_SECRET);
     });
 
     afterEach(() => {
-      process.env.NODE_ENV = originalEnv;
+      config.NODE_ENV = originalEnv;
     });
 
     test('verifies payment for unconfigured cafe in development using hardcoded dev mock key', async () => {

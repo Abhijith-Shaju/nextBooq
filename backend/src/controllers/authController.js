@@ -86,14 +86,14 @@ const registerUser = async (req, res, next) => {
     }
     assertPasswordStrength(password);
 
+    // One generic message for either conflict (L-06) -- distinguishing "email
+    // taken" from "phone taken" would let a caller enumerate which specific
+    // emails/phone numbers are already registered, the same enumeration
+    // forgotPassword is deliberately careful to avoid.
     const existingEmail = await User.findOne({ email: email.toLowerCase() });
-    if (existingEmail) {
-      throw new BadRequestError('User with this email already exists');
-    }
-
-    const existingPhone = await User.findOne({ phone: phone.trim() });
-    if (existingPhone) {
-      throw new BadRequestError('User with this phone number already exists');
+    const existingPhone = existingEmail ? null : await User.findOne({ phone: phone.trim() });
+    if (existingEmail || existingPhone) {
+      throw new BadRequestError('An account with this email or phone number already exists');
     }
 
     const salt = await bcrypt.genSalt(10);
