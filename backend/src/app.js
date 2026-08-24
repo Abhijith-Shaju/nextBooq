@@ -7,6 +7,7 @@ const routes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
 const sanitizeInput = require('./middleware/sanitizeInput');
 const config = require('./config/env');
+const { getAuditLogHealth } = require('./services/auditService');
 
 const app = express();
 
@@ -49,12 +50,20 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(sanitizeInput);
 
-// Healthcheck Route
+// Healthcheck Route. Always 200 for basic liveness -- audit logging is
+// deliberately off the request critical path (see auditService.js), so a
+// failing audit write must never make the load balancer kill an otherwise
+// healthy instance. checks.auditLog is here purely so a monitor that reads
+// the body (not just the status code) can alert on a persistently failing
+// audit trail, which used to be visible only in logs no one was tailing (L-11).
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
+    checks: {
+      auditLog: getAuditLogHealth(),
+    },
   });
 });
 
