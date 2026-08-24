@@ -13,8 +13,28 @@ const { sendPasswordResetEmail, sendVerificationEmail } = require('../services/e
 const SESSION_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MIN_PASSWORD_LENGTH = 8;
 
-const generateToken = (userId) => {
-  return jwt.sign({ id: userId }, config.JWT_SECRET, { expiresIn: '7d' });
+// tokenVersion is embedded as `tv` and compared against the user's current
+// token_version by middleware/auth.js on every request — bumping
+// token_version (done on password reset) invalidates every token minted
+// with the old value, even though JWTs are otherwise stateless (H-05).
+const generateToken = (userId, tokenVersion) => {
+  return jwt.sign({ id: userId, tv: tokenVersion }, config.JWT_SECRET, { expiresIn: '7d' });
+};
+
+// Socket tokens used to reuse generateToken and inherit its 7-day expiry —
+// a token deliberately handed to browser JS (unlike the httpOnly session
+// cookie) staying valid for a week turned any XSS or log capture into a
+// full week of account access rather than just a socket connection (H-04).
+// Short TTL plus a distinct `aud` claim: socketAuth.js's handshake requires
+// aud === 'socket' (so a leaked session token can't open a socket) and
+// middleware/auth.js's REST authenticate rejects aud === 'socket' (so this
+// token can't be replayed against the REST API either).
+const SOCKET_TOKEN_TTL_SECONDS = 120;
+const generateSocketToken = (userId) => {
+  return jwt.sign({ id: userId }, config.JWT_SECRET, {
+    expiresIn: SOCKET_TOKEN_TTL_SECONDS,
+    audience: 'socket',
+  });
 };
 
 // Only applied when *creating* a new account — never on login/auth of an
@@ -92,7 +112,7 @@ const registerUser = async (req, res, next) => {
     });
 
     await user.save();
-    const token = generateToken(user._id);
+    const token = generateToken(user._id, user.token_version);
     setAuthCookie(res, token);
 
     // Fire-and-forget, same rationale as forgotPassword: verification email
@@ -158,7 +178,7 @@ const loginUser = async (req, res, next) => {
       throw new UnauthorizedError('Invalid credentials');
     }
 
-    const token = generateToken(user._id);
+    const token = generateToken(user._id, user.token_version);
     setAuthCookie(res, token);
 
     const ownerOrgId = await getOwnedOrgId(user);
@@ -282,6 +302,10 @@ const resetPassword = async (req, res, next) => {
     user.password_hash = await bcrypt.hash(password, salt);
     user.password_reset_token_hash = null;
     user.password_reset_expires_at = null;
+    // Invalidates every token issued before this reset (H-05) — the usual
+    // reason to reset is that someone else has account access, so leaving
+    // their already-issued token valid would defeat the point of resetting.
+    user.token_version = (user.token_version || 0) + 1;
     await user.save();
 
     await logAuditEvent({
@@ -457,7 +481,7 @@ const customerQuickAuth = async (req, res, next) => {
       }
     }
 
-    const token = generateToken(user._id);
+    const token = generateToken(user._id, user.token_version);
     setAuthCookie(res, token);
 
     await user.populate(ACTIVE_STAFF_MEMBERSHIP_POPULATE);
@@ -491,7 +515,7 @@ const customerQuickAuth = async (req, res, next) => {
 // token transiently in memory to open the socket, never persisting it.
 const getSocketToken = async (req, res, next) => {
   try {
-    const token = generateToken(req.user._id);
+    const token = generateSocketToken(req.user._id);
     res.status(200).json({
       status: 'success',
       data: { token },

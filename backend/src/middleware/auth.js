@@ -21,9 +21,27 @@ const authenticate = async (req, res, next) => {
 
     const decoded = jwt.verify(token, config.JWT_SECRET);
 
+    // A socket token (aud: 'socket', minted by getSocketToken for the
+    // WebSocket handshake only) must not double as a REST bearer token —
+    // otherwise its short TTL wouldn't actually bound what it can do (H-04).
+    if (decoded.aud === 'socket') {
+      throw new UnauthorizedError('This token is only valid for the WebSocket connection');
+    }
+
     const user = await User.findById(decoded.id);
     if (!user) {
       throw new UnauthorizedError('User account associated with token no longer exists');
+    }
+
+    // A token minted before the user's most recent password reset carries a
+    // stale `tv` claim and must be rejected — otherwise resetting a password
+    // (typically because someone else has access) would leave that access
+    // valid for the rest of the token's 7-day life (H-05). Tokens minted
+    // before this check existed carry no `tv` claim at all; treat that as
+    // version 0 rather than invalidating every already-issued session.
+    const tokenVersion = typeof decoded.tv === 'number' ? decoded.tv : 0;
+    if (tokenVersion !== (user.token_version || 0)) {
+      throw new UnauthorizedError('This session is no longer valid. Please log in again.');
     }
 
     req.user = user;

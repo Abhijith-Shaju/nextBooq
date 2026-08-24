@@ -91,6 +91,17 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Bumped on password reset to invalidate every JWT issued before that
+    // point (H-05) — JWTs are otherwise stateless, so without this a reset
+    // (typically requested because someone else has account access) leaves
+    // that access valid for up to the token's full 7-day lifetime.
+    // middleware/auth.js rejects any token whose `tv` claim doesn't match
+    // the user's current value. Not bumped on logout — that stays scoped to
+    // clearing the current device's cookie, not revoking every session.
+    token_version: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },

@@ -29,10 +29,20 @@ describe('Integration Test: WebSocket authentication and cafe-room authorization
   });
 
   describe('authenticateSocket', () => {
-    test('resolves the user for a valid token', async () => {
-      const token = jwt.sign({ id: staffUser._id.toString() }, config.JWT_SECRET);
+    test('resolves the user for a valid socket-audience token', async () => {
+      const token = jwt.sign({ id: staffUser._id.toString() }, config.JWT_SECRET, {
+        expiresIn: '120s',
+        audience: 'socket',
+      });
       const user = await authenticateSocket(token);
       expect(user._id.toString()).toBe(staffUser._id.toString());
+    });
+
+    // H-04: a plain REST session token (no aud: 'socket' claim) must not be
+    // usable to open a live socket connection.
+    test('rejects a token with no socket audience claim, even if otherwise valid', async () => {
+      const token = jwt.sign({ id: staffUser._id.toString() }, config.JWT_SECRET, { expiresIn: '7d' });
+      await expect(authenticateSocket(token)).rejects.toThrow();
     });
 
     test('rejects a missing token', async () => {

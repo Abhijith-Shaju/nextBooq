@@ -141,6 +141,69 @@ describe('Password reset flow', () => {
     expect(res.status).toBe(400);
   });
 
+  // H-05: JWTs are stateless, so a reset that only changes the password
+  // hash leaves every token issued before it valid until its own 7-day
+  // expiry — defeating the point of a reset requested because someone
+  // else has account access.
+  test('reset-password invalidates a session token issued before the reset', async () => {
+    const password_hash = await bcrypt.hash('OriginalPassword1!', 10);
+    const user = await User.create({
+      name: 'Reset Invalidate',
+      email: 'reset-invalidate@example.com',
+      phone: '+15550300006',
+      password_hash,
+    });
+
+    const loginBefore = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'reset-invalidate@example.com', password: 'OriginalPassword1!' });
+    expect(loginBefore.status).toBe(200);
+    const oldToken = loginBefore.body.data.token;
+
+    const meBefore = await request(app).get('/api/v1/auth/me').set('Authorization', `Bearer ${oldToken}`);
+    expect(meBefore.status).toBe(200);
+
+    const rawToken = 'e'.repeat(64);
+    await User.findByIdAndUpdate(user._id, {
+      password_reset_token_hash: hashResetToken(rawToken),
+      password_reset_expires_at: new Date(Date.now() + 30 * 60 * 1000),
+    });
+    const resetRes = await request(app)
+      .post('/api/v1/auth/reset-password')
+      .send({ token: rawToken, password: 'BrandNewPassword1!' });
+    expect(resetRes.status).toBe(200);
+
+    const meAfter = await request(app).get('/api/v1/auth/me').set('Authorization', `Bearer ${oldToken}`);
+    expect(meAfter.status).toBe(401);
+  });
+
+  test('a token issued after the reset keeps working normally', async () => {
+    const password_hash = await bcrypt.hash('OriginalPassword1!', 10);
+    const user = await User.create({
+      name: 'Reset Then Login',
+      email: 'reset-then-login@example.com',
+      phone: '+15550300007',
+      password_hash,
+    });
+
+    const rawToken = 'f'.repeat(64);
+    await User.findByIdAndUpdate(user._id, {
+      password_reset_token_hash: hashResetToken(rawToken),
+      password_reset_expires_at: new Date(Date.now() + 30 * 60 * 1000),
+    });
+    await request(app).post('/api/v1/auth/reset-password').send({ token: rawToken, password: 'BrandNewPassword1!' });
+
+    const loginAfter = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'reset-then-login@example.com', password: 'BrandNewPassword1!' });
+    expect(loginAfter.status).toBe(200);
+
+    const meAfter = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${loginAfter.body.data.token}`);
+    expect(meAfter.status).toBe(200);
+  });
+
   test('reset-password rejects a weak password with 400', async () => {
     const password_hash = await bcrypt.hash('OriginalPassword1!', 10);
     const user = await User.create({

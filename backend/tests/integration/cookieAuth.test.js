@@ -1,4 +1,5 @@
 const request = require('supertest');
+const jwt = require('jsonwebtoken');
 const app = require('../../src/app');
 const { setupTestDB } = require('../setup');
 
@@ -68,6 +69,40 @@ describe('Integration Test: httpOnly session cookie authentication', () => {
 
   test('GET /auth/socket-token rejects an unauthenticated request', async () => {
     const res = await request(app).get('/api/v1/auth/socket-token');
+
+    expect(res.status).toBe(401);
+  });
+
+  // H-04: the socket token used to be a full 7-day session token, minted by
+  // the same function as login/register. It must now be short-lived and
+  // carry a distinct audience claim rather than being indistinguishable
+  // from a real session token.
+  test('GET /auth/socket-token issues a short-lived, socket-audience token, not a 7-day session token', async () => {
+    await request(app).post('/api/v1/auth/register').send(credentials);
+    const loginRes = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: credentials.email, password: credentials.password });
+    const cookie = extractCookie(loginRes);
+
+    const res = await request(app).get('/api/v1/auth/socket-token').set('Cookie', cookie);
+    const decoded = jwt.decode(res.body.data.token);
+
+    expect(decoded.aud).toBe('socket');
+    const ttlSeconds = decoded.exp - decoded.iat;
+    expect(ttlSeconds).toBeLessThanOrEqual(120);
+  });
+
+  test('a socket token cannot be used to authenticate a REST request', async () => {
+    await request(app).post('/api/v1/auth/register').send(credentials);
+    const loginRes = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: credentials.email, password: credentials.password });
+    const cookie = extractCookie(loginRes);
+
+    const socketTokenRes = await request(app).get('/api/v1/auth/socket-token').set('Cookie', cookie);
+    const socketToken = socketTokenRes.body.data.token;
+
+    const res = await request(app).get('/api/v1/auth/me').set('Authorization', `Bearer ${socketToken}`);
 
     expect(res.status).toBe(401);
   });
