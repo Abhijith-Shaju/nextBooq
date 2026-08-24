@@ -13,6 +13,7 @@ import { axiosInstance } from '@/hooks/api/axios-instance';
 import { hasStaffMembershipForCafe, hasCafePermission } from '@/lib/dashboard/tenant-membership';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { EmailVerificationBanner } from '@/components/shared/email-verification-banner';
 
 function TenantDashboardGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -168,6 +169,7 @@ function TenantDashboardGuard({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <EmailVerificationBanner className="sticky top-0 z-40 mb-4" />
         {children}
       </main>
     </div>

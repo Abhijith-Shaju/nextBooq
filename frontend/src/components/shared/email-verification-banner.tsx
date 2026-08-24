@@ -6,12 +6,13 @@ import { MailWarning, X } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useResendVerificationEmail } from '@/hooks/auth/use-resend-verification-email';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 // Routes where the banner should never appear (auth funnel itself).
 const HIDDEN_PREFIXES = ['/auth/'];
 
-export function EmailVerificationBanner() {
+export function EmailVerificationBanner({ className }: { className?: string }) {
   const { user, isAuthenticated, isLoading } = useAuth();
   const pathname = usePathname();
   const resendMutation = useResendVerificationEmail();
@@ -42,7 +43,10 @@ export function EmailVerificationBanner() {
     <div
       role="alert"
       aria-live="polite"
-      className="w-full bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between gap-3 text-sm"
+      className={cn(
+        'w-full bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between gap-3 text-sm',
+        className
+      )}
     >
       <div className="flex items-center gap-2.5 min-w-0">
         <MailWarning className="h-4 w-4 shrink-0 text-amber-600" />

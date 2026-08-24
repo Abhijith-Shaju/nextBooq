@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { toast } from 'sonner';
 import { LogOut } from 'lucide-react';
+import { EmailVerificationBanner } from '@/components/shared/email-verification-banner';
 
 /**
  * Platform-admin shell: nextBooq's own operator surface, not tenant-branded
@@ -53,6 +54,7 @@ function AdminGuard({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       </header>
+      <EmailVerificationBanner className="sticky top-0 z-40" />
       <main className="p-6">{children}</main>
     </div>
   );

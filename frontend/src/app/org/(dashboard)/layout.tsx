@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Coffee } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { AccountMenu } from '@/components/shared/account-menu';
+import { EmailVerificationBanner } from '@/components/shared/email-verification-banner';
 import { toast } from 'sonner';
 
 /**
@@ -44,7 +45,7 @@ function OrgDashboardGuard({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-brand-cream">
-      <header className="sticky top-0 z-10 border-b border-brand-brown/10 bg-brand-cream/90 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 border-b border-brand-brown/10 bg-brand-cream/90 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/org/dashboard" className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-red shadow-brand-sm">
@@ -66,6 +67,8 @@ function OrgDashboardGuard({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
+
+      <EmailVerificationBanner className="sticky top-[72px] z-40" />
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">{children}</main>
     </div>

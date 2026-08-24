@@ -12,7 +12,15 @@ export default async function TenantLayout({
   const { tenant } = await params;
 
   // Ignore static assets matched by dynamic tenant route
-  const RESERVED_SLUGS = ['favicon.ico', 'sw.js', 'robots.txt', 'site.webmanifest', '_next'];
+  const RESERVED_SLUGS = [
+    'about',
+    'contact',
+    'favicon.ico',
+    'sw.js',
+    'robots.txt',
+    'site.webmanifest',
+    '_next',
+  ];
   if (RESERVED_SLUGS.includes(tenant.toLowerCase())) {
     notFound();
   }

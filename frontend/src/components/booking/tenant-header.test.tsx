@@ -20,6 +20,10 @@ vi.mock('@/components/auth/customer-auth-modal', () => ({
   CustomerAuthModal: ({ open }: { open: boolean }) => (open ? <div>auth modal open</div> : null),
 }));
 
+vi.mock('@/components/shared/email-verification-banner', () => ({
+  EmailVerificationBanner: () => null,
+}));
+
 describe('TenantPublicHeader', () => {
   beforeEach(() => {
     logoutMock.mockReset();

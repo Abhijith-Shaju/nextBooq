@@ -17,6 +17,10 @@ vi.mock('@/components/providers/auth-provider', () => ({
   useAuth: () => useAuthMock(),
 }));
 
+vi.mock('@/components/shared/email-verification-banner', () => ({
+  EmailVerificationBanner: () => null,
+}));
+
 describe('OrgDashboardLayout', () => {
   beforeEach(() => {
     replaceMock.mockReset();
