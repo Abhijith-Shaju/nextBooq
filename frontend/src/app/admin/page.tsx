@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAdminOverview } from '@/hooks/admin/use-admin-overview';
 import { useAdminOrgs } from '@/hooks/admin/use-admin-orgs';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { SubscriptionDrawer } from '@/components/admin/subscription-drawer';
 import {
   flattenCafeRows,
@@ -23,6 +23,13 @@ const STAT_LABELS: { key: 'org_count' | 'cafe_count' | 'pending_count' | 'revenu
 ];
 
 const PAGE_SIZE = 10;
+
+function countdownLabel(currentPeriodEnd: string): string {
+  const isLapsed = new Date(currentPeriodEnd).getTime() <= Date.now();
+  return isLapsed
+    ? `Expired ${formatDistanceToNow(new Date(currentPeriodEnd))} ago`
+    : `${formatDistanceToNow(new Date(currentPeriodEnd))} left`;
+}
 
 function statusBadgeClass(status: string): string {
   switch (status) {
@@ -176,9 +183,16 @@ export default function AdminOverviewPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-slate-600">
-                    {cafe.subscription
-                      ? format(new Date(cafe.subscription.current_period_end), 'MMM d, yyyy')
-                      : '—'}
+                    {cafe.subscription ? (
+                      <>
+                        {format(new Date(cafe.subscription.current_period_end), 'MMM d, yyyy')}
+                        <span className="ml-1.5 text-xs text-slate-400">
+                          ({countdownLabel(cafe.subscription.current_period_end)})
+                        </span>
+                      </>
+                    ) : (
+                      '—'
+                    )}
                   </td>
                 </tr>
               ))

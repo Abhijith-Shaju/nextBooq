@@ -122,6 +122,78 @@ describe('AdminOverviewPage', () => {
     expect(screen.getByRole('row', { name: /selectable cafe/i })).toHaveAttribute('aria-selected', 'true');
   });
 
+  test('shows a countdown of time remaining next to the renewal date', async () => {
+    const tenDaysFromNow = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString();
+
+    vi.mocked(axiosInstance.get).mockImplementation((url: string) => {
+      if (url === '/api/v1/platform-admin/overview') {
+        return Promise.resolve({
+          data: { data: { org_count: 1, cafe_count: 1, status_counts: { trial: 0, active: 1, past_due: 0, inactive: 0 }, pending_count: 0, revenue: 9000 } },
+        });
+      }
+      if (url === '/api/v1/platform-admin/orgs') {
+        return Promise.resolve({
+          data: {
+            data: [
+              {
+                _id: 'org1',
+                name: 'Countdown Org',
+                cafes: [{
+                  _id: 'cafe1',
+                  name: 'Countdown Cafe',
+                  slug: 'countdown',
+                  subscription: { _id: 'sub1', term_months: 1, price_per_month: 9000, status: 'active', current_period_end: tenDaysFromNow },
+                }],
+              },
+            ],
+          },
+        });
+      }
+      return Promise.reject(new Error(`unexpected url ${url}`));
+    });
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('Countdown Cafe')).toBeInTheDocument());
+    expect(screen.getByText(/\(\d+ days? left\)/i)).toBeInTheDocument();
+  });
+
+  test('shows an "Expired ... ago" countdown for a lapsed subscription', async () => {
+    const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+
+    vi.mocked(axiosInstance.get).mockImplementation((url: string) => {
+      if (url === '/api/v1/platform-admin/overview') {
+        return Promise.resolve({
+          data: { data: { org_count: 1, cafe_count: 1, status_counts: { trial: 0, active: 0, past_due: 1, inactive: 0 }, pending_count: 0, revenue: 0 } },
+        });
+      }
+      if (url === '/api/v1/platform-admin/orgs') {
+        return Promise.resolve({
+          data: {
+            data: [
+              {
+                _id: 'org1',
+                name: 'Lapsed Org',
+                cafes: [{
+                  _id: 'cafe1',
+                  name: 'Lapsed Cafe',
+                  slug: 'lapsed',
+                  subscription: { _id: 'sub1', term_months: 1, price_per_month: 9000, status: 'past_due', current_period_end: tenDaysAgo },
+                }],
+              },
+            ],
+          },
+        });
+      }
+      return Promise.reject(new Error(`unexpected url ${url}`));
+    });
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('Lapsed Cafe')).toBeInTheDocument());
+    expect(screen.getByText(/\(expired \d+ days? ago\)/i)).toBeInTheDocument();
+  });
+
   const buildOrgsResponse = (cafeCount: number) => ({
     data: {
       data: [
