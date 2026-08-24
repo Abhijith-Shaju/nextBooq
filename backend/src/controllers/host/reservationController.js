@@ -4,7 +4,19 @@ const { transitionState } = require('../../services/stateMachine');
 const { findSeatedOccupancyConflict } = require('../../services/tableOccupancyService');
 const { suggestAlternateTable } = require('../../services/allocationEngine');
 const { assignReservationToTable } = require('../../services/tableAssignmentService');
+const { localTimeToUTC } = require('../../utils/operatingHours');
 const { BadRequestError, NotFoundError } = require('../../utils/errors');
+
+const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+// The day after `dateKey`, as a YYYY-MM-DD string. Timezone-independent —
+// operates on the plain calendar date, same convention as
+// operatingHours.js's dayOfWeekForDateKey.
+const nextDateKey = (dateKey) => {
+  const next = new Date(`${dateKey}T00:00:00Z`);
+  next.setUTCDate(next.getUTCDate() + 1);
+  return next.toISOString().slice(0, 10);
+};
 
 const getDailyManifest = async (req, res, next) => {
   try {
@@ -13,10 +25,19 @@ const getDailyManifest = async (req, res, next) => {
 
     let dateQuery = {};
     if (date) {
-      const startOfDay = new Date(`${date}T00:00:00.000Z`);
-      const endOfDay = new Date(`${date}T23:59:59.999Z`);
+      if (!DATE_KEY_PATTERN.test(date)) {
+        throw new BadRequestError('date must be a YYYY-MM-DD string');
+      }
+      // The manifest is "today" in the café's own local calendar day, not
+      // UTC's — matching every other place this app resolves a booking
+      // date (e.g. availabilityController.js). Hardcoding UTC boundaries
+      // here split the evening service across two pages for any café not
+      // on UTC (M-03).
+      const timeZone = req.cafe?.timezone || 'UTC';
+      const startOfDay = localTimeToUTC(date, '00:00', timeZone);
+      const endOfDayExclusive = localTimeToUTC(nextDateKey(date), '00:00', timeZone);
       dateQuery = {
-        start_time: { $gte: startOfDay, $lte: endOfDay },
+        start_time: { $gte: startOfDay, $lt: endOfDayExclusive },
       };
     }
 
