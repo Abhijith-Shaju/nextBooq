@@ -105,7 +105,7 @@ const validateMenuInput = (menu) => {
 const updateCafe = async (req, res, next) => {
   try {
     const cafeId = req.tenantId;
-    const { reservation_rules, operating_hours, description, hero_image_url, menu, payments } = req.body;
+    const { reservation_rules, operating_hours, description, hero_image_url, menu } = req.body;
 
     const cafe = await Cafe.findById(cafeId);
     if (!cafe) {
@@ -170,42 +170,59 @@ const updateCafe = async (req, res, next) => {
       cafe.menu = menu;
     }
 
-    let webhookReveal = null;
+    await cafe.save();
 
-    if (payments !== undefined) {
-      const { razorpay_key_id: razorpayKeyId, razorpay_key_secret: razorpayKeySecret } = payments || {};
-      const hasKeyId = typeof razorpayKeyId === 'string' && razorpayKeyId.length > 0;
-      const hasKeySecret = typeof razorpayKeySecret === 'string' && razorpayKeySecret.length > 0;
+    res.status(200).json({
+      status: 'success',
+      data: cafe.toJSON(),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-      if (hasKeyId !== hasKeySecret) {
-        throw new BadRequestError('Both razorpay_key_id and razorpay_key_secret are required together');
-      }
+// Payment credentials are deliberately a separate endpoint from the rest of
+// cafe settings, gated on the manage_billing permission rather than
+// edit_settings — a manager (who gets edit_settings by default) must not be
+// able to redirect a cafe's Razorpay payouts to an account of their own
+// choosing (H-03). manage_billing is not granted to any role by default, so
+// only the owner (who bypasses per-permission checks entirely — see rbac.js)
+// can reach this today.
+const updateCafePayments = async (req, res, next) => {
+  try {
+    const cafeId = req.tenantId;
+    const { razorpay_key_id: razorpayKeyId, razorpay_key_secret: razorpayKeySecret } = req.body || {};
 
-      if (hasKeyId && hasKeySecret) {
-        await validateRazorpayCredentials(razorpayKeyId, razorpayKeySecret);
-
-        const webhookSecretPlaintext = crypto.randomBytes(32).toString('hex');
-
-        cafe.payments = {
-          razorpay_key_id: razorpayKeyId,
-          razorpay_key_secret_encrypted: encrypt(razorpayKeySecret),
-          razorpay_webhook_secret_encrypted: encrypt(webhookSecretPlaintext),
-          configured: true,
-        };
-
-        webhookReveal = {
-          url: `${config.FRONTEND_URL}/api/v1/webhooks/razorpay/${cafe.slug}`,
-          secret: webhookSecretPlaintext,
-        };
-      }
+    const cafe = await Cafe.findById(cafeId);
+    if (!cafe) {
+      throw new NotFoundError('Cafe not found');
     }
+
+    const hasKeyId = typeof razorpayKeyId === 'string' && razorpayKeyId.length > 0;
+    const hasKeySecret = typeof razorpayKeySecret === 'string' && razorpayKeySecret.length > 0;
+
+    if (!hasKeyId || !hasKeySecret) {
+      throw new BadRequestError('Both razorpay_key_id and razorpay_key_secret are required');
+    }
+
+    await validateRazorpayCredentials(razorpayKeyId, razorpayKeySecret);
+
+    const webhookSecretPlaintext = crypto.randomBytes(32).toString('hex');
+
+    cafe.payments = {
+      razorpay_key_id: razorpayKeyId,
+      razorpay_key_secret_encrypted: encrypt(razorpayKeySecret),
+      razorpay_webhook_secret_encrypted: encrypt(webhookSecretPlaintext),
+      configured: true,
+    };
 
     await cafe.save();
 
     const responseData = cafe.toJSON();
-    if (webhookReveal) {
-      responseData.payments_webhook = webhookReveal;
-    }
+    responseData.payments_webhook = {
+      url: `${config.FRONTEND_URL}/api/v1/webhooks/razorpay/${cafe.slug}`,
+      secret: webhookSecretPlaintext,
+    };
 
     res.status(200).json({
       status: 'success',
@@ -242,5 +259,6 @@ const getCafeBySlug = async (req, res, next) => {
 
 module.exports = {
   updateCafe,
+  updateCafePayments,
   getCafeBySlug,
 };

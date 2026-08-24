@@ -15,7 +15,7 @@ const {
   createTable,
   updateTable,
 } = require('../../controllers/admin/tableController');
-const { updateCafe } = require('../../controllers/admin/cafeController');
+const { updateCafe, updateCafePayments } = require('../../controllers/admin/cafeController');
 
 // Global Auth required for all protected routes
 router.use(authenticate);
@@ -27,6 +27,17 @@ router.put(
   enforceSubscriptionForWrite,
   requirePermission('edit_settings'),
   updateCafe
+);
+
+// Update Payment Credentials — deliberately separate from the settings route
+// above and gated on manage_billing rather than edit_settings, so a manager
+// (who holds edit_settings by default) cannot redirect the cafe's payouts.
+router.put(
+  '/cafes/:cafeId/payments',
+  extractTenant,
+  enforceSubscriptionForWrite,
+  requirePermission('manage_billing'),
+  updateCafePayments
 );
 
 // Host Stand Manifest (view_reservations permission required)

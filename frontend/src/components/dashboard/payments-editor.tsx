@@ -29,8 +29,9 @@ export function PaymentsEditor({ cafeId, razorpayKeyId, configured, onSaved }: P
     setError(null);
     setIsSaving(true);
     try {
-      const res = await axiosInstance.put(`/api/v1/cafes/${cafeId}`, {
-        payments: { razorpay_key_id: keyId, razorpay_key_secret: keySecret },
+      const res = await axiosInstance.put(`/api/v1/cafes/${cafeId}/payments`, {
+        razorpay_key_id: keyId,
+        razorpay_key_secret: keySecret,
       });
       onSaved(res.data.data.payments_webhook);
       setReplacing(false);

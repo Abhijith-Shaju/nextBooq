@@ -48,8 +48,9 @@ describe('PaymentsEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: /save.*payment|connect razorpay/i }));
 
     await waitFor(() =>
-      expect(axiosInstance.put).toHaveBeenCalledWith('/api/v1/cafes/cafe1', {
-        payments: { razorpay_key_id: 'rzp_test_new', razorpay_key_secret: 'somesecretvalue' },
+      expect(axiosInstance.put).toHaveBeenCalledWith('/api/v1/cafes/cafe1/payments', {
+        razorpay_key_id: 'rzp_test_new',
+        razorpay_key_secret: 'somesecretvalue',
       })
     );
     await waitFor(() =>
