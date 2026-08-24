@@ -4,7 +4,9 @@
 
 **Tally:** 1 critical · 5 high · 10 medium · 12 low
 
-C-01, M-05 and M-09 were reproduced by executing the affected functions directly; everything else is read from source with file/line references. No fixes were applied.
+C-01, M-05 and M-09 were reproduced by executing the affected functions directly; everything else is read from source with file/line references.
+
+**Status (2026-08-25, later same day):** all 6 critical/high findings fixed and committed — see [Fix log](#fix-log) at the end of this document. Medium and low findings are still open.
 
 A rendered version of this report is published as an artifact: https://claude.ai/code/artifact/75e39e7a-c427-4d53-9de2-975076d44690
 
@@ -12,7 +14,7 @@ A rendered version of this report is published as an artifact: https://claude.ai
 
 ## Critical
 
-### C-01 — One unauthenticated request can issue 666,720 database queries
+### C-01 — One unauthenticated request can issue 666,720 database queries ✅ FIXED
 
 `backend/src/controllers/public/availabilityController.js:25` · `backend/src/utils/operatingHours.js:128`
 
@@ -28,7 +30,7 @@ The 30/min rate limiter does not help; each request individually can saturate th
 
 ## High
 
-### H-01 — A café's webhook secret can confirm another café's reservation
+### H-01 — A café's webhook secret can confirm another café's reservation ✅ FIXED
 
 `backend/src/controllers/webhookController.js:55`
 
@@ -42,7 +44,7 @@ No `cafe_id` in the filter. Every café holds its own webhook secret, so any caf
 
 **Fix:** scope the lookup — `{ 'payment_data.order_id': orderId, cafe_id: cafe._id }`.
 
-### H-02 — A live debug endpoint reflects every request header
+### H-02 — A live debug endpoint reflects every request header ✅ FIXED
 
 `backend/src/app.js:61-74`
 
@@ -50,7 +52,7 @@ No `cafe_id` in the filter. Every café holds its own webhook secret, so any caf
 
 **Fix:** delete the route, or gate it behind `NODE_ENV === 'development'`.
 
-### H-03 — A manager can redirect the café's payouts to their own account
+### H-03 — A manager can redirect the café's payouts to their own account ✅ FIXED
 
 `backend/src/routes/v1/protectedRoutes.js:28` · `backend/src/controllers/admin/cafeController.js:175-200` · `backend/src/models/User.js:25`
 
@@ -60,7 +62,7 @@ The permission enum already defines `manage_billing` for this. It is declared in
 
 **Fix:** split the payments block into its own route gated on `manage_billing`; grant that to owners only.
 
-### H-04 — The WebSocket token is a full seven-day session key
+### H-04 — The WebSocket token is a full seven-day session key ✅ FIXED
 
 `backend/src/controllers/authController.js:485-502`
 
@@ -68,7 +70,7 @@ The permission enum already defines `manage_billing` for this. It is declared in
 
 **Fix:** short TTL (60–120s) plus an audience claim the socket handshake checks and REST auth rejects.
 
-### H-05 — Resetting a password does not end the attacker's session
+### H-05 — Resetting a password does not end the attacker's session ✅ FIXED
 
 `backend/src/controllers/authController.js:260-302, 205-215`
 
@@ -215,3 +217,22 @@ Most of this codebase is careful, and several findings above are narrow gaps in 
 2. **H-01, H-03** — the money and tenancy path. Both are small diffs; both currently let one café's actor reach another café's money.
 3. **H-04, H-05** — session integrity. A version claim in the JWT solves both.
 4. **M-02, M-03, M-07** — data integrity, daily operations, and the consumer-terms exposure respectively.
+
+---
+
+## Fix log
+
+All 6 critical/high findings fixed the same day, each with a regression test proving the exploit and proving the fix, verified against the full backend (429/429) and frontend (360/360) suites:
+
+| Finding | Commit | Notes |
+|---------|--------|-------|
+| C-01 | `c6bccbd` | Bounded `durationMinutes` to [15, 720] minutes on the public availability endpoint. |
+| H-01 | `fb12a30` | Scoped the webhook's reservation lookup to the verified café (`cafe_id` added to the query). |
+| H-02 | `5c0fb5d` | Deleted `/debug-echo` entirely. |
+| H-03 | `c9dd055` | Split payment credentials into `PUT /cafes/:cafeId/payments`, gated on `manage_billing` instead of `edit_settings`. |
+| H-04 | `4ca4c8e` | Socket tokens now expire in 120s and carry an `aud: 'socket'` claim, checked in both directions (socket handshake requires it; REST auth rejects it). |
+| H-05 | `4ca4c8e` | Added `User.token_version`, embedded as `tv` in every session token and bumped on password reset; `authenticate` rejects a stale `tv`. Logout deliberately left as-is (device-local), since only a reset — not an ordinary logout — should revoke every session. |
+
+Two full-suite runs during H-04/H-05 verification surfaced intermittent failures in `tableAssignment.test.js` and `reservationFeeCharging.test.js`; both were confirmed pre-existing test-order flakiness (reproduced identically with the fix commits reverted, and passed cleanly in isolation), not regressions.
+
+Medium and low findings remain open.
