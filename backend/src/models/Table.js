@@ -50,7 +50,17 @@ const tableSchema = new mongoose.Schema(
   }
 );
 
-tableSchema.index({ cafe_id: 1, table_number: 1, is_deleted: 1 }, { unique: true });
+// Partial rather than a plain { cafe_id, table_number, is_deleted } unique
+// index: including is_deleted in the index key let two *deleted* rows for
+// the same table_number collide (create -> delete -> recreate -> delete
+// again writes a second deleted document with the same key), surfacing to
+// the host as a confusing duplicate-key 409 on an ordinary delete (M-05).
+// Scoping uniqueness to only live rows means a deleted table_number is
+// simply not indexed at all, so it can never collide with anything.
+tableSchema.index(
+  { cafe_id: 1, table_number: 1 },
+  { unique: true, partialFilterExpression: { is_deleted: false } }
+);
 tableSchema.index({ cafe_id: 1, status: 1, is_deleted: 1 });
 
 module.exports = mongoose.model('Table', tableSchema);
