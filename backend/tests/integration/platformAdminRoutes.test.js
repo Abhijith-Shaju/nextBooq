@@ -81,6 +81,31 @@ describe('Platform admin routes', () => {
     const found = res.body.data.find((o) => o._id === org._id.toString());
     expect(found).toBeDefined();
     expect(found.cafes[0].subscription).toBeNull();
+    expect(found.cafes[0].owner).toEqual({
+      name: 'Cafe Owner',
+      email: 'cafe-owner-route@test.com',
+      phone: '+1555993002',
+    });
+  });
+
+  test('GET /orgs returns owner: null for a cafe with no owner-role staff member', async () => {
+    const ownerlessOrg = await Organization.create({ name: 'Ownerless Org' });
+    await Cafe.create({
+      org_id: ownerlessOrg._id,
+      name: 'Ownerless Cafe',
+      slug: 'ownerless-cafe',
+      timezone: 'UTC',
+      subscription_status: 'active',
+    });
+
+    const res = await request(app)
+      .get('/api/v1/platform-admin/orgs')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    const found = res.body.data.find((o) => o._id === ownerlessOrg._id.toString());
+    expect(found).toBeDefined();
+    expect(found.cafes[0].owner).toBeNull();
   });
 
   test('GET /orgs never leaks a cafe\'s encrypted Razorpay secrets', async () => {

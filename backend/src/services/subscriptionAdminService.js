@@ -1,6 +1,7 @@
 const Organization = require('../models/Organization');
 const Cafe = require('../models/Cafe');
 const Subscription = require('../models/Subscription');
+const User = require('../models/User');
 const { NotFoundError } = require('../utils/errors');
 
 const PENDING_WINDOW_DAYS = 7;
@@ -62,6 +63,23 @@ const listOrgsWithCafes = async () => {
 
   const subByCafeId = new Map(currentSubs.map((sub) => [sub.cafe_id.toString(), sub]));
 
+  const cafeIds = cafes.map((cafe) => cafe._id);
+  const owners = await User.find(
+    { 'staff_memberships.cafe_id': { $in: cafeIds }, 'staff_memberships.role': 'owner' },
+    'name email phone staff_memberships'
+  ).lean();
+
+  const ownerByCafeId = new Map();
+  for (const user of owners) {
+    for (const membership of user.staff_memberships) {
+      if (membership.role !== 'owner') continue;
+      const cafeIdStr = membership.cafe_id.toString();
+      if (!ownerByCafeId.has(cafeIdStr)) {
+        ownerByCafeId.set(cafeIdStr, { name: user.name, email: user.email, phone: user.phone });
+      }
+    }
+  }
+
   const cafesByOrgId = new Map();
   for (const cafe of cafes) {
     const orgIdStr = cafe.org_id.toString();
@@ -69,6 +87,7 @@ const listOrgsWithCafes = async () => {
     cafesByOrgId.get(orgIdStr).push({
       ...cafe,
       subscription: subByCafeId.get(cafe._id.toString()) || null,
+      owner: ownerByCafeId.get(cafe._id.toString()) || null,
     });
   }
 
