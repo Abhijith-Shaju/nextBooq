@@ -8,6 +8,14 @@ const {
 } = require('../../utils/operatingHours');
 const { BadRequestError } = require('../../utils/errors');
 
+// Bounds the requested reservation duration. Without this, an unvalidated
+// durationMinutes fed into generateSlotTimes()'s loop bound let a caller pick
+// values (negative, zero, or absurdly large) that produced hundreds of
+// thousands of candidate slots — each one running allocateTables()'s DB
+// queries — from a single unauthenticated request.
+const MIN_DURATION_MINUTES = 15;
+const MAX_DURATION_MINUTES = 720; // 12 hours — generous upper bound for any single reservation
+
 const getAvailableSlots = async (req, res, next) => {
   try {
     const { date, time, partySize, durationMinutes } = req.query;
@@ -23,6 +31,15 @@ const getAvailableSlots = async (req, res, next) => {
     }
 
     const duration = parseInt(durationMinutes || req.cafe?.reservation_rules?.default_turn_time_minutes || 90, 10);
+    if (
+      isNaN(duration) ||
+      duration < MIN_DURATION_MINUTES ||
+      duration > MAX_DURATION_MINUTES
+    ) {
+      throw new BadRequestError(
+        `durationMinutes must be an integer between ${MIN_DURATION_MINUTES} and ${MAX_DURATION_MINUTES}`
+      );
+    }
     const timeZone = req.cafe?.timezone || 'UTC';
 
     // Mirrors the lead-time check in bookingController.js's createReservation so a
