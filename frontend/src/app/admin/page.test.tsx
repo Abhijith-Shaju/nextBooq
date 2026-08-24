@@ -214,7 +214,7 @@ describe('AdminOverviewPage', () => {
     },
   });
 
-  const mockOverviewAnd = (orgsResponse: unknown) => {
+  const mockOverviewAnd = (orgsResponse: unknown, refundsNeededResponse: unknown = { data: { data: [] } }) => {
     vi.mocked(axiosInstance.get).mockImplementation((url: string) => {
       if (url === '/api/v1/platform-admin/overview') {
         return Promise.resolve({
@@ -223,6 +223,9 @@ describe('AdminOverviewPage', () => {
       }
       if (url === '/api/v1/platform-admin/orgs') {
         return Promise.resolve(orgsResponse);
+      }
+      if (url === '/api/v1/platform-admin/refunds-needed') {
+        return Promise.resolve(refundsNeededResponse);
       }
       return Promise.reject(new Error(`unexpected url ${url}`));
     });
@@ -402,5 +405,42 @@ describe('AdminOverviewPage', () => {
     );
     expect(screen.queryByText(firstOwner.email)).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: firstOwner.email })).not.toBeInTheDocument();
+  });
+
+  test('shows a banner listing reservations flagged for a manual refund', async () => {
+    mockOverviewAnd(
+      { data: { data: [] } },
+      {
+        data: {
+          data: [
+            {
+              _id: 'res1',
+              cafe_id: { _id: 'cafe1', name: 'Flagged Cafe', slug: 'flagged-cafe' },
+              user_id: { _id: 'user1', name: 'Overcharged Guest', email: 'overcharged@example.com' },
+              status: 'CANCELLED',
+              party_size: 2,
+              payment_data: { order_id: 'order_abc123', amount: 100, currency: 'INR', status: 'SUCCESS_LATE' },
+              updated_at: '2026-01-01T00:00:00.000Z',
+            },
+          ],
+        },
+      }
+    );
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText(/1 payment needs a manual refund/i)).toBeInTheDocument());
+    expect(screen.getByText('order_abc123')).toBeInTheDocument();
+    expect(screen.getByText('Flagged Cafe')).toBeInTheDocument();
+    expect(screen.getByText('overcharged@example.com')).toBeInTheDocument();
+  });
+
+  test('shows no refund banner when nothing is flagged', async () => {
+    mockOverviewAnd({ data: { data: [] } });
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('Platform overview')).toBeInTheDocument());
+    expect(screen.queryByText(/needs? a manual refund/i)).not.toBeInTheDocument();
   });
 });

@@ -5,6 +5,7 @@ const { requirePlatformAdmin } = require('../../middleware/requirePlatformAdmin'
 const {
   getOverview,
   getOrgs,
+  getRefundsNeeded,
   getCafeSubscriptions,
   postCafeSubscription,
   patchCafeSubscriptionStatus,
@@ -16,6 +17,7 @@ router.use(authenticate, requirePlatformAdmin);
 
 router.get('/overview', getOverview);
 router.get('/orgs', getOrgs);
+router.get('/refunds-needed', getRefundsNeeded);
 router.get('/users/lookup', getOwnerLookup);
 router.post('/cafes', postProvisionCafe);
 router.get('/cafes/:cafeId/subscriptions', getCafeSubscriptions);

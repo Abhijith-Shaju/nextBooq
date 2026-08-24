@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAdminOverview } from '@/hooks/admin/use-admin-overview';
 import { useAdminOrgs } from '@/hooks/admin/use-admin-orgs';
+import { useRefundsNeeded } from '@/hooks/admin/use-refunds-needed';
 import { format, formatDistanceToNow } from 'date-fns';
 import { SubscriptionDrawer } from '@/components/admin/subscription-drawer';
 import {
@@ -49,6 +50,7 @@ function statusBadgeClass(status: string): string {
 export default function AdminOverviewPage() {
   const { data: stats } = useAdminOverview();
   const { data: orgs = [] } = useAdminOrgs();
+  const { data: refundsNeeded = [] } = useRefundsNeeded();
   const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('name');
@@ -103,6 +105,35 @@ export default function AdminOverviewPage() {
           </div>
         ))}
       </div>
+
+      {refundsNeeded.length > 0 && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-amber-900">
+            {refundsNeeded.length} payment{refundsNeeded.length === 1 ? '' : 's'} need
+            {refundsNeeded.length === 1 ? 's' : ''} a manual refund
+          </p>
+          <p className="mt-0.5 text-xs text-amber-700">
+            A payment succeeded after its reservation was already cancelled/expired — no
+            automated refund exists yet, so these need to be refunded by hand in Razorpay.
+          </p>
+          <ul className="mt-3 space-y-1.5 text-sm">
+            {refundsNeeded.map((r) => {
+              const cafeName = typeof r.cafe_id === 'string' ? r.cafe_id : r.cafe_id.name;
+              const guestEmail = typeof r.user_id === 'string' ? r.user_id : r.user_id.email;
+              return (
+                <li key={r._id} className="flex flex-wrap items-baseline gap-x-2 text-amber-900">
+                  <span className="font-mono text-xs">{r.payment_data.order_id || '—'}</span>
+                  <span>₹{r.payment_data.amount}</span>
+                  <span>·</span>
+                  <span>{cafeName}</span>
+                  <span>·</span>
+                  <span>{guestEmail}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-3">
         <input

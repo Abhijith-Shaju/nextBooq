@@ -2,6 +2,7 @@ const Organization = require('../models/Organization');
 const Cafe = require('../models/Cafe');
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
+const Reservation = require('../models/Reservation');
 const { NotFoundError } = require('../utils/errors');
 
 const PENDING_WINDOW_DAYS = 7;
@@ -97,6 +98,20 @@ const listOrgsWithCafes = async () => {
   }));
 };
 
+// A payment that succeeded after its reservation had already reached a
+// terminal state (CANCELLED/EXPIRED/COMPLETED) is flagged here by
+// webhookController.js rather than auto-refunded — there is no refund
+// integration with Razorpay yet (M-07). Surfacing the flagged list is the
+// minimum needed so a customer charged for a slot that expired mid-payment
+// is actually owed money someone will see, rather than only a server log line.
+const getReservationsNeedingManualRefund = async () => {
+  return Reservation.find({ 'payment_data.requires_manual_refund': true })
+    .populate('cafe_id', 'name slug')
+    .populate('user_id', 'name email phone')
+    .sort({ updated_at: -1 })
+    .lean();
+};
+
 const getCafeSubscriptionHistory = async (cafeId) => {
   return Subscription.find({ cafe_id: cafeId }).sort({ period_start: -1 });
 };
@@ -149,6 +164,7 @@ module.exports = {
   computeCurrentPeriodEnd,
   getOverviewStats,
   listOrgsWithCafes,
+  getReservationsNeedingManualRefund,
   getCafeSubscriptionHistory,
   recordSubscriptionTerm,
   setSubscriptionStatus,

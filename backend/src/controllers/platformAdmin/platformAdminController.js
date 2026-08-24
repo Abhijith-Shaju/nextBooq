@@ -1,6 +1,7 @@
 const {
   getOverviewStats,
   listOrgsWithCafes,
+  getReservationsNeedingManualRefund,
   getCafeSubscriptionHistory,
   recordSubscriptionTerm,
   setSubscriptionStatus,
@@ -99,6 +100,15 @@ const getOrgs = async (req, res, next) => {
   }
 };
 
+const getRefundsNeeded = async (req, res, next) => {
+  try {
+    const reservations = await getReservationsNeedingManualRefund();
+    res.status(200).json({ status: 'success', data: reservations });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getCafeSubscriptions = async (req, res, next) => {
   try {
     const { cafeId } = req.params;
@@ -174,6 +184,7 @@ module.exports = {
   postProvisionCafe,
   getOverview,
   getOrgs,
+  getRefundsNeeded,
   getCafeSubscriptions,
   postCafeSubscription,
   patchCafeSubscriptionStatus,
