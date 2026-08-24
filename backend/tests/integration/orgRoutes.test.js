@@ -262,5 +262,58 @@ describe('Org routes', () => {
 
       expect(res.status).toBe(400);
     });
+
+    // M-04 (reviewed, not reproducible): a cafe can never be left with zero
+    // owners through these two endpoints. Neither lets the caller change
+    // their own membership, and requireOrgOwner only grants req.ownerOrgId
+    // to someone who already owns every cafe in the org -- so the caller is
+    // necessarily an owner of the exact cafe being modified, and removing
+    // or demoting a *different* user's owner membership there can never
+    // remove the caller's own. Verified rather than assumed:
+    test('removing the only other owner on a cafe leaves the acting owner (and org access) intact', async () => {
+      const secondOwner = await User.create({
+        name: 'Second Owner',
+        email: 'org-routes-second-owner@test.com',
+        phone: '+15559930003',
+        password_hash: 'pass',
+        is_email_verified: true,
+        staff_memberships: [{ cafe_id: cafeA._id, role: 'owner', permissions: [] }],
+      });
+
+      const removeRes = await request(app)
+        .delete(`/api/v1/org/cafes/${cafeA._id}/staff/${secondOwner._id}`)
+        .set('Authorization', `Bearer ${ownerToken}`);
+      expect(removeRes.status).toBe(200);
+
+      // The caller's own ownership of cafeA survives, so requireOrgOwner
+      // still resolves req.ownerOrgId for them on a subsequent request --
+      // the org never became unreachable.
+      const stillAccessible = await request(app)
+        .get('/api/v1/org')
+        .set('Authorization', `Bearer ${ownerToken}`);
+      expect(stillAccessible.status).toBe(200);
+    });
+
+    test('demoting the only other owner on a cafe away from owner leaves the acting owner intact', async () => {
+      const secondOwner = await User.create({
+        name: 'Demoted Owner',
+        email: 'org-routes-demoted-owner@test.com',
+        phone: '+15559930004',
+        password_hash: 'pass',
+        is_email_verified: true,
+        staff_memberships: [{ cafe_id: cafeA._id, role: 'owner', permissions: [] }],
+      });
+
+      const demoteRes = await request(app)
+        .post(`/api/v1/org/cafes/${cafeA._id}/staff`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ email: 'org-routes-demoted-owner@test.com', role: 'manager' });
+      expect(demoteRes.status).toBe(200);
+
+      const stillAccessible = await request(app)
+        .get('/api/v1/org')
+        .set('Authorization', `Bearer ${ownerToken}`);
+      expect(stillAccessible.status).toBe(200);
+    });
   });
 });
