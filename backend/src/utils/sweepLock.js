@@ -15,22 +15,24 @@ const acquireSweepLock = async (name, ttlMs) => {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + ttlMs);
 
-  // Idempotently ensure the lock document exists. A concurrent create from
-  // another instance racing this one is expected and harmless -- whichever
-  // loses the race just finds the document already there.
   try {
-    await SweepLock.create({ name, locked_until: null });
+    // A single atomic upsert: matches (and re-locks) an unlocked/expired
+    // document, or inserts a fresh one if none exists yet. Two instances
+    // racing to create the same never-seen-before lock name both attempt
+    // the insert; the unique index on `name` lets exactly one succeed, and
+    // the loser's insert fails with E11000 below -- there is no separate
+    // create-then-update step that could leave a window for both to
+    // believe they'd acquired it.
+    const acquired = await SweepLock.findOneAndUpdate(
+      { name, $or: [{ locked_until: null }, { locked_until: { $lte: now } }] },
+      { $set: { locked_until: expiresAt } },
+      { upsert: true, returnDocument: 'after' }
+    );
+    return Boolean(acquired);
   } catch (err) {
-    if (err.code !== 11000) throw err;
+    if (err.code === 11000) return false;
+    throw err;
   }
-
-  const acquired = await SweepLock.findOneAndUpdate(
-    { name, $or: [{ locked_until: null }, { locked_until: { $lte: now } }] },
-    { $set: { locked_until: expiresAt } },
-    { returnDocument: 'after' }
-  );
-
-  return Boolean(acquired);
 };
 
 module.exports = { acquireSweepLock };

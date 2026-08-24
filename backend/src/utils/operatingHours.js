@@ -158,7 +158,30 @@ const validateOperatingHours = (cafe, startTime, endTime) => {
   const openTime = daySchedule.open_time || '09:00';
   const closeTime = daySchedule.close_time || '22:00';
 
-  if (startDetails.timeString < openTime) {
+  const openMinutes = timeStringToMinutes(openTime);
+  const rawCloseMinutes = timeStringToMinutes(closeTime);
+  // An overnight schedule (close_time <= open_time, e.g. open 18:00, close
+  // 02:00) closes the following calendar day -- roll it forward by 24h so
+  // comparisons below treat it as later than open_time, same convention as
+  // generateSlotTimes below (M-09; these two used to disagree, rejecting
+  // every slot generateSlotTimes had just offered as bookable).
+  const isOvernightSchedule = rawCloseMinutes <= openMinutes;
+  const closeMinutes = isOvernightSchedule ? rawCloseMinutes + 24 * 60 : rawCloseMinutes;
+
+  const startMinutesRaw = timeStringToMinutes(startDetails.timeString);
+  // For an overnight schedule, a start time is still valid if it falls in
+  // the early-morning tail before the *original* (un-rolled) closing time
+  // (e.g. open 18:00/close 02:00, a 00:30 start) -- roll it forward the
+  // same way. Comparing against rawCloseMinutes rather than openMinutes
+  // matters: a start genuinely before opening (e.g. 16:00, still less than
+  // openMinutes but not less than rawCloseMinutes) must NOT be rolled, or
+  // it would wrongly land inside the valid window instead of being rejected.
+  const startMinutes =
+    isOvernightSchedule && startMinutesRaw < rawCloseMinutes
+      ? startMinutesRaw + 24 * 60
+      : startMinutesRaw;
+
+  if (startMinutes < openMinutes) {
     throw new UnprocessableEntityError(
       `Requested start time (${startDetails.timeString}) is before cafe opening time (${openTime} ${timeZone}).`
     );
@@ -171,7 +194,6 @@ const validateOperatingHours = (cafe, startTime, endTime) => {
   const endMinutes = timeStringToMinutes(endDetails.timeString);
   const dayOffsetMinutes = endDetails.dateKey === startDetails.dateKey ? 0 : 24 * 60;
   const effectiveEndMinutes = endMinutes + dayOffsetMinutes;
-  const closeMinutes = timeStringToMinutes(closeTime);
 
   if (effectiveEndMinutes > closeMinutes) {
     throw new UnprocessableEntityError(

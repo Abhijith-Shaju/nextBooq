@@ -81,9 +81,22 @@ describe('Integration Test: updating cafe operating hours', () => {
     expect(res.status).toBe(400);
   });
 
-  test('rejects close_time at or before open_time for a day that is not closed', async () => {
+  // M-09: close_time before open_time is a legitimate overnight schedule
+  // (e.g. a bar open 18:00, closing 02:00 the next day) -- utils/operatingHours.js
+  // rolls it forward by 24h rather than treating it as inverted, so the
+  // settings validator must accept it too instead of rejecting every
+  // overnight cafe outright.
+  test('accepts an overnight schedule where close_time is before open_time', async () => {
     const res = await putSettings({
-      operating_hours: [{ day_of_week: 'monday', open_time: '20:00', close_time: '09:00', is_closed: false }],
+      operating_hours: [{ day_of_week: 'monday', open_time: '18:00', close_time: '02:00', is_closed: false }],
+    });
+
+    expect(res.status).toBe(200);
+  });
+
+  test('rejects open_time and close_time being identical for a day that is not closed', async () => {
+    const res = await putSettings({
+      operating_hours: [{ day_of_week: 'monday', open_time: '09:00', close_time: '09:00', is_closed: false }],
     });
 
     expect(res.status).toBe(400);

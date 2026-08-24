@@ -48,4 +48,52 @@ describe('Operating Hours Validation Utility', () => {
       UnprocessableEntityError
     );
   });
+
+  // M-09: reproduces the exact mismatch the audit found -- generateSlotTimes
+  // (operatingHoursSettings/availableSlots) already offers slots within an
+  // overnight window as bookable, but validateOperatingHours used to reject
+  // every one of them, because it never rolled the closing time forward for
+  // a schedule where close_time <= open_time.
+  describe('overnight schedules (close_time before open_time)', () => {
+    const overnightCafe = {
+      timezone: 'UTC',
+      operating_hours: [{ day_of_week: 'monday', open_time: '18:00', close_time: '02:00', is_closed: false }],
+    };
+
+    test('accepts a booking squarely within the evening portion (20:00-22:00)', () => {
+      const startTime = new Date('2026-08-10T20:00:00Z'); // Monday 20:00 UTC
+      const endTime = new Date('2026-08-10T22:00:00Z'); // Monday 22:00 UTC
+
+      expect(() => validateOperatingHours(overnightCafe, startTime, endTime)).not.toThrow();
+    });
+
+    test('accepts a booking that crosses midnight into the early-morning tail (23:50-00:30)', () => {
+      const startTime = new Date('2026-08-10T23:50:00Z'); // Monday 23:50 UTC
+      const endTime = new Date('2026-08-11T00:30:00Z'); // Tuesday 00:30 UTC
+
+      expect(() => validateOperatingHours(overnightCafe, startTime, endTime)).not.toThrow();
+    });
+
+    test('still rejects a booking that runs past the rolled-forward closing time (Monday 23:00 - Tuesday 03:00)', () => {
+      // Start stays on Monday's own local calendar day, so it resolves
+      // Monday's schedule (see file-level note above about the day-of-week
+      // lookup for a start time that has itself already rolled into the
+      // next day being intentionally out of scope for this fix).
+      const startTime = new Date('2026-08-10T23:00:00Z'); // Monday 23:00 UTC
+      const endTime = new Date('2026-08-11T03:00:00Z'); // Tuesday 03:00 UTC -- past 02:00 close
+
+      expect(() => validateOperatingHours(overnightCafe, startTime, endTime)).toThrow(
+        UnprocessableEntityError
+      );
+    });
+
+    test('still rejects a booking before the opening time (16:00-17:00)', () => {
+      const startTime = new Date('2026-08-10T16:00:00Z'); // Monday 16:00 UTC -- before 18:00 open
+      const endTime = new Date('2026-08-10T17:00:00Z');
+
+      expect(() => validateOperatingHours(overnightCafe, startTime, endTime)).toThrow(
+        UnprocessableEntityError
+      );
+    });
+  });
 });

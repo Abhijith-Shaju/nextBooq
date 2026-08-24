@@ -67,9 +67,15 @@ const validateOperatingHoursInput = (operatingHours) => {
     }
 
     // A closed day's open/close values are never read (see utils/operatingHours.js),
-    // so an inverted range only matters — and must be rejected — when the day is open.
-    if (!is_closed && open_time !== undefined && close_time !== undefined && close_time <= open_time) {
-      throw new BadRequestError(`operating_hours.close_time must be after open_time for ${day_of_week}`);
+    // so an identical open/close only matters — and must be rejected — when
+    // the day is open. close_time < open_time is a legitimate overnight
+    // schedule (e.g. a bar open 18:00, closing 02:00) — utils/operatingHours.js
+    // rolls it forward by 24h rather than treating it as inverted (M-09).
+    // Only a zero-length day (open === close) is genuinely ambiguous.
+    if (!is_closed && open_time !== undefined && close_time !== undefined && close_time === open_time) {
+      throw new BadRequestError(
+        `operating_hours.open_time and close_time cannot be identical for ${day_of_week}`
+      );
     }
   }
 };
