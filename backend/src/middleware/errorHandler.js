@@ -44,7 +44,17 @@ const errorHandler = (err, req, res, next) => {
     error = new AppError('Authentication token has expired', 401);
   }
 
-  const message = error.message || 'Internal Server Error';
+  // Stack traces were already withheld outside development, but the raw
+  // message was not — a 500 serialises whatever the thrown error says,
+  // which can be a Mongoose driver error, a decrypt failure, a CORS
+  // rejection naming the blocked origin, or third-party SDK text. None of
+  // that is meant for the client; log the real message and show a generic
+  // one instead (M-01). 4xx messages are left as-is — those are
+  // intentionally client-facing (validation errors, permission denials).
+  const isUnclassifiedServerError = error.statusCode >= 500 && config.NODE_ENV !== 'development';
+  const message = isUnclassifiedServerError
+    ? 'Something went wrong on our end. Please try again.'
+    : error.message || 'Internal Server Error';
 
   res.status(error.statusCode).json({
     status: error.status || 'error',
