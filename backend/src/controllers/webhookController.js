@@ -52,7 +52,11 @@ const handleRazorpayWebhook = async (req, res, next) => {
     const orderId = paymentEntity.order_id;
     const paymentId = paymentEntity.id;
 
-    const reservation = await Reservation.findOne({ 'payment_data.order_id': orderId });
+    // Scoped to this cafe (verified above by its own webhook secret) — an
+    // order_id match alone isn't enough, since a different cafe's validly
+    // signed webhook could otherwise reach into and confirm this one's
+    // reservations (H-01).
+    const reservation = await Reservation.findOne({ 'payment_data.order_id': orderId, cafe_id: cafe._id });
     if (!reservation) {
       console.warn(`[WEBHOOK NO RES] No reservation found matching orderId: ${orderId}`);
       return res.status(200).json({ status: 'ok', message: 'Order not associated with reservation' });

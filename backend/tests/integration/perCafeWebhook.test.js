@@ -113,4 +113,24 @@ describe('Integration Test: per-cafe Razorpay webhook', () => {
 
     expect(res.status).toBe(404);
   });
+
+  // H-01: the reservation lookup used to match on payment_data.order_id
+  // alone, with no cafe_id scoping. That let a webhook validly signed for
+  // Cafe B's own secret (and posted to Cafe B's own slug) confirm a
+  // reservation that actually belongs to Cafe A, as long as the attacker
+  // knew or guessed Cafe A's order_id — a cross-tenant payment-state break
+  // with no money changing hands.
+  test("a webhook validly signed for a different cafe cannot confirm this cafe's reservation, even naming the same order_id", async () => {
+    const signature = signRawBody(rawBody, secretB);
+
+    const res = await request(app)
+      .post(`/api/v1/webhooks/razorpay/${cafeB.slug}`)
+      .set('Content-Type', 'application/json')
+      .set('x-razorpay-signature', signature)
+      .send(rawBody);
+
+    expect(res.status).toBe(200);
+    const updated = await Reservation.findById(reservationA._id);
+    expect(updated.status).toBe('PENDING_PAYMENT');
+  });
 });
