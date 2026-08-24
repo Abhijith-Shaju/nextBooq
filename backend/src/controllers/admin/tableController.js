@@ -45,6 +45,26 @@ const assertCapacityReductionIsSafe = async (cafeId, tableId, newCapacity) => {
   }
 };
 
+/**
+ * Rejects deleting a table that any active reservation is still assigned
+ * to — without this, the allocation engine stops offering the table and the
+ * floorplan stops drawing it, but the reservation keeps pointing at it,
+ * leaving the party booked onto nothing (M-06).
+ */
+const assertTableDeletionIsSafe = async (cafeId, tableId) => {
+  const activeReservation = await Reservation.findOne({
+    cafe_id: cafeId,
+    table_ids: tableId,
+    status: { $in: ACTIVE_RESERVATION_STATUSES },
+  });
+
+  if (activeReservation) {
+    throw new UnprocessableEntityError(
+      `Cannot delete this table: reservation ${activeReservation._id} is still assigned to it`
+    );
+  }
+};
+
 // Merging means physically pushing two tables together, so partners have to
 // be in the same part of the room: same floor, same zone. Nothing downstream
 // re-checks this — generateMergeCombinations (allocationEngine.js) builds
@@ -196,6 +216,10 @@ const updateTable = async (req, res, next) => {
 
     if (capacity !== undefined && capacity < existingTable.capacity) {
       await assertCapacityReductionIsSafe(cafeId, existingTable._id, capacity);
+    }
+
+    if (is_deleted === true && existingTable.is_deleted !== true) {
+      await assertTableDeletionIsSafe(cafeId, existingTable._id);
     }
 
     if (table_number !== undefined) existingTable.table_number = table_number;
