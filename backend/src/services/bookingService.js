@@ -5,6 +5,21 @@ const Table = require('../models/Table');
 const { allocateTables } = require('./allocationEngine');
 const { validateOperatingHours } = require('../utils/operatingHours');
 const { ConflictError, NotFoundError, UnprocessableEntityError } = require('../utils/errors');
+const config = require('../config/env');
+
+// Detects an error shape MongoDB throws when a standalone (non-replica-set)
+// instance is asked to start a transaction. This is only a heuristic --
+// matching on an error string, not on verified topology -- so it must never
+// be trusted in production, where config/database.js's connectDB() has
+// already asserted transaction support at boot. Treating a *transient*
+// production error that happens to match this shape (e.g. during a replica
+// set election) as "this deployment has no replica set" and silently
+// downgrading to the racy non-transactional path would defeat the whole
+// point of the transaction (M-02).
+const looksLikeStandaloneMongoError = (error) =>
+  error.code === 20 ||
+  error.codeName === 'IllegalOperation' ||
+  (error.message && error.message.includes('replica set'));
 
 /**
  * Rejects a new hold if the same user already holds an active reservation at this
@@ -120,11 +135,7 @@ const createHoldReservation = async ({
       session.startTransaction();
     } catch (sessionErr) {
       // If MongoDB is not a replica set, fallback gracefully to non-transactional creation
-      if (
-        sessionErr.code === 20 ||
-        sessionErr.codeName === 'IllegalOperation' ||
-        (sessionErr.message && sessionErr.message.includes('replica set'))
-      ) {
+      if (looksLikeStandaloneMongoError(sessionErr) && config.NODE_ENV !== 'production') {
         console.warn(
           '[MONGOOSE WARN] Multi-document transactions not supported by standalone MongoDB instance. Using non-transactional fallback.'
         );
@@ -213,11 +224,7 @@ const createHoldReservation = async ({
       }
 
       // Check if error is due to MongoDB standalone non-replica set restriction
-      if (
-        error.code === 20 ||
-        error.codeName === 'IllegalOperation' ||
-        (error.message && error.message.includes('replica set'))
-      ) {
+      if (looksLikeStandaloneMongoError(error) && config.NODE_ENV !== 'production') {
         console.warn(
           '[MONGOOSE WARN] Multi-document transactions not supported by standalone MongoDB instance. Using non-transactional fallback.'
         );
