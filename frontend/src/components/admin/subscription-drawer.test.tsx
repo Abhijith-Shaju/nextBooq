@@ -4,17 +4,31 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { SubscriptionDrawer } from './subscription-drawer';
 import { axiosInstance } from '@/hooks/api/axios-instance';
+import { CafeWithSubscription } from '@/lib/types/models';
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock('@/hooks/api/axios-instance', () => ({
   axiosInstance: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
 }));
 
+const makeCafe = (overrides: Partial<CafeWithSubscription> = {}): CafeWithSubscription => ({
+  _id: 'cafe1',
+  org_id: 'org1',
+  name: 'Test Cafe',
+  slug: 'test-cafe',
+  timezone: 'UTC',
+  subscription_status: 'active',
+  subscription: null,
+  owner: null,
+  created_at: '2026-01-01T00:00:00.000Z',
+  ...overrides,
+});
+
 const renderDrawer = (props: Partial<React.ComponentProps<typeof SubscriptionDrawer>> = {}) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <SubscriptionDrawer cafeId="cafe1" orgId="org1" onClose={vi.fn()} {...props} />
+      <SubscriptionDrawer cafeId="cafe1" orgId="org1" cafe={makeCafe()} onClose={vi.fn()} {...props} />
     </QueryClientProvider>
   );
 };
@@ -106,7 +120,7 @@ describe('SubscriptionDrawer', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const { rerender } = render(
       <QueryClientProvider client={queryClient}>
-        <SubscriptionDrawer key="cafe1" cafeId="cafe1" orgId="org1" onClose={vi.fn()} />
+        <SubscriptionDrawer key="cafe1" cafeId="cafe1" orgId="org1" cafe={makeCafe()} onClose={vi.fn()} />
       </QueryClientProvider>
     );
 
@@ -120,7 +134,7 @@ describe('SubscriptionDrawer', () => {
     // the same way a real re-render would, unmounting the old instance).
     rerender(
       <QueryClientProvider client={queryClient}>
-        <SubscriptionDrawer key="cafe2" cafeId="cafe2" orgId="org1" onClose={vi.fn()} />
+        <SubscriptionDrawer key="cafe2" cafeId="cafe2" orgId="org1" cafe={makeCafe({ _id: 'cafe2' })} onClose={vi.fn()} />
       </QueryClientProvider>
     );
 
@@ -172,5 +186,62 @@ describe('SubscriptionDrawer', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /^active$/i })).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /^active$/i })).not.toBeDisabled();
     expect(screen.queryByText(/already ended/i)).not.toBeInTheDocument();
+  });
+
+  test('renders owner name, email, and phone with mailto/tel links when the cafe has an owner', async () => {
+    vi.mocked(axiosInstance.get).mockResolvedValue({ data: { data: [] } });
+
+    renderDrawer({
+      cafe: makeCafe({ owner: { name: 'Priya Sharma', email: 'priya@example.com', phone: '+15551234567' } }),
+    });
+
+    expect(screen.getByText('Priya Sharma')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'priya@example.com' })).toHaveAttribute(
+      'href',
+      'mailto:priya@example.com'
+    );
+    expect(screen.getByRole('link', { name: '+15551234567' })).toHaveAttribute('href', 'tel:+15551234567');
+  });
+
+  test('shows a fallback message when the cafe has no owner assigned', async () => {
+    vi.mocked(axiosInstance.get).mockResolvedValue({ data: { data: [] } });
+
+    renderDrawer({ cafe: makeCafe({ owner: null }) });
+
+    expect(screen.getByText(/no owner assigned/i)).toBeInTheDocument();
+  });
+
+  test('shows time remaining for a subscription that has not lapsed', async () => {
+    vi.mocked(axiosInstance.get).mockResolvedValue({
+      data: {
+        data: [
+          {
+            _id: 's1', term_months: 12, price_per_month: 7000, status: 'active',
+            period_start: '2026-01-01T00:00:00.000Z', current_period_end: '2099-01-01T00:00:00.000Z',
+          },
+        ],
+      },
+    });
+
+    renderDrawer();
+
+    await waitFor(() => expect(screen.getByText(/remaining$/i)).toBeInTheDocument());
+  });
+
+  test('shows an "Expired ... ago" message for a lapsed subscription', async () => {
+    vi.mocked(axiosInstance.get).mockResolvedValue({
+      data: {
+        data: [
+          {
+            _id: 's1', term_months: 1, price_per_month: 9000, status: 'past_due',
+            period_start: '2026-01-01T00:00:00.000Z', current_period_end: '2026-02-01T00:00:00.000Z',
+          },
+        ],
+      },
+    });
+
+    renderDrawer();
+
+    await waitFor(() => expect(screen.getByText(/^expired .* ago$/i)).toBeInTheDocument());
   });
 });

@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { useCafeSubscriptions } from '@/hooks/admin/use-cafe-subscriptions';
 import { useRecordSubscriptionTerm } from '@/hooks/admin/use-record-subscription-term';
 import { useSetSubscriptionStatus } from '@/hooks/admin/use-set-subscription-status';
-import { SubscriptionTermMonths, SubscriptionStatus } from '@/lib/types/models';
+import { SubscriptionTermMonths, SubscriptionStatus, CafeWithSubscription } from '@/lib/types/models';
 
 const TERM_OPTIONS: { value: SubscriptionTermMonths; label: string; defaultPrice: number }[] = [
   { value: 1, label: 'Monthly', defaultPrice: 9000 },
@@ -26,10 +26,11 @@ const isLapsed = (sub: { current_period_end: string } | null): boolean =>
 interface SubscriptionDrawerProps {
   cafeId: string | null;
   orgId: string | undefined;
+  cafe: CafeWithSubscription | null;
   onClose: () => void;
 }
 
-export function SubscriptionDrawer({ cafeId, orgId, onClose }: SubscriptionDrawerProps) {
+export function SubscriptionDrawer({ cafeId, orgId, cafe, onClose }: SubscriptionDrawerProps) {
   const { data: history = [] } = useCafeSubscriptions(cafeId);
   const recordTerm = useRecordSubscriptionTerm(cafeId);
   const setStatus = useSetSubscriptionStatus(cafeId);
@@ -38,7 +39,7 @@ export function SubscriptionDrawer({ cafeId, orgId, onClose }: SubscriptionDrawe
   const [pricePerMonth, setPricePerMonth] = useState<number>(9000);
   const [note, setNote] = useState('');
 
-  if (!cafeId) return null;
+  if (!cafeId || !cafe) return null;
 
   const current = history.find((sub) => sub.is_current) || history[0] || null;
   const hasConfiguredPlan = history.length > 0;
@@ -65,6 +66,23 @@ export function SubscriptionDrawer({ cafeId, orgId, onClose }: SubscriptionDrawe
           </button>
         </div>
 
+        <div className="mb-4 rounded-lg border border-slate-200 p-3 text-sm">
+          <h3 className="mb-1 text-xs font-bold uppercase text-slate-500">Owner</h3>
+          {cafe.owner ? (
+            <div className="space-y-0.5">
+              <p className="font-medium">{cafe.owner.name}</p>
+              <a href={`mailto:${cafe.owner.email}`} className="block text-blue-600 hover:underline">
+                {cafe.owner.email}
+              </a>
+              <a href={`tel:${cafe.owner.phone}`} className="block text-blue-600 hover:underline">
+                {cafe.owner.phone}
+              </a>
+            </div>
+          ) : (
+            <p className="text-slate-500">No owner assigned yet.</p>
+          )}
+        </div>
+
         {!hasConfiguredPlan && (
           <p className="mb-4 rounded-lg bg-slate-100 p-3 text-sm text-slate-600">
             No plan set for this cafe yet — record its first term below.
@@ -75,6 +93,11 @@ export function SubscriptionDrawer({ cafeId, orgId, onClose }: SubscriptionDrawe
           <div className="mb-6 space-y-2">
             <p className="text-sm text-slate-600">
               Current: {current.term_months} mo @ ₹{current.price_per_month}/mo — status {current.status}
+            </p>
+            <p className="text-xs text-slate-500">
+              {isLapsed(current)
+                ? `Expired ${formatDistanceToNow(new Date(current.current_period_end))} ago`
+                : `${formatDistanceToNow(new Date(current.current_period_end))} remaining`}
             </p>
             <div className="flex gap-2">
               {STATUS_ACTIONS.map((action) => {
