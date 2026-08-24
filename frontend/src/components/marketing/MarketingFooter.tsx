@@ -53,16 +53,24 @@ export default function MarketingFooter() {
           <div className="space-y-3">
             <h3 className="font-display text-sm font-semibold text-white tracking-wide uppercase">For café owners</h3>
             <nav className="flex flex-col gap-2.5" aria-label="For café owners">
-              <Link href="/auth/login" className="text-sm text-white/60 hover:text-white transition-colors">
-                Log in
-              </Link>
-              {!isLoading && !isAuthenticated && (
-                <Link
-                  href="/auth/register"
-                  className="text-sm font-semibold text-white hover:text-brand-redLight transition-colors"
-                >
-                  Get a demo
+              {!isLoading && isAuthenticated ? (
+                <Link href="/profile" className="text-sm text-white/60 hover:text-white transition-colors">
+                  View Account
                 </Link>
+              ) : (
+                <>
+                  <Link href="/auth/login" className="text-sm text-white/60 hover:text-white transition-colors">
+                    Log in
+                  </Link>
+                  {!isLoading && (
+                    <Link
+                      href="/auth/register"
+                      className="text-sm font-semibold text-white hover:text-brand-redLight transition-colors"
+                    >
+                      Get a demo
+                    </Link>
+                  )}
+                </>
               )}
             </nav>
           </div>
