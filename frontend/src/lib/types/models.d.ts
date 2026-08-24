@@ -75,6 +75,8 @@ export interface CafeWithSubscription {
   timezone: string;
   subscription_status: string;
   subscription: Subscription | null;
+  owner: { name: string; email: string; phone: string } | null;
+  created_at: string;
 }
 
 export interface OrgWithCafes {
