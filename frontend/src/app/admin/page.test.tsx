@@ -121,4 +121,116 @@ describe('AdminOverviewPage', () => {
 
     expect(screen.getByRole('row', { name: /selectable cafe/i })).toHaveAttribute('aria-selected', 'true');
   });
+
+  const buildOrgsResponse = (cafeCount: number) => ({
+    data: {
+      data: [
+        {
+          _id: 'org1',
+          name: 'Big Org',
+          cafes: Array.from({ length: cafeCount }, (_, i) => ({
+            _id: `cafe${i + 1}`,
+            name: `Cafe ${String(i + 1).padStart(2, '0')}`,
+            slug: `cafe-${i + 1}`,
+            subscription: null,
+            subscription_status: 'active',
+            owner: null,
+            created_at: '2026-01-01T00:00:00.000Z',
+          })),
+        },
+      ],
+    },
+  });
+
+  const mockOverviewAnd = (orgsResponse: unknown) => {
+    vi.mocked(axiosInstance.get).mockImplementation((url: string) => {
+      if (url === '/api/v1/platform-admin/overview') {
+        return Promise.resolve({
+          data: { data: { org_count: 1, cafe_count: 1, status_counts: { trial: 0, active: 0, past_due: 0, inactive: 0 }, pending_count: 0, revenue: 0 } },
+        });
+      }
+      if (url === '/api/v1/platform-admin/orgs') {
+        return Promise.resolve(orgsResponse);
+      }
+      return Promise.reject(new Error(`unexpected url ${url}`));
+    });
+  };
+
+  test('filters the cafe list by cafe name as the admin types', async () => {
+    mockOverviewAnd({
+      data: {
+        data: [
+          { _id: 'org1', name: 'Org A', cafes: [{ _id: 'c1', name: 'Roastery North', slug: 'rn', subscription: null, subscription_status: 'active', owner: null, created_at: '2026-01-01T00:00:00.000Z' }] },
+          { _id: 'org2', name: 'Org B', cafes: [{ _id: 'c2', name: 'Central Perk', slug: 'cp', subscription: null, subscription_status: 'active', owner: null, created_at: '2026-01-01T00:00:00.000Z' }] },
+        ],
+      },
+    });
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('Roastery North')).toBeInTheDocument());
+    fireEvent.change(screen.getByLabelText(/search cafes/i), { target: { value: 'central' } });
+
+    expect(screen.queryByText('Roastery North')).not.toBeInTheDocument();
+    expect(screen.getByText('Central Perk')).toBeInTheDocument();
+  });
+
+  test('filters the cafe list by organization name as the admin types', async () => {
+    mockOverviewAnd({
+      data: {
+        data: [
+          { _id: 'org1', name: 'Roastery Group', cafes: [{ _id: 'c1', name: 'Store One', slug: 's1', subscription: null, subscription_status: 'active', owner: null, created_at: '2026-01-01T00:00:00.000Z' }] },
+          { _id: 'org2', name: 'Bean Co', cafes: [{ _id: 'c2', name: 'Store Two', slug: 's2', subscription: null, subscription_status: 'active', owner: null, created_at: '2026-01-01T00:00:00.000Z' }] },
+        ],
+      },
+    });
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('Store One')).toBeInTheDocument());
+    fireEvent.change(screen.getByLabelText(/search cafes/i), { target: { value: 'bean co' } });
+
+    expect(screen.queryByText('Store One')).not.toBeInTheDocument();
+    expect(screen.getByText('Store Two')).toBeInTheDocument();
+  });
+
+  test('reverses row order when the sort direction is toggled', async () => {
+    mockOverviewAnd({
+      data: {
+        data: [
+          { _id: 'org1', name: 'Org A', cafes: [
+            { _id: 'c1', name: 'Alpha', slug: 'a', subscription: null, subscription_status: 'active', owner: null, created_at: '2026-01-01T00:00:00.000Z' },
+            { _id: 'c2', name: 'Zeta', slug: 'z', subscription: null, subscription_status: 'active', owner: null, created_at: '2026-01-01T00:00:00.000Z' },
+          ] },
+        ],
+      },
+    });
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('Alpha')).toBeInTheDocument());
+    const rowsBefore = screen.getAllByRole('row').slice(1); // drop the header row
+    expect(rowsBefore[0]).toHaveTextContent('Alpha');
+
+    fireEvent.click(screen.getByRole('button', { name: /sort (ascending|descending)/i }));
+
+    const rowsAfter = screen.getAllByRole('row').slice(1);
+    expect(rowsAfter[0]).toHaveTextContent('Zeta');
+  });
+
+  test('paginates beyond the first page and disables Prev/Next at the boundaries', async () => {
+    mockOverviewAnd(buildOrgsResponse(12));
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('Cafe 01')).toBeInTheDocument());
+    expect(screen.queryByText('Cafe 11')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /previous/i })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+
+    await waitFor(() => expect(screen.getByText('Cafe 11')).toBeInTheDocument());
+    expect(screen.queryByText('Cafe 01')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^next$/i })).toBeDisabled();
+  });
 });
