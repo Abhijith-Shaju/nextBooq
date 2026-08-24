@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import LandingHero from '@/components/marketing/LandingHero'
+import AboutSection from '@/components/marketing/AboutSection'
+import ContactSection from '@/components/marketing/ContactSection'
 
 // ─── Page metadata ────────────────────────────────────────────────────────────
 export const metadata: Metadata = {
@@ -21,8 +23,11 @@ export default function HomePage() {
       {/* Hero section — asymmetric layout with headline, CTA, and product photography */}
       <LandingHero />
 
-      {/* TODO: testimonials section */}
-      {/* TODO: app download / mobile CTA section */}
+      {/* About section — mission, values, and a mid-page conversion CTA */}
+      <AboutSection />
+
+      {/* Contact section — get-in-touch form */}
+      <ContactSection />
     </main>
   )
 }

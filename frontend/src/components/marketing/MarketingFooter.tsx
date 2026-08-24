@@ -10,12 +10,18 @@ export default function MarketingFooter() {
   const { isAuthenticated, isLoading } = useAuth()
 
   return (
-    <footer className="bg-brand-brown text-white/80">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <footer className="relative bg-brand-brown text-white/80 overflow-hidden">
+      {/* Faint watermark motif, echoing the homepage hero's decorative devices */}
+      <Coffee
+        aria-hidden="true"
+        className="absolute -bottom-10 -right-10 w-56 h-56 text-white/[0.04] pointer-events-none select-none rotate-12"
+      />
+
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Top section */}
-        <div className="py-16 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-8">
+        <div className="py-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand column */}
-          <div className="space-y-4 max-w-sm">
+          <div className="space-y-4 lg:col-span-2 max-w-sm">
             <Link href="/" className="flex items-center gap-2 group" aria-label="nextBooq home">
               <div className="w-8 h-8 bg-brand-red rounded-lg flex items-center justify-center">
                 <Coffee className="w-4 h-4 text-white" />
@@ -25,25 +31,40 @@ export default function MarketingFooter() {
               </span>
             </Link>
             <p className="text-sm text-white/60 leading-relaxed">
-              The all-in-one reservation platform for modern cafés and restaurants. Simplify bookings, delight guests.
+              The all-in-one reservation platform for modern cafés and restaurants. Real-time table holds, a
+              time-boxed deposit to lock in every booking, and a live floor manifest so no table gets double-booked.
             </p>
           </div>
 
-          <div className="flex flex-col sm:items-end gap-3">
-            <Link href="/about" className="text-sm text-white/60 hover:text-white transition-colors">
-              About
-            </Link>
-            <Link href="/contact" className="text-sm text-white/60 hover:text-white transition-colors">
-              Contact
-            </Link>
-            {!isLoading && !isAuthenticated && (
-              <Link
-                href="/auth/register"
-                className="text-sm font-semibold text-white hover:text-brand-redLight transition-colors"
-              >
-                Get a demo
+          {/* Company column */}
+          <div className="space-y-3">
+            <h3 className="font-display text-sm font-semibold text-white tracking-wide uppercase">Company</h3>
+            <nav className="flex flex-col gap-2.5" aria-label="Company">
+              <Link href="/#about" className="text-sm text-white/60 hover:text-white transition-colors">
+                About
               </Link>
-            )}
+              <Link href="/#contact" className="text-sm text-white/60 hover:text-white transition-colors">
+                Contact
+              </Link>
+            </nav>
+          </div>
+
+          {/* For café owners column */}
+          <div className="space-y-3">
+            <h3 className="font-display text-sm font-semibold text-white tracking-wide uppercase">For café owners</h3>
+            <nav className="flex flex-col gap-2.5" aria-label="For café owners">
+              <Link href="/auth/login" className="text-sm text-white/60 hover:text-white transition-colors">
+                Log in
+              </Link>
+              {!isLoading && !isAuthenticated && (
+                <Link
+                  href="/auth/register"
+                  className="text-sm font-semibold text-white hover:text-brand-redLight transition-colors"
+                >
+                  Get a demo
+                </Link>
+              )}
+            </nav>
           </div>
         </div>
 
@@ -53,7 +74,7 @@ export default function MarketingFooter() {
             © {currentYear} nextBooq. All rights reserved.
           </p>
           <p className="text-sm text-white/40">
-            Built with ☕ for café owners everywhere.
+            Made in India 🇮🇳 — built with ☕ for café owners everywhere.
           </p>
         </div>
       </div>
