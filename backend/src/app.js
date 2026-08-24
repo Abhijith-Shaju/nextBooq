@@ -58,21 +58,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// TEMPORARY: Debug endpoint to diagnose Vercel proxy requests.
-// Remove after confirming the issue is resolved.
-app.all('/debug-echo', (req, res) => {
-  res.status(200).json({
-    method: req.method,
-    url: req.url,
-    originalUrl: req.originalUrl,
-    path: req.path,
-    baseUrl: req.baseUrl,
-    hostname: req.hostname,
-    headers: req.headers,
-    ip: req.ip,
-  });
-});
-
 // API Routes
 app.use('/api', routes);
 
