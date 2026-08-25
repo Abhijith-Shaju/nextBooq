@@ -80,6 +80,38 @@ const assertCafeInOwnedOrg = async (cafeId, ownerOrgId) => {
   return cafe;
 };
 
+const ROLE_RANK = { owner: 0, manager: 1, host: 2, staff: 3 };
+
+const getCafeStaff = async (req, res, next) => {
+  try {
+    const { cafeId } = req.params;
+    const cafe = await assertCafeInOwnedOrg(cafeId, req.ownerOrgId);
+    const resolvedCafeId = cafe._id.toString();
+
+    const staffUsers = await User.find({ 'staff_memberships.cafe_id': resolvedCafeId })
+      .select('name email staff_memberships')
+      .lean();
+
+    const data = staffUsers
+      .map((user) => {
+        const membership = user.staff_memberships.find(
+          (m) => m.cafe_id.toString() === resolvedCafeId
+        );
+        return {
+          user_id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          role: membership.role,
+        };
+      })
+      .sort((a, b) => ROLE_RANK[a.role] - ROLE_RANK[b.role] || a.name.localeCompare(b.name));
+
+    res.status(200).json({ status: 'success', data });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const postAssignStaff = async (req, res, next) => {
   try {
     const { cafeId } = req.params;
@@ -168,4 +200,4 @@ const deleteStaff = async (req, res, next) => {
   }
 };
 
-module.exports = { getOrganization, getCafes, postAssignStaff, deleteStaff };
+module.exports = { getOrganization, getCafes, getCafeStaff, postAssignStaff, deleteStaff };

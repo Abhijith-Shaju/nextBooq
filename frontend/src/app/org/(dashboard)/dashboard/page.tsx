@@ -2,9 +2,12 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ArrowUpRight, Coffee, LayoutDashboard, Loader2, Plus, Users } from 'lucide-react';
+import { ArrowUpRight, Coffee, LayoutDashboard, Loader2, Plus, Trash2, UserCog, Users } from 'lucide-react';
 import { useOrgCafes } from '@/hooks/org/use-org-cafes';
+import { useCafeStaff } from '@/hooks/org/use-cafe-staff';
 import { useAssignStaff, AssignStaffPayload } from '@/hooks/org/use-assign-staff';
+import { useRemoveStaff } from '@/hooks/org/use-remove-staff';
+import { useAuth } from '@/components/providers/auth-provider';
 import { OrgCafe } from '@/lib/types/org';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -17,6 +20,13 @@ const STATUS_STYLES: Record<string, string> = {
   inactive: 'border-brand-tan bg-brand-tan/60 text-brand-mocha',
 };
 
+const ROLE_BADGE_STYLES: Record<string, string> = {
+  owner: 'border-brand-red/20 bg-brand-red/10 text-brand-red',
+  manager: 'border-blue-200 bg-blue-100 text-blue-800',
+  host: 'border-brand-tan bg-brand-tan/60 text-brand-mocha',
+  staff: 'border-brand-tan bg-brand-tan/60 text-brand-mocha',
+};
+
 function statusStyle(status: string): string {
   return STATUS_STYLES[status] ?? 'border-brand-tan bg-brand-tan/60 text-brand-mocha';
 }
@@ -27,7 +37,10 @@ function AssignStaffForm({ cafeId, onDone }: { cafeId: string; onDone: () => voi
   const { mutate, isPending, isSuccess } = useAssignStaff(cafeId);
 
   useEffect(() => {
-    if (isSuccess) onDone();
+    if (isSuccess) {
+      setEmail('');
+      onDone();
+    }
   }, [isSuccess, onDone]);
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -85,8 +98,74 @@ function AssignStaffForm({ cafeId, onDone }: { cafeId: string; onDone: () => voi
   );
 }
 
+function StaffList({ cafeId }: { cafeId: string }) {
+  const { user } = useAuth();
+  const { data: staff = [], isLoading, isError } = useCafeStaff(cafeId);
+  const { mutate: removeStaff, isPending, variables: pendingUserId } = useRemoveStaff(cafeId);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-9 w-full" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return <p className="text-xs text-red-600">Couldn&apos;t load staff for this cafe.</p>;
+  }
+
+  if (staff.length === 0) {
+    return <p className="text-xs text-brand-mocha">No staff assigned to this cafe yet.</p>;
+  }
+
+  return (
+    <ul className="space-y-1.5">
+      {staff.map((member) => {
+        const isSelf = member.user_id === user?.id;
+        return (
+          <li
+            key={member.user_id}
+            className="flex items-center justify-between gap-2 rounded-lg border border-brand-brown/10 bg-white/90 px-3 py-2"
+          >
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-brand-brown">
+                {member.name} {isSelf && <span className="font-normal text-brand-mocha">(you)</span>}
+              </p>
+              <p className="truncate text-xs text-brand-mocha">{member.email}</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span
+                className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold capitalize ${ROLE_BADGE_STYLES[member.role] ?? ROLE_BADGE_STYLES.staff}`}
+              >
+                {member.role}
+              </span>
+              {!isSelf && (
+                <button
+                  type="button"
+                  onClick={() => removeStaff(member.user_id)}
+                  disabled={isPending && pendingUserId === member.user_id}
+                  aria-label={`Remove ${member.name}`}
+                  className="rounded-full p-1.5 text-brand-mocha transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                >
+                  {isPending && pendingUserId === member.user_id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function CafeCard({ cafe }: { cafe: OrgCafe }) {
-  const [assigning, setAssigning] = useState(false);
+  const [managingStaff, setManagingStaff] = useState(false);
 
   return (
     <div className="rounded-2xl border border-brand-brown/10 bg-white/80 p-5 shadow-brand-sm transition-shadow hover:shadow-brand-md">
@@ -120,15 +199,32 @@ function CafeCard({ cafe }: { cafe: OrgCafe }) {
         </Link>
         <button
           type="button"
-          onClick={() => setAssigning((prev) => !prev)}
+          onClick={() => setManagingStaff((prev) => !prev)}
           className="inline-flex items-center gap-1 rounded-full border border-brand-brown/15 px-3.5 py-1.5 text-sm font-semibold text-brand-red transition-colors hover:bg-brand-red/5"
         >
-          <Plus className="h-3.5 w-3.5" />
-          Assign staff
+          <UserCog className="h-3.5 w-3.5" />
+          Manage staff
         </button>
       </div>
 
-      {assigning && <AssignStaffForm cafeId={cafe._id} onDone={() => setAssigning(false)} />}
+      {managingStaff && (
+        <div className="mt-4 space-y-4 rounded-2xl border border-brand-brown/10 bg-brand-tan/20 p-4">
+          <div>
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-mochaMid">
+              Current staff
+            </h4>
+            <StaffList cafeId={cafe._id} />
+          </div>
+
+          <div className="border-t border-brand-brown/10 pt-4">
+            <h4 className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-brand-mochaMid">
+              <Plus className="h-3 w-3" />
+              Add staff member
+            </h4>
+            <AssignStaffForm cafeId={cafe._id} onDone={() => {}} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -10,3 +10,10 @@ export interface OrgCafe {
   subscription_status: string;
   today_reservation_count: number;
 }
+
+export interface CafeStaffMember {
+  user_id: string;
+  name: string;
+  email: string;
+  role: 'owner' | 'manager' | 'host' | 'staff';
+}

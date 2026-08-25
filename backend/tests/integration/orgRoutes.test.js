@@ -294,6 +294,69 @@ describe('Org routes', () => {
       expect(stillAccessible.status).toBe(200);
     });
 
+    // "Manage staff" needs a list of who's currently on the cafe -- assign
+    // and remove already existed, but nothing surfaced who's actually
+    // assigned before the owner acts on them.
+    describe('GET /api/v1/org/cafes/:cafeId/staff', () => {
+      test('lists every staff member currently on the cafe with their role', async () => {
+        staffTarget.staff_memberships.push({ cafe_id: cafeA._id, role: 'host', permissions: [] });
+        await staffTarget.save();
+
+        const res = await request(app)
+          .get(`/api/v1/org/cafes/${cafeA._id}/staff`)
+          .set('Authorization', `Bearer ${ownerToken}`);
+
+        expect(res.status).toBe(200);
+        const emails = res.body.data.map((s) => s.email);
+        expect(emails).toContain('org-routes-owner@test.com');
+        expect(emails).toContain('org-routes-manager@test.com');
+        expect(emails).toContain('org-routes-assignable@test.com');
+
+        const assignable = res.body.data.find((s) => s.email === 'org-routes-assignable@test.com');
+        expect(assignable).toMatchObject({
+          user_id: staffTarget._id.toString(),
+          name: 'Assignable Person',
+          role: 'host',
+        });
+      });
+
+      test('does not include staff assigned to a different cafe', async () => {
+        staffTarget.staff_memberships.push({ cafe_id: cafeB._id, role: 'staff', permissions: [] });
+        await staffTarget.save();
+
+        const res = await request(app)
+          .get(`/api/v1/org/cafes/${cafeA._id}/staff`)
+          .set('Authorization', `Bearer ${ownerToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body.data.map((s) => s.email)).not.toContain('org-routes-assignable@test.com');
+      });
+
+      test('rejects a cafe id that does not belong to the caller\'s org with 403', async () => {
+        const otherOrg = await Organization.create({ name: 'Other Org For Staff List' });
+        const otherCafe = await Cafe.create({
+          org_id: otherOrg._id,
+          name: 'Other Cafe For Staff List',
+          slug: 'org-routes-other-cafe-staff-list',
+          timezone: 'UTC',
+        });
+
+        const res = await request(app)
+          .get(`/api/v1/org/cafes/${otherCafe._id}/staff`)
+          .set('Authorization', `Bearer ${ownerToken}`);
+
+        expect(res.status).toBe(403);
+      });
+
+      test('a manager (not org owner) gets 403', async () => {
+        const res = await request(app)
+          .get(`/api/v1/org/cafes/${cafeA._id}/staff`)
+          .set('Authorization', `Bearer ${managerToken}`);
+
+        expect(res.status).toBe(403);
+      });
+    });
+
     test('demoting the only other owner on a cafe away from owner leaves the acting owner intact', async () => {
       const secondOwner = await User.create({
         name: 'Demoted Owner',
