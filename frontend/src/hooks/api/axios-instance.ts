@@ -5,6 +5,14 @@ import { queryClient } from '@/lib/query-client';
 
 export { queryClient };
 
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    // See the response interceptor below (L-07): lets one request opt out
+    // of the generic error toast when the call site shows its own.
+    skipGlobalErrorToast?: boolean;
+  }
+}
+
 // Requests hit this app's own origin (relative baseURL) and are proxied to
 // the backend by next.config.ts's rewrite. The session lives in an httpOnly
 // cookie set by the backend on login, so the browser attaches it
@@ -18,78 +26,87 @@ export const axiosInstance = axios.create({
   },
 });
 
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response) {
-      const status = error.response.status;
-
-      switch (status) {
-        case 401:
-          queryClient.setQueryData(['me'], null);
-          // /auth/me is polled silently on every page load to check session
-          // state — an anonymous visitor gets a 401 there constantly, so it's
-          // excluded from the toast to avoid noise. Every other 401 (a failed
-          // login attempt, an expired session hit mid-action, etc.) reflects
-          // something the user actually did, so it gets a message.
-          if (!error.config?.url?.includes('/auth/me')) {
-            toast.error(error.response.data?.error?.message || error.response.data?.message || 'Invalid credentials.');
-          }
-          if (typeof window !== 'undefined') {
-            const path = window.location.pathname;
-            // Only redirect to staff login if visiting protected staff dashboard
-            // routes — shares the same route list the dashboard middleware
-            // itself protects (lib/route-guard.ts), so this can't drift stale.
-            if (isDashboardRoute(path)) {
-              const callbackUrl = `${path}${window.location.search}${window.location.hash}`;
-              window.location.href = `/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`;
-            }
-          }
-          break;
-
-        case 403:
-          toast.error('You do not have permission to perform this action.');
-          break;
-
-        case 409: {
-          const conflictCode = error.response.data?.error?.code;
-          // TABLE_OCCUPIED carries a structured conflict payload the caller
-          // uses to show a specific "seat anyway?" confirmation — the generic
-          // toast here would just be noise on top of that.
-          if (conflictCode === 'TABLE_OCCUPIED') {
-            break;
-          }
-          // TABLE_UNAVAILABLE already says what's wrong and what to do next
-          // ("This table isn't free for this reservation's time"), so show it
-          // verbatim. Anything else is a stale-version clash, where the only
-          // useful advice really is to refresh.
-          toast.error(
-            conflictCode === 'TABLE_UNAVAILABLE' && error.response.data?.error?.message
-              ? error.response.data.error.message
-              : 'This table state has changed. Please refresh to see the latest updates.'
-          );
-          break;
-        }
-
-        case 422:
-          const validationMsg = error.response.data?.error?.message || 'Invalid input data.';
-          toast.error(validationMsg);
-          break;
-
-        case 500:
-        default:
-          if (status >= 500) {
-            toast.error('Something went wrong on our end. Please try again.');
-          } else {
-            toast.error(error.response.data?.error?.message || 'An error occurred.');
-          }
-          break;
-      }
-    } else {
-      toast.error('Network error. Please check your connection.');
-    }
+// Exported (rather than inlined into .use() below) so it's directly unit
+// testable without reaching into axios's internal interceptor handler list.
+export const handleResponseError = (error: any) => {
+  // A call site that shows its own error UI for this specific request
+  // (an inline message, a bespoke toast wording) can opt out of the
+  // generic one below by passing { skipGlobalErrorToast: true } in the
+  // request config — otherwise the two stack (L-07).
+  if (error.config?.skipGlobalErrorToast) {
     return Promise.reject(error);
   }
-);
+
+  if (error.response) {
+    const status = error.response.status;
+
+    switch (status) {
+      case 401:
+        queryClient.setQueryData(['me'], null);
+        // /auth/me is polled silently on every page load to check session
+        // state — an anonymous visitor gets a 401 there constantly, so it's
+        // excluded from the toast to avoid noise. Every other 401 (a failed
+        // login attempt, an expired session hit mid-action, etc.) reflects
+        // something the user actually did, so it gets a message.
+        if (!error.config?.url?.includes('/auth/me')) {
+          toast.error(error.response.data?.error?.message || error.response.data?.message || 'Invalid credentials.');
+        }
+        if (typeof window !== 'undefined') {
+          const path = window.location.pathname;
+          // Only redirect to staff login if visiting protected staff dashboard
+          // routes — shares the same route list the dashboard middleware
+          // itself protects (lib/route-guard.ts), so this can't drift stale.
+          if (isDashboardRoute(path)) {
+            const callbackUrl = `${path}${window.location.search}${window.location.hash}`;
+            window.location.href = `/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+          }
+        }
+        break;
+
+      case 403:
+        toast.error('You do not have permission to perform this action.');
+        break;
+
+      case 409: {
+        const conflictCode = error.response.data?.error?.code;
+        // TABLE_OCCUPIED carries a structured conflict payload the caller
+        // uses to show a specific "seat anyway?" confirmation — the generic
+        // toast here would just be noise on top of that.
+        if (conflictCode === 'TABLE_OCCUPIED') {
+          break;
+        }
+        // TABLE_UNAVAILABLE already says what's wrong and what to do next
+        // ("This table isn't free for this reservation's time"), so show it
+        // verbatim. Anything else is a stale-version clash, where the only
+        // useful advice really is to refresh.
+        toast.error(
+          conflictCode === 'TABLE_UNAVAILABLE' && error.response.data?.error?.message
+            ? error.response.data.error.message
+            : 'This table state has changed. Please refresh to see the latest updates.'
+        );
+        break;
+      }
+
+      case 422:
+        const validationMsg = error.response.data?.error?.message || 'Invalid input data.';
+        toast.error(validationMsg);
+        break;
+
+      case 500:
+      default:
+        if (status >= 500) {
+          toast.error('Something went wrong on our end. Please try again.');
+        } else {
+          toast.error(error.response.data?.error?.message || 'An error occurred.');
+        }
+        break;
+    }
+  } else {
+    toast.error('Network error. Please check your connection.');
+  }
+  return Promise.reject(error);
+};
+
+axiosInstance.interceptors.response.use((response) => response, handleResponseError);
 
 
