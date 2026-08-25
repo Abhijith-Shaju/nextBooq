@@ -1,16 +1,39 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTenant } from '@/components/providers/tenant-provider';
+import { useAuth } from '@/components/providers/auth-provider';
 import { CustomerAuthModal } from '@/components/auth/customer-auth-modal';
 import { AccountMenu } from '@/components/shared/account-menu';
 import { EmailVerificationBanner } from '@/components/shared/email-verification-banner';
+import { resolvePostAuthDestination } from '@/lib/auth/post-auth-destination';
 import { Coffee, Calendar, Shield } from 'lucide-react';
 
 export function TenantPublicHeader() {
   const { cafe } = useTenant();
+  const { user, isAuthenticated } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // Auth state is only known client-side (useMe's query has nothing to go
+  // on during SSR), so branching whether this link even EXISTS on
+  // isAuthenticated -- before the client has mounted -- mismatches the
+  // server-rendered markup. React's hydration recovery from an
+  // element-existence mismatch is far worse than a text/attribute one: it
+  // was observed leaving two copies of the entire header in the committed
+  // DOM. Rendering the signed-out default (present, /auth/login) until
+  // mount, then re-evaluating once mounted, keeps the very first hydration
+  // pass byte-for-byte identical to the server's output.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  // Signed out: a quicklink for cafe staff to find the login page. Signed
+  // in: sending them back to /auth/login as if they weren't authenticated
+  // was the bug -- send a staff/owner/admin straight to their dashboard
+  // instead, and hide the link entirely for a plain customer, who has no
+  // staff destination to go to.
+  const staffLinkHref = mounted && isAuthenticated ? resolvePostAuthDestination(user) : '/auth/login';
+  const showStaffLink = !mounted || !isAuthenticated || staffLinkHref !== '/';
 
   return (
     <>
@@ -45,14 +68,16 @@ export function TenantPublicHeader() {
               />
             </div>
 
-            {/* Operator Login Quicklink */}
-            <Link
-              href="/auth/login"
-              title="Staff / Operator Login"
-              className="p-1.5 rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-            >
-              <Shield className="w-4 h-4" />
-            </Link>
+            {/* Operator Login Quicklink (signed out) / Staff Dashboard shortcut (signed in) */}
+            {showStaffLink && (
+              <Link
+                href={staffLinkHref}
+                title={mounted && isAuthenticated ? 'Staff Dashboard' : 'Staff / Operator Login'}
+                className="p-1.5 rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+              >
+                <Shield className="w-4 h-4" />
+              </Link>
+            )}
           </div>
         </div>
       </header>

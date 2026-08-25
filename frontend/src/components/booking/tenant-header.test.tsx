@@ -42,7 +42,7 @@ describe('TenantPublicHeader', () => {
 
   test('offers View Account and Log out when signed in', () => {
     mockUseAuth.mockReturnValue({
-      user: { name: 'Priya Sharma' },
+      user: { name: 'Priya Sharma', staff_memberships: [], owner_org_id: null, is_platform_admin: false },
       isAuthenticated: true,
       logout: logoutMock,
     });
@@ -60,7 +60,7 @@ describe('TenantPublicHeader', () => {
   // the storefront, not get sent to the staff login page.
   test('logging out redirects back to this cafe\'s storefront, not the staff login page', () => {
     mockUseAuth.mockReturnValue({
-      user: { name: 'Priya Sharma' },
+      user: { name: 'Priya Sharma', staff_memberships: [], owner_org_id: null, is_platform_admin: false },
       isAuthenticated: true,
       logout: logoutMock,
     });
@@ -71,5 +71,69 @@ describe('TenantPublicHeader', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: /log out/i }));
 
     expect(logoutMock).toHaveBeenCalledWith('/demo-cafe');
+  });
+
+  describe('the shield quicklink beside the account menu', () => {
+    test('links to /auth/login when signed out', () => {
+      mockUseAuth.mockReturnValue({ user: null, isAuthenticated: false, logout: logoutMock });
+
+      render(<TenantPublicHeader />);
+
+      expect(screen.getByTitle(/staff \/ operator login/i)).toHaveAttribute('href', '/auth/login');
+    });
+
+    // The bug: a signed-in customer clicked this and was sent to /auth/login
+    // again, as if they weren't already authenticated.
+    test('is not shown to a signed-in customer with no staff/org/admin role', () => {
+      mockUseAuth.mockReturnValue({
+        user: {
+          name: 'Priya Sharma',
+          staff_memberships: [],
+          owner_org_id: null,
+          is_platform_admin: false,
+        },
+        isAuthenticated: true,
+        logout: logoutMock,
+      });
+
+      render(<TenantPublicHeader />);
+
+      expect(screen.queryByTitle(/staff \/ operator login/i)).not.toBeInTheDocument();
+      expect(screen.queryByText('/auth/login', { exact: false })).not.toBeInTheDocument();
+    });
+
+    test('links a signed-in staff member straight to their cafe dashboard', () => {
+      mockUseAuth.mockReturnValue({
+        user: {
+          name: 'Sam Host',
+          staff_memberships: [{ role: 'host', cafe_id: { slug: 'demo-cafe' } }],
+          owner_org_id: null,
+          is_platform_admin: false,
+        },
+        isAuthenticated: true,
+        logout: logoutMock,
+      });
+
+      render(<TenantPublicHeader />);
+
+      expect(screen.getByTitle(/staff dashboard/i)).toHaveAttribute('href', '/demo-cafe/dashboard');
+    });
+
+    test('links a signed-in org owner to the org dashboard', () => {
+      mockUseAuth.mockReturnValue({
+        user: {
+          name: 'Org Owner',
+          staff_memberships: [],
+          owner_org_id: 'org_1',
+          is_platform_admin: false,
+        },
+        isAuthenticated: true,
+        logout: logoutMock,
+      });
+
+      render(<TenantPublicHeader />);
+
+      expect(screen.getByTitle(/staff dashboard/i)).toHaveAttribute('href', '/org/dashboard');
+    });
   });
 });
