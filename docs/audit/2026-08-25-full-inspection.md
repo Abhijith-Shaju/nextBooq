@@ -264,3 +264,18 @@ Continued the same day. Each fix below has a regression test; full suites verifi
 | L-01, L-02, L-03, L-04, L-05, L-12 | — | Not attempted in this pass — these are feature-sized work (route-level error/loading boundaries across ~8 groups; booking-store persistence and a redirect-when-empty flow; a payment-verification retry/status UX; two performance refactors in booking-critical paths; new test suites for 4 components), not bounded bug fixes. Flagged for a separate pass. |
 
 Two items corrected on inspection rather than "fixed": M-04's zero-owner scenario turned out not to be reachable (verified with a test), and two of L-08's sub-claims (missing `alt`, a second untagged image) didn't hold either.
+
+---
+
+## Fix log, part 3 — the six feature-sized lows
+
+Separate pass, same rigor (regression test per fix, full suites verified clean after each: backend 474/476 with two known full-suite-only flakes in `tableAssignment.test.js`/`sweepLock.test.js` unrelated to this pass, frontend 391/397 with three known full-suite-only flakes unrelated to this pass — all confirmed by isolating each failing file and re-running it standalone, where it passes).
+
+| Finding | Commit | Notes |
+|---------|--------|-------|
+| L-01 | `357e4f4` | Added `error.tsx`/`loading.tsx` for every route group (`(control-plane)`, `[tenant]`, `admin`, `org`, `profile`) plus a self-contained root `global-error.tsx` (own `<html>`/`<body>`, since it replaces the root layout on a root-level failure), backed by a shared `ErrorFallback`/`LoadingFallback` pair. |
+| L-02 | `6361c17` | The booking store's in-progress reservation, party size, date/time, and hold expiry now persist to `sessionStorage` (not `localStorage` — scoped to finishing one checkout in one tab) via zustand's `persist`, with a custom `merge` reviving `Date` fields. `CheckoutCard` waits for rehydration before deciding there's no live hold, and redirects back to the café's booking page instead of rendering a dead-end state. |
+| L-03 | `6361c17` | Razorpay's client-side `handler` firing is not proof of payment — a webhook racing the same verify call, or a brief network blip, was previously surfaced as an immediate hard failure. Added one automatic retry (the endpoint is idempotent) before surfacing failure, plus a persistent manual "Retry verification" affordance showing the payment reference when both attempts fail. |
+| L-04 | `c927563` | `GET /available-slots` called `allocateTables()` once per candidate slot (52+ round trips for a 13-hour day at a 30-min turn time). Now fetches tables and reservations once for the whole day's window and evaluates every slot's allocation decision in memory; `allocateTables()`'s per-booking DB path is unchanged. |
+| L-05 | `c927563` | `generateMergeCombinations` enumerated every pair/triple of the entire table list (~161,700 checks at 100 tables) and relied on the connectivity check to reject cross-cluster combos afterward. Now partitions tables into connected components first and runs the unmodified search per component — identical results, without the wasted work across clusters that can never merge. |
+| L-12 | `8f3d1d4` | Added test coverage for the four previously-untested behavioural components: `customer-auth-modal`, `payment-card`, `auth-overlay`, `email-verification-banner`. |
