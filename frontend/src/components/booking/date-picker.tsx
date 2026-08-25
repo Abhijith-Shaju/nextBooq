@@ -74,13 +74,13 @@ export function DatePicker() {
       </div>
 
       {/* Interactive Calendar Card */}
-      <div className="border border-brand-brown/15 rounded-2xl p-2 bg-white/90 shadow-brand-sm flex justify-center">
+      <div className="border border-brand-brown/15 rounded-2xl p-2 bg-white/90 shadow-brand-sm">
         <Calendar
           mode="single"
           selected={date || undefined}
           onSelect={(day) => day && setDate(day)}
           disabled={(d) => d < disabledBefore}
-          className="rounded-md text-brand-brown font-sans"
+          className="w-full rounded-md text-brand-brown font-sans"
         />
       </div>
     </div>
