@@ -51,5 +51,47 @@ describe('Table Allocation Engine - Detailed Unit Tests', () => {
       const combos = generateMergeCombinations(tables, 15, 3);
       expect(combos.length).toBe(0);
     });
+
+    // L-05: previously every candidate combination was drawn from the whole
+    // table list regardless of adjacency (~161,700 checks at 100 tables),
+    // relying on the connectivity check to reject cross-cluster combos
+    // afterwards. With a floor plan of mostly isolated tables (the common
+    // case -- standard 2-tops with no merge partners), that's almost all
+    // wasted work. This asserts the fix stays fast at a scale where the old
+    // O(n^3)-ish enumeration would not.
+    test('stays fast with many isolated tables and only a small merge cluster', () => {
+      const isolatedTables = Array.from({ length: 300 }, (_, i) => ({
+        _id: `iso${i}`,
+        table_number: `I${i}`,
+        capacity: 2,
+        can_merge_with: [],
+      }));
+      const mergeableTables = [table1, table2, table3, table4];
+      const tables = [...isolatedTables, ...mergeableTables];
+
+      const start = Date.now();
+      const combos = generateMergeCombinations(tables, 6, 3);
+      const elapsedMs = Date.now() - start;
+
+      expect(elapsedMs).toBeLessThan(500);
+      const comboNames = combos.map((c) => c.tables.map((t) => t.table_number).sort());
+      expect(comboNames).toContainEqual(['T2', 'T3']);
+      combos.forEach((combo) => {
+        combo.tables.forEach((t) => expect(t.table_number.startsWith('I')).toBe(false));
+      });
+    });
+
+    // Same connectivity semantics as before -- reachability doesn't require
+    // the mutual (both-directions) can_merge_with entry that the small
+    // fixture tables above happen to have; a one-directional edge is
+    // sufficient for a pair, matching the pre-existing isConnected check
+    // this refactor preserves unchanged.
+    test('still honors one-directional can_merge_with edges within a component', () => {
+      const a = { _id: 'a', table_number: 'A', capacity: 2, can_merge_with: ['b'] };
+      const b = { _id: 'b', table_number: 'B', capacity: 4, can_merge_with: [] };
+      const combos = generateMergeCombinations([a, b], 6, 3);
+      expect(combos.length).toBe(1);
+      expect(combos[0].tables.map((t) => t.table_number).sort()).toEqual(['A', 'B']);
+    });
   });
 });

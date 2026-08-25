@@ -26,9 +26,24 @@ const getBlockedTableIds = async (cafeId, startTime, endTime, session = null, ex
   }
 
   const overlappingReservations = await query.exec();
+  return blockedTableIdsFromReservations(overlappingReservations, startTime, endTime);
+};
+
+/**
+ * Pure, in-memory equivalent of getBlockedTableIds' overlap filter — given a
+ * pre-fetched batch of candidate reservations (already narrowed to the
+ * cafe/status/day of interest), returns the tables blocked for one specific
+ * [startTime, endTime) window without touching the database again. Backs the
+ * batched multi-slot allocation check below.
+ */
+const blockedTableIdsFromReservations = (reservations, startTime, endTime, excludeReservationId = null) => {
+  const now = new Date();
   const blockedTableIds = new Set();
 
-  for (const res of overlappingReservations) {
+  for (const res of reservations) {
+    if (excludeReservationId && res._id.toString() === excludeReservationId.toString()) continue;
+    if (!(res.start_time < endTime && res.end_time > startTime)) continue;
+    if (res.status === 'HOLD' && !(res.hold_expires_at > now)) continue;
     for (const tableId of res.table_ids) {
       blockedTableIds.add(tableId.toString());
     }
@@ -38,13 +53,59 @@ const getBlockedTableIds = async (cafeId, startTime, endTime, session = null, ex
 };
 
 /**
- * Helper to generate connected combinations of tables up to maxDepth (3).
+ * Fetches the tables and candidate reservations needed to check availability
+ * across an entire range of slot windows (e.g. every slot in a day) in two
+ * queries total, instead of the two-queries-per-candidate-slot cost of
+ * calling allocateTables() in a loop (L-04).
  */
-const generateMergeCombinations = (tables, partySize, maxDepth = 3) => {
+const prefetchAvailabilityData = async (cafeId, windowStart, windowEnd) => {
+  const [tables, reservations] = await Promise.all([
+    Table.find({ cafe_id: cafeId, status: 'active', is_deleted: false }).exec(),
+    Reservation.find({
+      cafe_id: cafeId,
+      status: { $in: ['HOLD', 'PENDING_PAYMENT', 'CONFIRMED', 'CHECKED_IN', 'SEATED'] },
+      start_time: { $lt: windowEnd },
+      end_time: { $gt: windowStart },
+    }).exec(),
+  ]);
+
+  return { tables, reservations };
+};
+
+/**
+ * Same allocation decision as allocateTables(), evaluated entirely in memory
+ * against a batch fetched by prefetchAvailabilityData() — no DB access.
+ */
+const allocateTablesFromPrefetched = (tables, reservations, startTime, endTime, partySize) => {
+  const blockedTableIds = blockedTableIdsFromReservations(reservations, startTime, endTime);
+  const availableTables = tables.filter((t) => !blockedTableIds.has(t._id.toString()));
+
+  if (availableTables.length === 0) {
+    throw new UnprocessableEntityError('No available tables for the requested time slot');
+  }
+
+  const selection = selectBestFit(availableTables, partySize);
+
+  if (!selection) {
+    throw new UnprocessableEntityError(
+      `No available table layout can accommodate a party of ${partySize}`
+    );
+  }
+
+  return selection;
+};
+
+/**
+ * Runs the original combinatorial search (every ascending-index subset up
+ * to maxDepth, filtered by isConnected) against one already-isolated group
+ * of tables. Left as-is from before L-05 -- the fix is in how
+ * generateMergeCombinations partitions the input before calling this, not
+ * in the search itself.
+ */
+const searchConnectedCombinations = (tables, partySize, maxDepth) => {
   const tableMap = new Map(tables.map((t) => [t._id.toString(), t]));
   const validCombinations = [];
 
-  // Helper to check if a subset of tables forms a connected graph via can_merge_with
   const isConnected = (tableList) => {
     if (tableList.length <= 1) return true;
     const visited = new Set();
@@ -96,6 +157,69 @@ const generateMergeCombinations = (tables, partySize, maxDepth = 3) => {
   };
 
   backtrack(0, [], 0);
+
+  return validCombinations;
+};
+
+/**
+ * Generates connected combinations of tables up to maxDepth (3).
+ *
+ * Two tables that are mutually unreachable via can_merge_with (in either
+ * direction) can never pass isConnected together, so any subset spanning
+ * two of the floor plan's merge-adjacency components is guaranteed invalid.
+ * Previously the search enumerated every subset of the ENTIRE table list
+ * regardless (~161,700 checks per call at 100 tables) and relied on
+ * isConnected to reject the cross-component ones after the fact. Splitting
+ * into connected components first and running the unmodified search on
+ * each component separately produces the identical result set (every valid
+ * combo lives entirely within one component, and per-component relative
+ * table order is preserved) while skipping that wasted combinatorial work
+ * -- the dominant cost in a real floor plan, where most tables are single,
+ * non-mergeable tables or belong to small merge clusters (L-05).
+ */
+const generateMergeCombinations = (tables, partySize, maxDepth = 3) => {
+  const undirectedNeighbors = new Map(tables.map((t) => [t._id.toString(), new Set()]));
+  for (const table of tables) {
+    const id = table._id.toString();
+    for (const neighborIdObj of table.can_merge_with || []) {
+      const neighborId = neighborIdObj.toString();
+      if (!undirectedNeighbors.has(neighborId)) continue;
+      undirectedNeighbors.get(id).add(neighborId);
+      undirectedNeighbors.get(neighborId).add(id);
+    }
+  }
+
+  const visited = new Set();
+  const componentIdSets = [];
+  for (const table of tables) {
+    const id = table._id.toString();
+    if (visited.has(id)) continue;
+
+    const stack = [id];
+    visited.add(id);
+    const componentIds = new Set();
+    while (stack.length > 0) {
+      const currentId = stack.pop();
+      componentIds.add(currentId);
+      for (const neighborId of undirectedNeighbors.get(currentId)) {
+        if (!visited.has(neighborId)) {
+          visited.add(neighborId);
+          stack.push(neighborId);
+        }
+      }
+    }
+    componentIdSets.push(componentIds);
+  }
+
+  const validCombinations = [];
+  for (const componentIds of componentIdSets) {
+    // A table with no merge partners at all can never form a multi-table
+    // combo -- skip the search entirely for singleton components.
+    if (componentIds.size < 2) continue;
+
+    const componentTables = tables.filter((t) => componentIds.has(t._id.toString()));
+    validCombinations.push(...searchConnectedCombinations(componentTables, partySize, maxDepth));
+  }
 
   return validCombinations;
 };
@@ -256,4 +380,6 @@ module.exports = {
   generateMergeCombinations,
   selectBestFit,
   suggestAlternateTable,
+  prefetchAvailabilityData,
+  allocateTablesFromPrefetched,
 };

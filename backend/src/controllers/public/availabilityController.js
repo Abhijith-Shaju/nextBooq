@@ -1,4 +1,4 @@
-const { allocateTables } = require('../../services/allocationEngine');
+const { allocateTables, prefetchAvailabilityData, allocateTablesFromPrefetched } = require('../../services/allocationEngine');
 const {
   validateOperatingHours,
   getDaySchedule,
@@ -117,31 +117,42 @@ const getAvailableSlots = async (req, res, next) => {
 
     const availableSlots = [];
 
-    for (const slotTime of candidateSlotTimes) {
-      const startTime = localTimeToUTC(date, slotTime, timeZone);
-      const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
+    // One pair of queries covering the whole day's candidate slots, instead
+    // of allocateTables() re-querying tables + reservations from scratch for
+    // every candidate slot (52+ round trips for a 13-hour day at a 30-min
+    // turn time) — the per-slot decision itself is then made in memory (L-04).
+    if (candidateSlotTimes.length > 0) {
+      const slotStarts = candidateSlotTimes.map((slotTime) => localTimeToUTC(date, slotTime, timeZone));
+      const windowStart = new Date(Math.min(...slotStarts.map((d) => d.getTime())));
+      const windowEnd = new Date(Math.max(...slotStarts.map((d) => d.getTime())) + duration * 60 * 1000);
+      const { tables, reservations } = await prefetchAvailabilityData(cafeId, windowStart, windowEnd);
 
-      let available = false;
-      let reason = undefined;
+      candidateSlotTimes.forEach((slotTime, idx) => {
+        const startTime = slotStarts[idx];
+        const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
 
-      try {
-        if (startTime < earliestAllowedStart) {
-          throw new Error(leadTimeReason);
+        let available = false;
+        let reason = undefined;
+
+        try {
+          if (startTime < earliestAllowedStart) {
+            throw new Error(leadTimeReason);
+          }
+          if (req.cafe) {
+            validateOperatingHours(req.cafe, startTime, endTime);
+          }
+          allocateTablesFromPrefetched(tables, reservations, startTime, endTime, party);
+          available = true;
+        } catch (allocErr) {
+          available = false;
+          reason = allocErr.message || 'Unavailable';
         }
-        if (req.cafe) {
-          validateOperatingHours(req.cafe, startTime, endTime);
-        }
-        await allocateTables(cafeId, startTime, endTime, party);
-        available = true;
-      } catch (allocErr) {
-        available = false;
-        reason = allocErr.message || 'Unavailable';
-      }
 
-      availableSlots.push({
-        time: slotTime,
-        available,
-        ...(reason && { reason }),
+        availableSlots.push({
+          time: slotTime,
+          available,
+          ...(reason && { reason }),
+        });
       });
     }
 
