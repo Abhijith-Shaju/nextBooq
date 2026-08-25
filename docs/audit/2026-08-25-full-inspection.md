@@ -236,3 +236,31 @@ All 6 critical/high findings fixed the same day, each with a regression test pro
 Two full-suite runs during H-04/H-05 verification surfaced intermittent failures in `tableAssignment.test.js` and `reservationFeeCharging.test.js`; both were confirmed pre-existing test-order flakiness (reproduced identically with the fix commits reverted, and passed cleanly in isolation), not regressions.
 
 Medium and low findings remain open.
+
+---
+
+## Fix log, part 2 — medium and low findings
+
+Continued the same day. Each fix below has a regression test; full suites verified clean after each (backend 80/80, frontend 68/68 as of the last run in this pass).
+
+| Finding | Commit | Notes |
+|---------|--------|-------|
+| M-01 | `adfa3d8` | 500 responses outside development now return a generic message; the real one is logged server-side. 4xx messages unchanged. |
+| M-02 | `5579b48` | The non-transactional booking fallback now refuses to engage when `NODE_ENV === 'production'`, regardless of the error shape. |
+| M-03 | `70db9c3` | Daily manifest's day window now resolves in the café's own timezone via `localTimeToUTC`, matching the availability path. Malformed `date` now 400s. |
+| M-04 | `73e9829` | **Reviewed, not reproducible** — traced why: the caller can never modify their own membership, and `requireOrgOwner` requires owning every café in the org, so a café can't be left with zero owners through these endpoints. Added regression tests proving it rather than leaving it as an assumption. No code change. |
+| M-05 | `927d5ec` | Table `table_number` unique index made partial (`is_deleted: false` only) — a deleted table_number can no longer collide with itself on reuse. |
+| M-06 | `ac38420` | Deleting a table now checks for an active reservation still assigned to it, mirroring the existing capacity-reduction guard. |
+| M-07 | `9ca25bb` | New `GET /platform-admin/refunds-needed` endpoint plus a warning banner on the admin overview page, listing reservations flagged `requires_manual_refund`. Full Razorpay refund automation is out of scope — this is the "someone actually sees it" minimum. |
+| M-08 | `b6a5ce5`, `5a6d74b` | Background sweeps (stale holds/pending payments, subscription expiry) now guarded by a Mongo-backed distributed lock so multiple API instances don't multiply the work. Second commit fixed a race in the lock's own upsert, caught by an intermittent full-suite failure. Does not address a sweep not running at all on a serverless/scale-to-zero host — that's a deployment decision, not a code fix. |
+| M-09 | `5a6d74b` | `validateOperatingHours` now rolls an overnight schedule's closing time forward by 24h, matching `generateSlotTimes`; the settings validator now accepts `close_time < open_time` as a legitimate overnight schedule (only identical open/close is still rejected). Left the deeper "which day's schedule applies after midnight" lookup ambiguity out of scope. |
+| M-10 | — | Deliberately deferred — fixing the four `postcss`/`sharp` advisories requires a major Next.js version bump, which needs its own planned upgrade rather than a reflexive `--force`. |
+| L-06 | `f08ff04` | Registration now returns one generic message for either an existing email or existing phone, instead of two distinguishable ones. |
+| L-07 | `cfd8364` | Added a `skipGlobalErrorToast` request-config opt-out for the axios error interceptor; applied it to the one call site with a verified double-toast (resend-verification-email). The other 15 call sites flagged in the original finding need individual review — out of scope for this pass. |
+| L-08 | `6e106a5` | Admin table rows are now keyboard-operable (`tabIndex`, Enter/Space, focus ring); the subscription drawer now has `role="dialog"`, `aria-modal`, an accessible name, and closes on Escape. The `<img>` and second-missing-alt claims in the original finding didn't hold on inspection — corrected, no change needed there. |
+| L-09 | `be9b262` | Daily manifest with no `date` now defaults to the café's own "today" instead of every reservation ever; `GET /customer/reservations` capped at 200. Also fixed a time-of-day-dependent flaky test in the M-02 commit, caught while regression-testing this fix. |
+| L-10 | `f08ff04` | `verifyCheckoutPayment` now reads `config.NODE_ENV` instead of `process.env.NODE_ENV` directly; an unconfigured café outside development now gets a clear 400 instead of an unhandled 500 from `decrypt('')`. |
+| L-11 | `a9c65be` | Added an in-memory consecutive-failure counter for audit-log writes, surfaced as `checks.auditLog` on `/health` (status code stays 200 regardless — audit logging is deliberately off the critical path). |
+| L-01, L-02, L-03, L-04, L-05, L-12 | — | Not attempted in this pass — these are feature-sized work (route-level error/loading boundaries across ~8 groups; booking-store persistence and a redirect-when-empty flow; a payment-verification retry/status UX; two performance refactors in booking-critical paths; new test suites for 4 components), not bounded bug fixes. Flagged for a separate pass. |
+
+Two items corrected on inspection rather than "fixed": M-04's zero-owner scenario turned out not to be reachable (verified with a test), and two of L-08's sub-claims (missing `alt`, a second untagged image) didn't hold either.
