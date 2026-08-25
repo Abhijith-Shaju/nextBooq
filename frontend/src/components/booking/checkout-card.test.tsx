@@ -56,6 +56,22 @@ describe('CheckoutCard', () => {
     expect(openRazorpayCheckout).not.toHaveBeenCalled();
   });
 
+  // A dev-server cold-compile race was once observed serving a render before
+  // zustand's persist middleware had finished attaching `.persist` to the
+  // store, throwing "Cannot read properties of undefined (reading
+  // 'hasHydrated')". The component now falls back to treating the store as
+  // already hydrated instead of assuming `.persist` exists.
+  test('renders without crashing when the persist API is unexpectedly unavailable', () => {
+    const originalPersist = useBookingStore.persist;
+    (useBookingStore as { persist?: typeof originalPersist }).persist = undefined;
+
+    try {
+      expect(() => render(<CheckoutCard />)).not.toThrow();
+    } finally {
+      useBookingStore.persist = originalPersist;
+    }
+  });
+
   test('opens checkout with the real order id, verifies payment server-side, and only then shows success', async () => {
     useBookingStore.getState().setReservation({
       id: 'res_123',

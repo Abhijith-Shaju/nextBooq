@@ -26,6 +26,14 @@ interface RazorpayCheckoutResponse {
 // it as a real failure is always safe (L-03).
 const VERIFY_RETRY_DELAY_MS = 2000;
 
+// `.persist` is normally always present (zustand's persist middleware
+// attaches it synchronously), but a dev-server cold-compile race can
+// briefly serve a render before it's wired up, throwing
+// "Cannot read properties of undefined (reading 'hasHydrated')". Guarding
+// it -- and defaulting to "already hydrated" rather than getting stuck
+// waiting for a signal that will never come -- makes that window harmless.
+const hasStoreHydrated = () => useBookingStore.persist?.hasHydrated() ?? true;
+
 export function CheckoutCard() {
   const { reservation, partySize, date, time } = useBookingStore();
   const { cafe } = useTenant();
@@ -35,14 +43,14 @@ export function CheckoutCard() {
   // reads as null for a moment even when a real hold was persisted — wait
   // for hydration to actually finish before deciding there's nothing to
   // check out with (L-02).
-  const [hasHydrated, setHasHydrated] = useState(useBookingStore.persist.hasHydrated());
+  const [hasHydrated, setHasHydrated] = useState(hasStoreHydrated());
   useEffect(() => {
     if (hasHydrated) return undefined;
-    if (useBookingStore.persist.hasHydrated()) {
+    if (hasStoreHydrated()) {
       setHasHydrated(true);
       return undefined;
     }
-    return useBookingStore.persist.onFinishHydration(() => setHasHydrated(true));
+    return useBookingStore.persist?.onFinishHydration(() => setHasHydrated(true));
   }, [hasHydrated]);
 
   useEffect(() => {
