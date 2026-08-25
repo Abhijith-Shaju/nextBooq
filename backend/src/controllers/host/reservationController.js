@@ -4,7 +4,7 @@ const { transitionState } = require('../../services/stateMachine');
 const { findSeatedOccupancyConflict } = require('../../services/tableOccupancyService');
 const { suggestAlternateTable } = require('../../services/allocationEngine');
 const { assignReservationToTable } = require('../../services/tableAssignmentService');
-const { localTimeToUTC } = require('../../utils/operatingHours');
+const { localTimeToUTC, getLocalTimeDetails } = require('../../utils/operatingHours');
 const { BadRequestError, NotFoundError } = require('../../utils/errors');
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -21,25 +21,26 @@ const nextDateKey = (dateKey) => {
 const getDailyManifest = async (req, res, next) => {
   try {
     const cafeId = req.tenantId;
-    const { date } = req.query;
+    const timeZone = req.cafe?.timezone || 'UTC';
+    // Defaults to the café's own "today" rather than returning every
+    // reservation the café has ever taken when the caller omits `date` --
+    // the frontend always passes one explicitly, so this only changes
+    // behavior for a caller (a script, a stray API client) that doesn't (L-09).
+    const date = req.query.date || getLocalTimeDetails(new Date(), timeZone).dateKey;
 
-    let dateQuery = {};
-    if (date) {
-      if (!DATE_KEY_PATTERN.test(date)) {
-        throw new BadRequestError('date must be a YYYY-MM-DD string');
-      }
-      // The manifest is "today" in the café's own local calendar day, not
-      // UTC's — matching every other place this app resolves a booking
-      // date (e.g. availabilityController.js). Hardcoding UTC boundaries
-      // here split the evening service across two pages for any café not
-      // on UTC (M-03).
-      const timeZone = req.cafe?.timezone || 'UTC';
-      const startOfDay = localTimeToUTC(date, '00:00', timeZone);
-      const endOfDayExclusive = localTimeToUTC(nextDateKey(date), '00:00', timeZone);
-      dateQuery = {
-        start_time: { $gte: startOfDay, $lt: endOfDayExclusive },
-      };
+    if (!DATE_KEY_PATTERN.test(date)) {
+      throw new BadRequestError('date must be a YYYY-MM-DD string');
     }
+    // The manifest is "today" in the café's own local calendar day, not
+    // UTC's — matching every other place this app resolves a booking
+    // date (e.g. availabilityController.js). Hardcoding UTC boundaries
+    // here split the evening service across two pages for any café not
+    // on UTC (M-03).
+    const startOfDay = localTimeToUTC(date, '00:00', timeZone);
+    const endOfDayExclusive = localTimeToUTC(nextDateKey(date), '00:00', timeZone);
+    const dateQuery = {
+      start_time: { $gte: startOfDay, $lt: endOfDayExclusive },
+    };
 
     const reservations = await Reservation.find({
       cafe_id: cafeId,

@@ -40,14 +40,22 @@ describe('createHoldReservation refuses the non-transactional fallback in produc
     });
   });
 
-  const buildArgs = () => ({
-    cafeId: cafe._id,
-    userId: user._id,
-    startTime: new Date(Date.now() + 48 * 60 * 60 * 1000),
-    endTime: new Date(Date.now() + 48 * 60 * 60 * 1000 + 60 * 60 * 1000),
-    partySize: 2,
-    reservationTimezone: 'UTC',
-  });
+  const buildArgs = () => {
+    // Pinned to a fixed hour-of-day (14:00 UTC), not just "now + 48h" --
+    // the cafe fixture has no operating_hours configured, so it falls back
+    // to the 09:00-22:00 default, and whatever hour-of-day "now" happens to
+    // be would otherwise make this test flaky depending on wall-clock time.
+    const startTime = new Date(Date.now() + 48 * 60 * 60 * 1000);
+    startTime.setUTCHours(14, 0, 0, 0);
+    return {
+      cafeId: cafe._id,
+      userId: user._id,
+      startTime,
+      endTime: new Date(startTime.getTime() + 60 * 60 * 1000),
+      partySize: 2,
+      reservationTimezone: 'UTC',
+    };
+  };
 
   test('rejects the booking instead of silently falling back, when NODE_ENV is production', async () => {
     const originalNodeEnv = config.NODE_ENV;
