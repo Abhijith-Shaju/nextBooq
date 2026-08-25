@@ -12,5 +12,9 @@ export const useTables = (cafeId: string | undefined) => {
     },
     enabled: !!cafeId,
     staleTime: 5 * 60 * 1000,
+    // A permission/auth failure won't resolve itself on retry -- without
+    // this, React Query's default 3 retries meant a single 403 fired the
+    // global error toast up to 4 times in a row.
+    retry: false,
   });
 };

@@ -64,11 +64,14 @@ router.put(
   assignTable
 );
 
-// Table Inventory Management (edit_tables permission required)
+// Table Inventory Management -- listing tables is read-only (the Host Stand
+// dashboard loads it alongside the reservation manifest to render the
+// floorplan), so it only needs view_reservations, the same as the manifest
+// itself. Only the mutating routes below (create/update) require edit_tables.
 router.get(
   '/cafes/:cafeId/tables',
   extractTenant,
-  requirePermission('edit_tables'),
+  requirePermission('view_reservations'),
   getTables
 );
 
