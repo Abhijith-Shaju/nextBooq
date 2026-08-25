@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ArrowUpRight, Coffee, Loader2, Plus, Users } from 'lucide-react';
+import { ArrowUpRight, Coffee, LayoutDashboard, Loader2, Plus, Users } from 'lucide-react';
 import { useOrgCafes } from '@/hooks/org/use-org-cafes';
 import { useAssignStaff, AssignStaffPayload } from '@/hooks/org/use-assign-staff';
 import { OrgCafe } from '@/lib/types/org';
@@ -110,14 +110,23 @@ function CafeCard({ cafe }: { cafe: OrgCafe }) {
         </span>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setAssigning((prev) => !prev)}
-        className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-red hover:underline"
-      >
-        <Plus className="h-3.5 w-3.5" />
-        Assign staff
-      </button>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Link
+          href={`/${cafe.slug}/dashboard`}
+          className="inline-flex items-center gap-1.5 rounded-full bg-brand-red px-3.5 py-1.5 text-sm font-semibold text-white shadow-brand-sm transition-colors hover:bg-brand-redDark"
+        >
+          <LayoutDashboard className="h-3.5 w-3.5" />
+          View dashboard
+        </Link>
+        <button
+          type="button"
+          onClick={() => setAssigning((prev) => !prev)}
+          className="inline-flex items-center gap-1 rounded-full border border-brand-brown/15 px-3.5 py-1.5 text-sm font-semibold text-brand-red transition-colors hover:bg-brand-red/5"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Assign staff
+        </button>
+      </div>
 
       {assigning && <AssignStaffForm cafeId={cafe._id} onDone={() => setAssigning(false)} />}
     </div>

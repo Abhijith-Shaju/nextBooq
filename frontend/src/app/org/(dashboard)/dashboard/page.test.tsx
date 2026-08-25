@@ -47,6 +47,21 @@ describe('OrgDashboardPage', () => {
     expect(link).toHaveAttribute('href', '/cafe-one/dashboard');
   });
 
+  // A "View dashboard" link buried in the title text (only discoverable by
+  // hovering to notice a small arrow icon) wasn't obvious as an action --
+  // an explicit button next to "Assign staff" is.
+  test('shows an obvious "View dashboard" button next to Assign staff for each cafe', () => {
+    cafesMock.mockReturnValue({
+      data: [{ _id: 'cafe-1', name: 'Cafe One', slug: 'cafe-one', subscription_status: 'active', today_reservation_count: 0 }],
+    });
+
+    render(<OrgDashboardPage />);
+
+    const viewDashboardLink = screen.getByRole('link', { name: /view dashboard/i });
+    expect(viewDashboardLink).toHaveAttribute('href', '/cafe-one/dashboard');
+    expect(screen.getByRole('button', { name: /assign staff/i })).toBeInTheDocument();
+  });
+
   test('submits the assign-staff form with email and role for the right cafe', async () => {
     cafesMock.mockReturnValue({
       data: [{ _id: 'cafe-1', name: 'Cafe One', slug: 'cafe-one', subscription_status: 'active', today_reservation_count: 0 }],
