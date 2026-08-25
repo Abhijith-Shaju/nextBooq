@@ -244,4 +244,26 @@ describe('SubscriptionDrawer', () => {
 
     await waitFor(() => expect(screen.getByText(/^expired .* ago$/i)).toBeInTheDocument());
   });
+
+  test('exposes dialog semantics for assistive tech', async () => {
+    vi.mocked(axiosInstance.get).mockResolvedValue({ data: { data: [] } });
+
+    renderDrawer();
+
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    expect(dialog).toHaveAccessibleName('Subscription');
+  });
+
+  test('closes on Escape', async () => {
+    vi.mocked(axiosInstance.get).mockResolvedValue({ data: { data: [] } });
+    const onClose = vi.fn();
+
+    renderDrawer({ onClose });
+    await screen.findByRole('dialog');
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });

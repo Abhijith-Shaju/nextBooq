@@ -187,10 +187,17 @@ export default function AdminOverviewPage() {
                 <tr
                   key={cafe._id}
                   role="row"
+                  tabIndex={0}
                   aria-selected={selectedCafeId === cafe._id}
                   onClick={() => handleSelectCafe(cafe._id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleSelectCafe(cafe._id);
+                    }
+                  }}
                   aria-label={cafe.name}
-                  className={`cursor-pointer border-t border-slate-100 hover:bg-slate-50 ${
+                  className={`cursor-pointer border-t border-slate-100 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-slate-500 focus-visible:-outline-offset-2 ${
                     selectedCafeId === cafe._id ? 'bg-slate-100' : ''
                   }`}
                 >

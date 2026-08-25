@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useCafeSubscriptions } from '@/hooks/admin/use-cafe-subscriptions';
 import { useRecordSubscriptionTerm } from '@/hooks/admin/use-record-subscription-term';
@@ -39,6 +39,18 @@ export function SubscriptionDrawer({ cafeId, orgId, cafe, onClose }: Subscriptio
   const [pricePerMonth, setPricePerMonth] = useState<number>(9000);
   const [note, setNote] = useState('');
 
+  // Escape-to-close, matching standard dialog behavior — this drawer had no
+  // keyboard path to dismiss it other than clicking the (mouse-only) Close
+  // button or the backdrop (L-08).
+  useEffect(() => {
+    if (!cafeId || !cafe) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [cafeId, cafe, onClose]);
+
   if (!cafeId || !cafe) return null;
 
   const current = history.find((sub) => sub.is_current) || history[0] || null;
@@ -58,9 +70,14 @@ export function SubscriptionDrawer({ cafeId, orgId, cafe, onClose }: Subscriptio
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="h-full w-full max-w-md overflow-y-auto bg-white p-6 shadow-xl">
+      <div
+        className="h-full w-full max-w-md overflow-y-auto bg-white p-6 shadow-xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="subscription-drawer-title"
+      >
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-lg font-bold">Subscription</h2>
+          <h2 id="subscription-drawer-title" className="text-lg font-bold">Subscription</h2>
           <button onClick={onClose} className="text-sm text-slate-500 hover:text-slate-900">
             Close
           </button>
