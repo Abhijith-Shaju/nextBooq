@@ -38,7 +38,11 @@ export function TenantPublicHeader() {
             </Link>
 
             <div className="pl-1 sm:pl-2 border-l border-white/15">
-              <AccountMenu theme="dark" onLoginClick={() => setIsAuthModalOpen(true)} />
+              <AccountMenu
+                theme="dark"
+                onLoginClick={() => setIsAuthModalOpen(true)}
+                logoutRedirectTo={`/${cafe.slug}`}
+              />
             </div>
 
             {/* Operator Login Quicklink */}

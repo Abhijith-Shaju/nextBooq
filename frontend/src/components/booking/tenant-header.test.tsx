@@ -55,4 +55,21 @@ describe('TenantPublicHeader', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: /log out/i }));
     expect(logoutMock).toHaveBeenCalled();
   });
+
+  // A customer logging out from the storefront should stay on/return to
+  // the storefront, not get sent to the staff login page.
+  test('logging out redirects back to this cafe\'s storefront, not the staff login page', () => {
+    mockUseAuth.mockReturnValue({
+      user: { name: 'Priya Sharma' },
+      isAuthenticated: true,
+      logout: logoutMock,
+    });
+
+    render(<TenantPublicHeader />);
+
+    fireEvent.click(screen.getByRole('button', { name: /account menu/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /log out/i }));
+
+    expect(logoutMock).toHaveBeenCalledWith('/demo-cafe');
+  });
 });

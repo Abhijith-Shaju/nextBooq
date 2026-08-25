@@ -63,8 +63,25 @@ describe('AccountMenu', () => {
     fireEvent.click(screen.getByRole('button', { name: /account menu/i }));
     fireEvent.click(screen.getByRole('menuitem', { name: /log out/i }));
 
-    expect(logoutMock).toHaveBeenCalled();
+    expect(logoutMock).toHaveBeenCalledWith(undefined);
     expect(screen.queryByRole('menuitem')).not.toBeInTheDocument();
+  });
+
+  // A customer logging out from a cafe's storefront should land back on
+  // that storefront, not the staff/admin login page -- callers that know
+  // they're in a tenant context (e.g. TenantPublicHeader) pass this through.
+  test('passes logoutRedirectTo through to logout when provided', () => {
+    useAuthMock.mockReturnValue({
+      user: { name: 'Priya Sharma', email: 'priya@test.com' },
+      isAuthenticated: true,
+      logout: logoutMock,
+    });
+
+    render(<AccountMenu logoutRedirectTo="/demo-cafe" />);
+    fireEvent.click(screen.getByRole('button', { name: /account menu/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /log out/i }));
+
+    expect(logoutMock).toHaveBeenCalledWith('/demo-cafe');
   });
 
   test('closes when clicking outside the menu', () => {

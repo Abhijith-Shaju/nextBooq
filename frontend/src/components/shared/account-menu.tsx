@@ -12,6 +12,10 @@ interface AccountMenuProps {
   /** When set, the "Log in" item calls this instead of linking to /auth/login
    *  (e.g. to open an in-page quick-auth modal on a storefront). */
   onLoginClick?: () => void;
+  /** Where "Log out" should send the user afterward. Defaults (in
+   *  AuthProvider) to the staff/admin login page; pass a tenant's storefront
+   *  path here when this menu is rendered inside that storefront. */
+  logoutRedirectTo?: string;
 }
 
 const TRIGGER_STYLES: Record<'light' | 'dark', string> = {
@@ -28,7 +32,7 @@ function initialsFor(name: string): string {
     .join('');
 }
 
-export function AccountMenu({ theme = 'light', onLoginClick }: AccountMenuProps) {
+export function AccountMenu({ theme = 'light', onLoginClick, logoutRedirectTo }: AccountMenuProps) {
   const { user, isAuthenticated, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -90,7 +94,7 @@ export function AccountMenu({ theme = 'light', onLoginClick }: AccountMenuProps)
                 role="menuitem"
                 onClick={() => {
                   setOpen(false);
-                  logout();
+                  logout(logoutRedirectTo);
                 }}
                 className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-semibold text-brand-redDark transition-colors hover:bg-brand-red/10"
               >
