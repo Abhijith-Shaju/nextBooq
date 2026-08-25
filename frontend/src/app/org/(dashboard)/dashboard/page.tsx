@@ -168,47 +168,49 @@ function CafeCard({ cafe }: { cafe: OrgCafe }) {
   const [managingStaff, setManagingStaff] = useState(false);
 
   return (
-    <div className="rounded-2xl border border-brand-brown/10 bg-white/80 p-5 shadow-brand-sm transition-shadow hover:shadow-brand-md">
-      <div className="flex items-start justify-between gap-3">
-        <Link href={`/${cafe.slug}/dashboard`} className="group/link inline-flex items-start gap-1">
-          <span className="font-display text-lg font-bold leading-snug text-brand-brown">{cafe.name}</span>
-          <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-brand-mocha opacity-0 transition-opacity group-hover/link:opacity-100" />
-        </Link>
-        <span
-          className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusStyle(cafe.subscription_status)}`}
-        >
-          {cafe.subscription_status}
-        </span>
-      </div>
+    <div className="bg-white/80 transition-colors hover:bg-brand-tan/10">
+      <div className="flex flex-wrap items-center gap-4 px-5 py-4">
+        <div className="flex min-w-[10rem] flex-1 items-center gap-2.5">
+          <Link href={`/${cafe.slug}/dashboard`} className="group/link inline-flex items-center gap-1">
+            <span className="font-display text-base font-bold leading-snug text-brand-brown">{cafe.name}</span>
+            <ArrowUpRight className="h-4 w-4 shrink-0 text-brand-mocha opacity-0 transition-opacity group-hover/link:opacity-100" />
+          </Link>
+          <span
+            className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusStyle(cafe.subscription_status)}`}
+          >
+            {cafe.subscription_status}
+          </span>
+        </div>
 
-      <div className="mt-3 flex items-center gap-1.5 text-sm text-brand-mocha">
-        <Users className="h-4 w-4" />
-        <span>
-          <span className="font-semibold text-brand-brown">{cafe.today_reservation_count}</span>{' '}
-          reservation{cafe.today_reservation_count === 1 ? '' : 's'} today
-        </span>
-      </div>
+        <div className="flex items-center gap-1.5 text-sm text-brand-mocha">
+          <Users className="h-4 w-4" />
+          <span>
+            <span className="font-semibold text-brand-brown">{cafe.today_reservation_count}</span>{' '}
+            reservation{cafe.today_reservation_count === 1 ? '' : 's'} today
+          </span>
+        </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Link
-          href={`/${cafe.slug}/dashboard`}
-          className="inline-flex items-center gap-1.5 rounded-full bg-brand-red px-3.5 py-1.5 text-sm font-semibold text-white shadow-brand-sm transition-colors hover:bg-brand-redDark"
-        >
-          <LayoutDashboard className="h-3.5 w-3.5" />
-          View dashboard
-        </Link>
-        <button
-          type="button"
-          onClick={() => setManagingStaff((prev) => !prev)}
-          className="inline-flex items-center gap-1 rounded-full border border-brand-brown/15 px-3.5 py-1.5 text-sm font-semibold text-brand-red transition-colors hover:bg-brand-red/5"
-        >
-          <UserCog className="h-3.5 w-3.5" />
-          Manage staff
-        </button>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Link
+            href={`/${cafe.slug}/dashboard`}
+            className="inline-flex items-center gap-1.5 rounded-full bg-brand-red px-3.5 py-1.5 text-sm font-semibold text-white shadow-brand-sm transition-colors hover:bg-brand-redDark"
+          >
+            <LayoutDashboard className="h-3.5 w-3.5" />
+            View dashboard
+          </Link>
+          <button
+            type="button"
+            onClick={() => setManagingStaff((prev) => !prev)}
+            className="inline-flex items-center gap-1 rounded-full border border-brand-brown/15 px-3.5 py-1.5 text-sm font-semibold text-brand-red transition-colors hover:bg-brand-red/5"
+          >
+            <UserCog className="h-3.5 w-3.5" />
+            Manage staff
+          </button>
+        </div>
       </div>
 
       {managingStaff && (
-        <div className="mt-4 space-y-4 rounded-2xl border border-brand-brown/10 bg-brand-tan/20 p-4">
+        <div className="space-y-4 border-t border-brand-brown/10 bg-brand-tan/10 px-5 py-4">
           <div>
             <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-mochaMid">
               Current staff
@@ -231,10 +233,10 @@ function CafeCard({ cafe }: { cafe: OrgCafe }) {
 
 function CafeCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-brand-brown/10 bg-white/80 p-5">
-      <Skeleton className="h-5 w-2/3" />
-      <Skeleton className="mt-4 h-4 w-1/2" />
-      <Skeleton className="mt-5 h-4 w-24" />
+    <div className="flex items-center gap-4 px-5 py-4">
+      <Skeleton className="h-5 w-40" />
+      <Skeleton className="h-4 w-32" />
+      <Skeleton className="ml-auto h-8 w-24" />
     </div>
   );
 }
@@ -250,7 +252,7 @@ export default function OrgDashboardPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="divide-y divide-brand-brown/10 overflow-hidden rounded-2xl border border-brand-brown/10 bg-white/80 shadow-brand-sm">
           <CafeCardSkeleton />
           <CafeCardSkeleton />
           <CafeCardSkeleton />
@@ -268,7 +270,7 @@ export default function OrgDashboardPage() {
           <p className="mt-1 text-sm text-brand-mocha">Once cafes are added to your organization, they&apos;ll show up here.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="divide-y divide-brand-brown/10 overflow-hidden rounded-2xl border border-brand-brown/10 bg-white/80 shadow-brand-sm">
           {cafes.map((cafe) => (
             <CafeCard key={cafe._id} cafe={cafe} />
           ))}
