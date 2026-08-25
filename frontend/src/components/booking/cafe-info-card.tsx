@@ -1,12 +1,13 @@
 'use client';
 
 import { useTenant } from '@/components/providers/tenant-provider';
-import { Clock, ShieldCheck, Calendar, Users, Info, MapPin } from 'lucide-react';
+import { Clock, ShieldCheck, Calendar, Users, Info, MapPin, Phone } from 'lucide-react';
 
 export function CafeInfoCard() {
   const { cafe } = useTenant();
 
   const rules = cafe.reservation_rules || {};
+  const contactPhone = cafe.contact_phone?.trim();
 
   return (
     <section className="py-12 max-w-4xl mx-auto w-full px-4 space-y-6">
@@ -19,7 +20,9 @@ export function CafeInfoCard() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div
+        className={`grid grid-cols-1 gap-4 ${contactPhone ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-3'}`}
+      >
         <div className="glass p-5 rounded-3xl border border-brand-brown/10 shadow-brand-sm space-y-2">
           <div className="w-9 h-9 bg-brand-red/10 text-brand-red rounded-xl flex items-center justify-center">
             <Clock className="w-5 h-5" />
@@ -49,6 +52,22 @@ export function CafeInfoCard() {
             Accepting online groups up to <strong className="text-brand-brown">{rules.max_party_size || 12} guests</strong> with automatic table merging.
           </p>
         </div>
+
+        {contactPhone && (
+          <div className="glass p-5 rounded-3xl border border-brand-brown/10 shadow-brand-sm space-y-2">
+            <div className="w-9 h-9 bg-brand-red/10 text-brand-red rounded-xl flex items-center justify-center">
+              <Phone className="w-5 h-5" />
+            </div>
+            <h4 className="font-bold font-display text-sm text-brand-brown">Contact & Support</h4>
+            <p className="text-xs text-brand-mocha leading-relaxed">
+              Have a question or an issue?{' '}
+              <a href={`tel:${contactPhone}`} className="font-semibold text-brand-brown underline decoration-brand-red/40 underline-offset-2">
+                Call {contactPhone}
+              </a>{' '}
+              directly.
+            </p>
+          </div>
+        )}
       </div>
     </section>
   );

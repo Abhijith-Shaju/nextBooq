@@ -40,6 +40,7 @@ export default function CafeSettingsPage() {
   );
   const [description, setDescription] = useState(cafe.description || '');
   const [heroImageUrl, setHeroImageUrl] = useState(cafe.hero_image_url || '');
+  const [contactPhone, setContactPhone] = useState(cafe.contact_phone || '');
   const [menu, setMenu] = useState<CafeMenuCategory[]>(cafe.menu || []);
   const [isSaving, setIsSaving] = useState(false);
   const [webhookReveal, setWebhookReveal] = useState<{ url: string; secret: string } | null>(null);
@@ -60,6 +61,7 @@ export default function CafeSettingsPage() {
     setOperatingHours(mergeOperatingHours(cafe.operating_hours));
     setDescription(cafe.description || '');
     setHeroImageUrl(cafe.hero_image_url || '');
+    setContactPhone(cafe.contact_phone || '');
     setMenu(cafe.menu || []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -71,6 +73,7 @@ export default function CafeSettingsPage() {
     operatingHoursKey,
     cafe.description,
     cafe.hero_image_url,
+    cafe.contact_phone,
     menuKey,
   ]);
 
@@ -107,6 +110,7 @@ export default function CafeSettingsPage() {
         operating_hours: operatingHours,
         description,
         hero_image_url: heroImageUrl,
+        contact_phone: contactPhone,
         menu: menuForSubmit,
       });
       // `cafe` comes from a Server Component fetch (see [tenant]/layout.tsx),
@@ -288,9 +292,11 @@ export default function CafeSettingsPage() {
           <StorefrontEditor
             description={description}
             heroImageUrl={heroImageUrl}
+            contactPhone={contactPhone}
             menu={menu}
             onDescriptionChange={setDescription}
             onHeroImageUrlChange={setHeroImageUrl}
+            onContactPhoneChange={setContactPhone}
             onMenuChange={setMenu}
           />
 

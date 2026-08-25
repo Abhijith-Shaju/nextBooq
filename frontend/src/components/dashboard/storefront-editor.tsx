@@ -2,16 +2,19 @@
 
 import { useState } from 'react';
 import { CafeMenuCategory, CafeMenuItem } from '@/lib/types/models';
-import { Image as ImageIcon, Info, Plus, Trash2, TriangleAlert, UtensilsCrossed } from 'lucide-react';
+import { Image as ImageIcon, Info, Phone, Plus, Trash2, TriangleAlert, UtensilsCrossed } from 'lucide-react';
 
 const DESCRIPTION_MAX_LENGTH = 1000;
+const CONTACT_PHONE_MAX_LENGTH = 30;
 
 interface StorefrontEditorProps {
   description: string;
   heroImageUrl: string;
+  contactPhone: string;
   menu: CafeMenuCategory[];
   onDescriptionChange: (value: string) => void;
   onHeroImageUrlChange: (value: string) => void;
+  onContactPhoneChange: (value: string) => void;
   onMenuChange: (menu: CafeMenuCategory[]) => void;
 }
 
@@ -20,9 +23,11 @@ const EMPTY_ITEM: CafeMenuItem = { name: '', description: '', price: undefined }
 export function StorefrontEditor({
   description,
   heroImageUrl,
+  contactPhone,
   menu,
   onDescriptionChange,
   onHeroImageUrlChange,
+  onContactPhoneChange,
   onMenuChange,
 }: StorefrontEditorProps) {
   const [previewFailedFor, setPreviewFailedFor] = useState<string | null>(null);
@@ -119,6 +124,24 @@ export function StorefrontEditor({
             />
           )
         )}
+      </div>
+
+      <div>
+        <label htmlFor="contact-phone" className="text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
+          <Phone className="w-4 h-4 text-brand-red" /> Contact Phone
+        </label>
+        <input
+          id="contact-phone"
+          type="tel"
+          value={contactPhone}
+          maxLength={CONTACT_PHONE_MAX_LENGTH}
+          onChange={(e) => onContactPhoneChange(e.target.value)}
+          placeholder="+91 98765 43210"
+          className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm"
+        />
+        <p className="text-[11px] text-brand-mochaMid mt-1">
+          Shown to customers on your storefront so they can call with questions. Leave blank to hide it.
+        </p>
       </div>
 
       <div>

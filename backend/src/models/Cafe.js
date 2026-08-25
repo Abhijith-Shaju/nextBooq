@@ -55,6 +55,11 @@ const cafeSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    contact_phone: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     menu: [
       {
         category: {

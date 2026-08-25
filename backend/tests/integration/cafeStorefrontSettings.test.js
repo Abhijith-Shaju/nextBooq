@@ -145,4 +145,45 @@ describe('Integration Test: cafe storefront settings (description, hero image, m
     expect(res.body.data.description).toBe('Great coffee, better people.');
     expect(res.body.data.menu[0].category).toBe('Coffee');
   });
+
+  // A customer with an issue/query needs a way to reach the cafe directly —
+  // saved here alongside the rest of the storefront fields and surfaced on
+  // the public getCafeBySlug endpoint the same way.
+  test('saves a contact_phone and it appears on the public storefront endpoint', async () => {
+    const res = await putSettings({ contact_phone: '+91 98765 43210' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.contact_phone).toBe('+91 98765 43210');
+
+    const publicRes = await request(app).get(`/api/v1/cafes/slug/${cafe.slug}`);
+    expect(publicRes.body.data.contact_phone).toBe('+91 98765 43210');
+  });
+
+  test('a cafe that never sets contact_phone keeps it empty', async () => {
+    const res = await putSettings({ description: 'No phone yet.' });
+    expect(res.body.data.contact_phone).toBe('');
+  });
+
+  test('trims contact_phone and allows clearing it back to empty', async () => {
+    await putSettings({ contact_phone: '  +91 98765 43210  ' });
+    const cleared = await putSettings({ contact_phone: '' });
+
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.data.contact_phone).toBe('');
+
+    const persisted = await Cafe.findById(cafe._id);
+    expect(persisted.contact_phone).toBe('');
+  });
+
+  test('rejects a contact_phone that is not a string', async () => {
+    const res = await putSettings({ contact_phone: 12345 });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/contact_phone/i);
+  });
+
+  test('rejects a contact_phone longer than 30 characters', async () => {
+    const res = await putSettings({ contact_phone: '1'.repeat(31) });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/contact_phone/i);
+  });
 });

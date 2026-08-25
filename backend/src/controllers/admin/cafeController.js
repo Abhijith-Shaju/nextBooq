@@ -13,6 +13,7 @@ const MAX_RESERVATION_FEE_RUPEES = 100000;
 
 const VALID_DAYS_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const TIME_STRING_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+const MAX_CONTACT_PHONE_LENGTH = 30;
 
 const isValidHttpsUrl = (value) => {
   if (!value.startsWith('https://')) {
@@ -111,7 +112,7 @@ const validateMenuInput = (menu) => {
 const updateCafe = async (req, res, next) => {
   try {
     const cafeId = req.tenantId;
-    const { reservation_rules, operating_hours, description, hero_image_url, menu } = req.body;
+    const { reservation_rules, operating_hours, description, hero_image_url, contact_phone, menu } = req.body;
 
     const cafe = await Cafe.findById(cafeId);
     if (!cafe) {
@@ -169,6 +170,16 @@ const updateCafe = async (req, res, next) => {
         throw new BadRequestError('hero_image_url must be a valid https URL');
       }
       cafe.hero_image_url = hero_image_url;
+    }
+
+    if (contact_phone !== undefined) {
+      if (typeof contact_phone !== 'string') {
+        throw new BadRequestError('contact_phone must be a string');
+      }
+      if (contact_phone.length > MAX_CONTACT_PHONE_LENGTH) {
+        throw new BadRequestError(`contact_phone must be ${MAX_CONTACT_PHONE_LENGTH} characters or fewer`);
+      }
+      cafe.contact_phone = contact_phone.trim();
     }
 
     if (menu !== undefined) {

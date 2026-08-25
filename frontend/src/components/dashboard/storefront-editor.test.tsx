@@ -7,20 +7,43 @@ import { CafeMenuCategory } from '@/lib/types/models';
 const noop = () => {};
 
 describe('StorefrontEditor', () => {
-  test('renders the current description and hero image URL', () => {
+  test('renders the current description, hero image URL, and contact phone', () => {
     render(
       <StorefrontEditor
         description="A cozy cafe."
         heroImageUrl="https://example.com/hero.jpg"
         menu={[]}
         onDescriptionChange={noop}
+        contactPhone="+91 98765 43210"
         onHeroImageUrlChange={noop}
+        onContactPhoneChange={noop}
         onMenuChange={noop}
       />
     );
 
     expect(screen.getByLabelText(/description/i)).toHaveValue('A cozy cafe.');
     expect(screen.getByLabelText(/hero photo url/i)).toHaveValue('https://example.com/hero.jpg');
+    expect(screen.getByLabelText(/contact phone/i)).toHaveValue('+91 98765 43210');
+  });
+
+  test('typing in the contact phone field calls onContactPhoneChange', () => {
+    const onContactPhoneChange = vi.fn();
+    render(
+      <StorefrontEditor
+        description=""
+        heroImageUrl=""
+        menu={[]}
+        onDescriptionChange={noop}
+        contactPhone=""
+        onHeroImageUrlChange={noop}
+        onContactPhoneChange={onContactPhoneChange}
+        onMenuChange={noop}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText(/contact phone/i), { target: { value: '+91 98765 43210' } });
+
+    expect(onContactPhoneChange).toHaveBeenCalledWith('+91 98765 43210');
   });
 
   test('typing in the description field calls onDescriptionChange', () => {
@@ -31,7 +54,9 @@ describe('StorefrontEditor', () => {
         heroImageUrl=""
         menu={[]}
         onDescriptionChange={onDescriptionChange}
+        contactPhone=""
         onHeroImageUrlChange={noop}
+        onContactPhoneChange={noop}
         onMenuChange={noop}
       />
     );
@@ -49,7 +74,9 @@ describe('StorefrontEditor', () => {
         heroImageUrl=""
         menu={[]}
         onDescriptionChange={noop}
+        contactPhone=""
         onHeroImageUrlChange={noop}
+        onContactPhoneChange={noop}
         onMenuChange={onMenuChange}
       />
     );
@@ -71,7 +98,9 @@ describe('StorefrontEditor', () => {
         heroImageUrl=""
         menu={menu}
         onDescriptionChange={noop}
+        contactPhone=""
         onHeroImageUrlChange={noop}
+        onContactPhoneChange={noop}
         onMenuChange={onMenuChange}
       />
     );
@@ -96,7 +125,9 @@ describe('StorefrontEditor', () => {
         heroImageUrl=""
         menu={menu}
         onDescriptionChange={noop}
+        contactPhone=""
         onHeroImageUrlChange={noop}
+        onContactPhoneChange={noop}
         onMenuChange={onMenuChange}
       />
     );
@@ -115,7 +146,9 @@ describe('StorefrontEditor', () => {
         heroImageUrl=""
         menu={menu}
         onDescriptionChange={noop}
+        contactPhone=""
         onHeroImageUrlChange={noop}
+        onContactPhoneChange={noop}
         onMenuChange={onMenuChange}
       />
     );
@@ -134,7 +167,9 @@ describe('StorefrontEditor', () => {
         heroImageUrl="https://www.google.com/imgres?imgurl=https://cdn.pixabay.com/photo.jpg"
         menu={[]}
         onDescriptionChange={noop}
+        contactPhone=""
         onHeroImageUrlChange={noop}
+        onContactPhoneChange={noop}
         onMenuChange={noop}
       />
     );
@@ -152,7 +187,9 @@ describe('StorefrontEditor', () => {
         heroImageUrl="https://example.com/broken.jpg"
         menu={[]}
         onDescriptionChange={noop}
+        contactPhone=""
         onHeroImageUrlChange={noop}
+        onContactPhoneChange={noop}
         onMenuChange={noop}
       />
     );
@@ -166,7 +203,9 @@ describe('StorefrontEditor', () => {
         heroImageUrl="https://example.com/working.jpg"
         menu={[]}
         onDescriptionChange={noop}
+        contactPhone=""
         onHeroImageUrlChange={noop}
+        onContactPhoneChange={noop}
         onMenuChange={noop}
       />
     );

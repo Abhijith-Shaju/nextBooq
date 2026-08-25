@@ -174,22 +174,29 @@ describe('CafeSettingsPage — storefront', () => {
     vi.mocked(axiosInstance.put).mockReset().mockResolvedValue({ data: { data: {} } });
   });
 
-  test('shows the cafe\'s existing description and hero image URL', () => {
-    vi.mocked(useTenant).mockReturnValue({
-      cafe: { ...makeCafe(), description: 'Great coffee.', hero_image_url: 'https://example.com/hero.jpg' },
-    } as any);
-    render(<CafeSettingsPage />);
-
-    expect(screen.getByLabelText(/description/i)).toHaveValue('Great coffee.');
-    expect(screen.getByLabelText(/hero photo url/i)).toHaveValue('https://example.com/hero.jpg');
-  });
-
-  test('saving includes description, hero_image_url, and menu in the request body', async () => {
+  test('shows the cafe\'s existing description, hero image URL, and contact phone', () => {
     vi.mocked(useTenant).mockReturnValue({
       cafe: {
         ...makeCafe(),
         description: 'Great coffee.',
         hero_image_url: 'https://example.com/hero.jpg',
+        contact_phone: '+91 98765 43210',
+      },
+    } as any);
+    render(<CafeSettingsPage />);
+
+    expect(screen.getByLabelText(/description/i)).toHaveValue('Great coffee.');
+    expect(screen.getByLabelText(/hero photo url/i)).toHaveValue('https://example.com/hero.jpg');
+    expect(screen.getByLabelText(/contact phone/i)).toHaveValue('+91 98765 43210');
+  });
+
+  test('saving includes description, hero_image_url, contact_phone, and menu in the request body', async () => {
+    vi.mocked(useTenant).mockReturnValue({
+      cafe: {
+        ...makeCafe(),
+        description: 'Great coffee.',
+        hero_image_url: 'https://example.com/hero.jpg',
+        contact_phone: '+91 98765 43210',
         menu: [{ category: 'Coffee', items: [{ name: 'Espresso', price: 120 }] }],
       },
     } as any);
@@ -203,6 +210,7 @@ describe('CafeSettingsPage — storefront', () => {
         expect.objectContaining({
           description: 'Great coffee.',
           hero_image_url: 'https://example.com/hero.jpg',
+          contact_phone: '+91 98765 43210',
           menu: [{ category: 'Coffee', items: [{ name: 'Espresso', price: 120 }] }],
         })
       )
