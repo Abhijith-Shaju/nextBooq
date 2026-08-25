@@ -89,9 +89,10 @@ export default function MarketingHeader() {
             <AccountMenu theme="light" />
           </div>
 
-          {/* Mobile menu toggle */}
+          {/* Mobile menu toggle -- p-3 around a 5-unit icon lands the tap
+              target at 44x44px, the standard minimum for touch. */}
           <button
-            className="md:hidden p-2 rounded-lg text-brand-brown hover:bg-brand-tan transition-colors"
+            className="md:hidden flex items-center justify-center p-3 rounded-lg text-brand-brown hover:bg-brand-tan transition-colors"
             onClick={() => setMobileOpen((v) => !v)}
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={mobileOpen}

@@ -175,7 +175,7 @@ function VerifyEmailGuard() {
   }
 
   return (
-    <div className="min-h-screen bg-brand-cream flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-brand-cream flex items-center justify-center px-4 pb-12 pt-24 md:pt-28">
       <div className="max-w-md w-full space-y-8">
         <div className="flex items-center justify-center gap-2">
           <div className="w-10 h-10 bg-brand-red rounded-xl flex items-center justify-center shadow-brand-md">
