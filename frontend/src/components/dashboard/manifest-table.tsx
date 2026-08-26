@@ -5,15 +5,18 @@ import { StatusBadge } from '@/components/shared/status-badge';
 import { useDashboardStore } from '@/store/use-dashboard-store';
 import { getReservationTableNumbers } from '@/lib/dashboard/reservation-tables';
 import { getReservationGuestName } from '@/lib/dashboard/reservation-guest';
+import { getReservationToken } from '@/lib/booking/reservation-token';
 import { Users, Clock, Hash, ChevronRight } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 interface ManifestTableProps {
   reservations: Reservation[];
   isLoading?: boolean;
+  /** Whether a search is narrowing the list, so the empty state can say so. */
+  isFiltered?: boolean;
 }
 
-export function ManifestTable({ reservations, isLoading }: ManifestTableProps) {
+export function ManifestTable({ reservations, isLoading, isFiltered }: ManifestTableProps) {
   const { selectedReservationId, openDrawer } = useDashboardStore();
 
   if (isLoading) {
@@ -29,7 +32,11 @@ export function ManifestTable({ reservations, isLoading }: ManifestTableProps) {
   if (!reservations || reservations.length === 0) {
     return (
       <div className="p-8 text-center text-brand-mochaMid flex flex-col items-center justify-center min-h-[300px]">
-        <p className="text-sm">No reservations found for selected date.</p>
+        <p className="text-sm">
+          {isFiltered
+            ? 'No reservations matched your search.'
+            : 'No reservations found for selected date.'}
+        </p>
       </div>
     );
   }
@@ -56,6 +63,11 @@ export function ManifestTable({ reservations, isLoading }: ManifestTableProps) {
           >
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
+                {/* The token is what the guest quotes, so it is worth showing
+                    beside the name to confirm a search actually landed. */}
+                <span className="font-mono text-xs font-bold text-brand-mochaMid tabular-nums">
+                  #{getReservationToken(res)}
+                </span>
                 <h4 className="font-bold text-brand-brown text-sm">{getReservationGuestName(res)}</h4>
                 <StatusBadge status={res.status} />
               </div>
