@@ -5,7 +5,12 @@ import { useTenant } from '@/components/providers/tenant-provider';
 import { useManifest } from '@/hooks/host/use-manifest';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { getReservationTableNumbers } from '@/lib/dashboard/reservation-tables';
-import { getReservationGuestName, getReservationGuestEmail } from '@/lib/dashboard/reservation-guest';
+import {
+  getReservationGuestName,
+  getReservationGuestEmail,
+  getReservationGuestPhone,
+} from '@/lib/dashboard/reservation-guest';
+import { getReservationToken, matchesReservationToken } from '@/lib/booking/reservation-token';
 import { Calendar, Search, Filter, Users, Hash, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -17,12 +22,23 @@ export default function ReservationsHistoryPage() {
 
   const { data: reservations = [], isLoading, isError } = useManifest(cafe?.id, selectedDate);
 
+  const term = searchTerm.trim().toLowerCase();
   const filteredReservations = reservations.filter((r) => {
     const name = getReservationGuestName(r);
     const email = getReservationGuestEmail(r) || '';
+    // Digits only, so "+91 98765 43210" is still found by typing "9876543210".
+    const phone = (getReservationGuestPhone(r) || '').replace(/\D/g, '');
+    const digits = term.replace(/\D/g, '');
+
+    // A guest at the door quotes their token, so that has to be searchable
+    // here — it is the one identifier they are actually holding.
     const matchesSearch =
-      name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      email.toLowerCase().includes(searchTerm.toLowerCase());
+      term.length === 0 ||
+      matchesReservationToken(r, searchTerm) ||
+      name.toLowerCase().includes(term) ||
+      email.toLowerCase().includes(term) ||
+      (digits.length > 0 && phone.includes(digits));
+
     const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -42,7 +58,7 @@ export default function ReservationsHistoryPage() {
             <Search className="w-4 h-4 text-brand-mochaMid" />
             <input
               type="text"
-              placeholder="Search guest name or email..."
+              placeholder="Search token, name, or phone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="focus:outline-none bg-transparent w-48 text-brand-brown"
@@ -84,6 +100,7 @@ export default function ReservationsHistoryPage() {
           <table className="w-full text-left text-sm text-brand-brown">
             <thead className="bg-brand-tan/30 text-xs uppercase font-bold text-brand-mochaMid border-b border-brand-brown/10">
               <tr>
+                <th className="p-4">Token</th>
                 <th className="p-4">Guest</th>
                 <th className="p-4">Time</th>
                 <th className="p-4">Party</th>
@@ -95,19 +112,19 @@ export default function ReservationsHistoryPage() {
             <tbody className="divide-y divide-brand-brown/10">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-brand-mochaMid animate-pulse">
+                  <td colSpan={7} className="p-8 text-center text-brand-mochaMid animate-pulse">
                     Loading reservation history...
                   </td>
                 </tr>
               ) : isError ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-brand-redDark font-semibold">
+                  <td colSpan={7} className="p-8 text-center text-brand-redDark font-semibold">
                     Couldn&rsquo;t load reservations. Please try refreshing the page.
                   </td>
                 </tr>
               ) : filteredReservations.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-brand-mochaMid">
+                  <td colSpan={7} className="p-8 text-center text-brand-mochaMid">
                     No reservations matched your criteria.
                   </td>
                 </tr>
@@ -118,8 +135,19 @@ export default function ReservationsHistoryPage() {
                   return (
                     <tr key={resKey} className="hover:bg-brand-tan/20 transition-colors">
                       <td className="p-4">
+                        <span className="inline-flex items-center gap-1 font-mono text-xs font-bold text-brand-brown tabular-nums">
+                          <Hash className="w-3 h-3 text-brand-red" />
+                          {getReservationToken(res)}
+                        </span>
+                      </td>
+                      <td className="p-4">
                         <div className="font-bold text-brand-brown">{getReservationGuestName(res)}</div>
                         <div className="text-xs text-brand-mochaMid">{getReservationGuestEmail(res) || 'N/A'}</div>
+                        {getReservationGuestPhone(res) && (
+                          <div className="text-xs text-brand-mochaMid font-mono tabular-nums">
+                            {getReservationGuestPhone(res)}
+                          </div>
+                        )}
                       </td>
                       <td className="p-4 font-mono font-semibold text-xs tabular-nums">
                         {res.start_time ? format(parseISO(res.start_time), 'HH:mm') : 'N/A'}

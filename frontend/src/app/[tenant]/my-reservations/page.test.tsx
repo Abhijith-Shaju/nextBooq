@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import MyReservationsPage from './page';
 import { useBookingStore } from '@/store/use-booking-store';
@@ -76,5 +76,33 @@ describe('MyReservationsPage — resume payment', () => {
     });
     expect(store.partySize).toBe(3);
     expect(store.holdExpiresAt).toEqual(new Date('2026-09-05T19:10:00.000Z'));
+  });
+});
+
+describe('MyReservationsPage — booking details', () => {
+  beforeEach(() => {
+    useBookingStore.getState().resetBooking();
+    push.mockReset();
+  });
+
+  test('clicking a reservation opens its token, which is otherwise lost after leaving the success page', () => {
+    render(<MyReservationsPage />);
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /view token and details/i }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText('#NG_1')).toBeInTheDocument();
+  });
+
+  test('Complete Payment does not also open the modal it is nested inside', async () => {
+    render(<MyReservationsPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /complete payment/i }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/demo-cafe/checkout'));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

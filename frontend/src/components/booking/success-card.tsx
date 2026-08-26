@@ -8,12 +8,15 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { generateIcsContent } from '@/lib/booking/ics';
+import { getReservationToken } from '@/lib/booking/reservation-token';
 
 export function SuccessCard() {
   const { date, time, partySize, reservation, resetBooking } = useBookingStore();
   const { cafe } = useTenant();
 
-  const tokenNumber = reservation?.id ? String(reservation.id).slice(-4).toUpperCase() : '----';
+  // Derived through the shared helper so this matches the token shown on
+  // My Bookings and the one staff search against.
+  const tokenNumber = reservation?.id ? getReservationToken({ id: reservation.id }) : '----';
 
   const handleAddToCalendar = () => {
     if (!date || !time) {
@@ -64,20 +67,16 @@ export function SuccessCard() {
       </p>
 
       <div className="ticket-card mt-6 text-left">
-        <div className="flex flex-col items-center gap-3 p-6">
+        <div className="flex flex-col items-center gap-2 p-6">
           <StatusBadge status="CONFIRMED" />
-          <div className="relative h-28 w-28 rounded-lg border-2 border-brand-brown bg-white p-2">
-            <div
-              className="h-full w-full"
-              style={{
-                backgroundImage:
-                  'repeating-linear-gradient(90deg, #2C1810 0 4px, transparent 4px 8px), repeating-linear-gradient(0deg, #2C1810 0 4px, transparent 4px 8px)',
-                backgroundBlendMode: 'multiply',
-              }}
-              aria-hidden
-            />
+          <span className="mt-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-brand-mochaMid">
+            Your token
+          </span>
+          {/* Read aloud at the door, so it is sized to be legible at arm's
+              length on a phone rather than tucked under a graphic. */}
+          <div className="font-mono text-4xl font-bold tracking-[0.12em] text-brand-brown tabular-nums">
+            #{tokenNumber}
           </div>
-          <div className="font-mono text-lg font-bold tracking-wide text-brand-brown">TOKEN #{tokenNumber}</div>
         </div>
 
         <div className="ticket-perf" />

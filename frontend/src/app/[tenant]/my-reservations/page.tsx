@@ -11,6 +11,8 @@ import { useTenant } from '@/components/providers/tenant-provider';
 import { useBookingStore } from '@/store/use-booking-store';
 import { CustomerAuthModal } from '@/components/auth/customer-auth-modal';
 import { Reservation } from '@/lib/types/models';
+import { ReservationDetailModal } from '@/components/booking/reservation-detail-modal';
+import { getReservationToken } from '@/lib/booking/reservation-token';
 import { format } from 'date-fns';
 import { Calendar, Clock, Users, ArrowLeft, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 
@@ -20,6 +22,7 @@ export default function MyReservationsPage() {
   const router = useRouter();
   const { data: reservations = [], isLoading, refetch } = useCustomerReservations(isAuthenticated);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const { setReservation, setPartySize, setDate, setTime, setHoldExpiresAt } = useBookingStore();
 
   // Checkout reads its data from the booking store, never from the URL (see
@@ -120,12 +123,15 @@ export default function MyReservationsPage() {
               const resId = String(res._id || res.id || '');
               const isPast = ['COMPLETED', 'CANCELLED', 'EXPIRED', 'NO_SHOW', 'LEFT_BEFORE_SEATING'].includes(res.status);
               return (
-                <div
+                <button
                   key={resId}
-                  className={`ticket-card flex items-stretch ${isPast ? 'opacity-60' : ''}`}
+                  type="button"
+                  onClick={() => setSelectedReservation(res)}
+                  aria-label={`Booking ${getReservationToken(res)} — view token and details`}
+                  className={`ticket-card flex w-full items-stretch text-left transition-shadow hover:shadow-card-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-red focus-visible:ring-offset-2 ${isPast ? 'opacity-60' : ''}`}
                 >
                   <div className="flex w-16 shrink-0 flex-col items-center justify-center bg-brand-gold/15 text-brand-gold">
-                    <span className="font-mono text-lg font-bold tabular-nums">#{resId.slice(-4)}</span>
+                    <span className="font-mono text-lg font-bold tabular-nums">#{getReservationToken(res)}</span>
                   </div>
                   <div className="flex flex-1 flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1.5">
@@ -150,14 +156,17 @@ export default function MyReservationsPage() {
 
                     {res.status === 'PENDING_PAYMENT' && (
                       <button
-                        onClick={() => resumePayment(res)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          resumePayment(res);
+                        }}
                         className="cta-hero shrink-0 whitespace-nowrap px-4 py-2.5 text-xs font-bold shadow-brand-sm"
                       >
                         Complete Payment
                       </button>
                     )}
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -165,6 +174,13 @@ export default function MyReservationsPage() {
       </main>
 
       <CustomerAuthModal open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen} />
+
+      <ReservationDetailModal
+        reservation={selectedReservation}
+        cafeName={cafe.name}
+        onClose={() => setSelectedReservation(null)}
+        onCompletePayment={resumePayment}
+      />
     </div>
   );
 }
