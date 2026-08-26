@@ -41,9 +41,18 @@ export function TenantPublicHeader() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           {/* Cafe Brand */}
           <Link href={`/${cafe.slug}`} className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 bg-brand-red rounded-xl flex items-center justify-center text-white shadow-brand-md transition-transform group-hover:scale-105">
-              <Coffee className="w-5 h-5" />
-            </div>
+            {cafe.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={cafe.logo_url}
+                alt={`${cafe.name} logo`}
+                className="w-9 h-9 rounded-xl object-contain bg-white shadow-brand-md transition-transform group-hover:scale-105"
+              />
+            ) : (
+              <div className="w-9 h-9 bg-brand-red rounded-xl flex items-center justify-center text-white shadow-brand-md transition-transform group-hover:scale-105">
+                <Coffee className="w-5 h-5" />
+              </div>
+            )}
             <div>
               <span className="font-display font-bold text-lg leading-none block">{cafe.name}</span>
               <span className="text-[10px] font-mono text-brand-tan/80">nextBooq Storefront</span>

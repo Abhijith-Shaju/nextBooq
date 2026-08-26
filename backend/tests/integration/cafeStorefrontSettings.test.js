@@ -186,4 +186,92 @@ describe('Integration Test: cafe storefront settings (description, hero image, m
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/contact_phone/i);
   });
+
+  describe('logo', () => {
+    test('saves a logo_url and serves it from the public storefront endpoint', async () => {
+      const res = await putSettings({ logo_url: 'https://cdn.example.com/logo.png' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.logo_url).toBe('https://cdn.example.com/logo.png');
+
+      const publicRes = await request(app).get(`/api/v1/cafes/slug/${cafe.slug}`);
+      expect(publicRes.body.data.logo_url).toBe('https://cdn.example.com/logo.png');
+    });
+
+    test('a cafe that never sets a logo keeps it empty', async () => {
+      const res = await putSettings({ description: 'unrelated' });
+      expect(res.body.data.logo_url).toBe('');
+    });
+
+    test('rejects a non-https logo_url', async () => {
+      const res = await putSettings({ logo_url: 'http://cdn.example.com/logo.png' });
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/logo_url/i);
+    });
+
+    test('allows clearing the logo back to empty', async () => {
+      await putSettings({ logo_url: 'https://cdn.example.com/logo.png' });
+      const cleared = await putSettings({ logo_url: '' });
+
+      expect(cleared.status).toBe(200);
+      expect(cleared.body.data.logo_url).toBe('');
+    });
+  });
+
+  describe('brand colours', () => {
+    test('saves brand colours and serves them from the public storefront endpoint', async () => {
+      const res = await putSettings({ brand_primary: '#1B7F5A', brand_accent: '#E4A11B' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.brand_primary).toBe('#1B7F5A');
+      expect(res.body.data.brand_accent).toBe('#E4A11B');
+
+      // The storefront reads these through the public slug endpoint to build
+      // its palette, so they have to survive that route specifically.
+      const publicRes = await request(app).get(`/api/v1/cafes/slug/${cafe.slug}`);
+      expect(publicRes.body.data.brand_primary).toBe('#1B7F5A');
+      expect(publicRes.body.data.brand_accent).toBe('#E4A11B');
+    });
+
+    test('a cafe that never sets brand colours keeps them empty, so the default palette applies', async () => {
+      const res = await putSettings({ description: 'unrelated' });
+      expect(res.body.data.brand_primary).toBe('');
+      expect(res.body.data.brand_accent).toBe('');
+    });
+
+    test('accepts shorthand 3-digit hex', async () => {
+      const res = await putSettings({ brand_primary: '#0A0' });
+      expect(res.status).toBe(200);
+      expect(res.body.data.brand_primary).toBe('#0A0');
+    });
+
+    test('clearing a brand colour returns the cafe to the default palette', async () => {
+      await putSettings({ brand_primary: '#1B7F5A' });
+      const cleared = await putSettings({ brand_primary: '' });
+
+      expect(cleared.status).toBe(200);
+      expect(cleared.body.data.brand_primary).toBe('');
+    });
+
+    // These land verbatim in a CSS custom property the storefront palette is
+    // built from, so anything that isn't a plain hex colour is refused.
+    test.each([
+      ['a bare HSL triplet, which renders as nothing when used unwrapped', '220 89% 53%'],
+      ['a named colour', 'rebeccapurple'],
+      ['an rgb() function', 'rgb(200, 16, 46)'],
+      ['a CSS injection attempt', '#fff; background: url(https://evil.test)'],
+      ['a malformed hex', '#12345'],
+      ['a non-string', 123],
+    ])('rejects %s', async (_label, value) => {
+      const res = await putSettings({ brand_primary: value });
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/brand_primary/i);
+    });
+
+    test('validates brand_accent the same way as brand_primary', async () => {
+      const res = await putSettings({ brand_accent: 'goldenrod' });
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/brand_accent/i);
+    });
+  });
 });

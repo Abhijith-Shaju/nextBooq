@@ -60,6 +60,28 @@ const cafeSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    logo_url: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    // Injected by TenantProvider as the --brand-primary/--brand-accent CSS
+    // variables the whole storefront palette derives from (see
+    // tailwind.config.ts, where brand-red/brand-gold and the shadow-brand-*
+    // recipes all resolve through them). Stored as CSS colours rather than
+    // bare HSL triplets because those variables are consumed directly —
+    // `var(--brand-primary)`, never `hsl(var(--brand-primary))`. Empty means
+    // "use the platform default" (DEFAULT_TENANT_THEME).
+    brand_primary: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    brand_accent: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     menu: [
       {
         category: {

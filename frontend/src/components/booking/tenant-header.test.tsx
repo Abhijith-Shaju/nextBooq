@@ -10,10 +10,18 @@ vi.mock('@/components/providers/auth-provider', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
+const baseCafe = {
+  id: 'cafe_1',
+  slug: 'demo-cafe',
+  name: 'Demo Cafe',
+  reservation_rules: {},
+  timezone: 'UTC',
+  logo_url: '',
+};
+let mockCafe: Record<string, unknown> = { ...baseCafe };
+
 vi.mock('@/components/providers/tenant-provider', () => ({
-  useTenant: () => ({
-    cafe: { id: 'cafe_1', slug: 'demo-cafe', name: 'Demo Cafe', reservation_rules: {}, timezone: 'UTC' },
-  }),
+  useTenant: () => ({ cafe: mockCafe }),
 }));
 
 vi.mock('@/components/auth/customer-auth-modal', () => ({
@@ -27,6 +35,7 @@ vi.mock('@/components/shared/email-verification-banner', () => ({
 describe('TenantPublicHeader', () => {
   beforeEach(() => {
     logoutMock.mockReset();
+    mockCafe = { ...baseCafe };
   });
 
   test('opens the guest quick-auth modal from the account menu when signed out', () => {
@@ -135,5 +144,27 @@ describe('TenantPublicHeader', () => {
 
       expect(screen.getByTitle(/staff dashboard/i)).toHaveAttribute('href', '/org/dashboard');
     });
+  });
+});
+
+describe('TenantPublicHeader logo', () => {
+  beforeEach(() => {
+    logoutMock.mockReset();
+    mockUseAuth.mockReturnValue({ user: null, isAuthenticated: false, logout: logoutMock });
+  });
+
+  test('falls back to the default coffee mark when the cafe has no logo', () => {
+    mockCafe = { ...baseCafe, logo_url: '' };
+    render(<TenantPublicHeader />);
+
+    expect(screen.queryByAltText(/logo/i)).not.toBeInTheDocument();
+  });
+
+  test("shows the cafe's own logo when one is set", () => {
+    mockCafe = { ...baseCafe, logo_url: 'https://example.com/logo.png' };
+    render(<TenantPublicHeader />);
+
+    const logo = screen.getByAltText(/demo cafe logo/i);
+    expect(logo).toHaveAttribute('src', 'https://example.com/logo.png');
   });
 });

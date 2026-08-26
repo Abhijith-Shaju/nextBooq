@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { StorefrontEditor } from './storefront-editor';
 import { CafeMenuCategory } from '@/lib/types/models';
+import { DEFAULT_TENANT_THEME } from '@/lib/theme/resolve-tenant-theme';
 
 const noop = () => {};
 
@@ -17,6 +18,12 @@ describe('StorefrontEditor', () => {
         contactPhone="+91 98765 43210"
         onHeroImageUrlChange={noop}
         onContactPhoneChange={noop}
+        logoUrl=""
+        brandPrimary=""
+        brandAccent=""
+        onLogoUrlChange={noop}
+        onBrandPrimaryChange={noop}
+        onBrandAccentChange={noop}
         onMenuChange={noop}
       />
     );
@@ -37,6 +44,12 @@ describe('StorefrontEditor', () => {
         contactPhone=""
         onHeroImageUrlChange={noop}
         onContactPhoneChange={onContactPhoneChange}
+        logoUrl=""
+        brandPrimary=""
+        brandAccent=""
+        onLogoUrlChange={noop}
+        onBrandPrimaryChange={noop}
+        onBrandAccentChange={noop}
         onMenuChange={noop}
       />
     );
@@ -57,6 +70,12 @@ describe('StorefrontEditor', () => {
         contactPhone=""
         onHeroImageUrlChange={noop}
         onContactPhoneChange={noop}
+        logoUrl=""
+        brandPrimary=""
+        brandAccent=""
+        onLogoUrlChange={noop}
+        onBrandPrimaryChange={noop}
+        onBrandAccentChange={noop}
         onMenuChange={noop}
       />
     );
@@ -77,6 +96,12 @@ describe('StorefrontEditor', () => {
         contactPhone=""
         onHeroImageUrlChange={noop}
         onContactPhoneChange={noop}
+        logoUrl=""
+        brandPrimary=""
+        brandAccent=""
+        onLogoUrlChange={noop}
+        onBrandPrimaryChange={noop}
+        onBrandAccentChange={noop}
         onMenuChange={onMenuChange}
       />
     );
@@ -101,6 +126,12 @@ describe('StorefrontEditor', () => {
         contactPhone=""
         onHeroImageUrlChange={noop}
         onContactPhoneChange={noop}
+        logoUrl=""
+        brandPrimary=""
+        brandAccent=""
+        onLogoUrlChange={noop}
+        onBrandPrimaryChange={noop}
+        onBrandAccentChange={noop}
         onMenuChange={onMenuChange}
       />
     );
@@ -128,6 +159,12 @@ describe('StorefrontEditor', () => {
         contactPhone=""
         onHeroImageUrlChange={noop}
         onContactPhoneChange={noop}
+        logoUrl=""
+        brandPrimary=""
+        brandAccent=""
+        onLogoUrlChange={noop}
+        onBrandPrimaryChange={noop}
+        onBrandAccentChange={noop}
         onMenuChange={onMenuChange}
       />
     );
@@ -149,6 +186,12 @@ describe('StorefrontEditor', () => {
         contactPhone=""
         onHeroImageUrlChange={noop}
         onContactPhoneChange={noop}
+        logoUrl=""
+        brandPrimary=""
+        brandAccent=""
+        onLogoUrlChange={noop}
+        onBrandPrimaryChange={noop}
+        onBrandAccentChange={noop}
         onMenuChange={onMenuChange}
       />
     );
@@ -170,6 +213,12 @@ describe('StorefrontEditor', () => {
         contactPhone=""
         onHeroImageUrlChange={noop}
         onContactPhoneChange={noop}
+        logoUrl=""
+        brandPrimary=""
+        brandAccent=""
+        onLogoUrlChange={noop}
+        onBrandPrimaryChange={noop}
+        onBrandAccentChange={noop}
         onMenuChange={noop}
       />
     );
@@ -190,6 +239,12 @@ describe('StorefrontEditor', () => {
         contactPhone=""
         onHeroImageUrlChange={noop}
         onContactPhoneChange={noop}
+        logoUrl=""
+        brandPrimary=""
+        brandAccent=""
+        onLogoUrlChange={noop}
+        onBrandPrimaryChange={noop}
+        onBrandAccentChange={noop}
         onMenuChange={noop}
       />
     );
@@ -206,11 +261,98 @@ describe('StorefrontEditor', () => {
         contactPhone=""
         onHeroImageUrlChange={noop}
         onContactPhoneChange={noop}
+        logoUrl=""
+        brandPrimary=""
+        brandAccent=""
+        onLogoUrlChange={noop}
+        onBrandPrimaryChange={noop}
+        onBrandAccentChange={noop}
         onMenuChange={noop}
       />
     );
 
     expect(screen.queryByText(/doesn't look like a direct image link/i)).not.toBeInTheDocument();
     expect(screen.getByAltText('Hero preview')).toBeInTheDocument();
+  });
+});
+
+describe('StorefrontEditor branding', () => {
+  const renderBranding = (props: Record<string, unknown> = {}) =>
+    render(
+      <StorefrontEditor
+        description=""
+        heroImageUrl=""
+        contactPhone=""
+        logoUrl=""
+        brandPrimary=""
+        brandAccent=""
+        menu={[]}
+        onDescriptionChange={noop}
+        onHeroImageUrlChange={noop}
+        onContactPhoneChange={noop}
+        onLogoUrlChange={noop}
+        onBrandPrimaryChange={noop}
+        onBrandAccentChange={noop}
+        onMenuChange={noop}
+        {...props}
+      />
+    );
+
+  test('shows the saved logo and brand colours', () => {
+    renderBranding({
+      logoUrl: 'https://example.com/logo.png',
+      brandPrimary: '#1B7F5A',
+      brandAccent: '#E4A11B',
+    });
+
+    expect(screen.getByLabelText(/logo url/i)).toHaveValue('https://example.com/logo.png');
+    expect(screen.getByAltText('Logo preview')).toBeInTheDocument();
+    expect(screen.getByLabelText(/primary brand colour hex/i)).toHaveValue('#1B7F5A');
+    expect(screen.getByLabelText(/accent brand colour hex/i)).toHaveValue('#E4A11B');
+  });
+
+  test('an unset brand colour leaves the text field empty but shows the platform default in the swatch', () => {
+    renderBranding();
+
+    expect(screen.getByLabelText(/primary brand colour hex/i)).toHaveValue('');
+    // A colour input cannot render "empty", so it falls back to the default
+    // rather than showing an arbitrary black swatch.
+    expect(screen.getByLabelText(/^primary brand colour$/i)).toHaveValue(
+      DEFAULT_TENANT_THEME.brandPrimary.toLowerCase()
+    );
+  });
+
+  test('typing a hex value reports it upward', () => {
+    const onBrandPrimaryChange = vi.fn();
+    renderBranding({ onBrandPrimaryChange });
+
+    fireEvent.change(screen.getByLabelText(/primary brand colour hex/i), {
+      target: { value: '#123ABC' },
+    });
+
+    expect(onBrandPrimaryChange).toHaveBeenCalledWith('#123ABC');
+  });
+
+  test('reset clears the override so the cafe returns to the default palette', () => {
+    const onBrandAccentChange = vi.fn();
+    renderBranding({ brandAccent: '#E4A11B', onBrandAccentChange });
+
+    fireEvent.click(screen.getByTitle(/reset accent to the default/i));
+
+    expect(onBrandAccentChange).toHaveBeenCalledWith('');
+  });
+
+  test('offers no reset control while a colour is still unset', () => {
+    renderBranding();
+
+    expect(screen.queryByTitle(/reset primary to the default/i)).not.toBeInTheDocument();
+  });
+
+  test('warns when the logo URL does not resolve to an image', () => {
+    renderBranding({ logoUrl: 'https://example.com/not-an-image' });
+
+    fireEvent.error(screen.getByAltText('Logo preview'));
+
+    expect(screen.getByText(/doesn't look like a direct image link/i)).toBeInTheDocument();
   });
 });

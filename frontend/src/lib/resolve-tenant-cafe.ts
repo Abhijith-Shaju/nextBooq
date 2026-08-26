@@ -8,8 +8,11 @@ const buildMockCafe = (tenant: string): Cafe => ({
   name: `${tenant.charAt(0).toUpperCase() + tenant.slice(1)} Cafe`,
   description: 'A beautifully crafted mock cafe for local frontend development.',
   timezone: 'Asia/Kolkata',
-  brand_primary: '220 89% 53%',
-  brand_accent: '24 98% 50%',
+  // Must be CSS colours, not bare HSL triplets: TenantProvider injects these
+  // straight into --brand-primary/--brand-accent, which Tailwind consumes as
+  // `var(--brand-primary)` rather than `hsl(var(--brand-primary))`.
+  brand_primary: '#1F6FEB',
+  brand_accent: '#F97316',
   reservation_rules: {
     default_turn_time_minutes: 90,
     max_party_size: 12,

@@ -41,6 +41,9 @@ export default function CafeSettingsPage() {
   const [description, setDescription] = useState(cafe.description || '');
   const [heroImageUrl, setHeroImageUrl] = useState(cafe.hero_image_url || '');
   const [contactPhone, setContactPhone] = useState(cafe.contact_phone || '');
+  const [logoUrl, setLogoUrl] = useState(cafe.logo_url || '');
+  const [brandPrimary, setBrandPrimary] = useState(cafe.brand_primary || '');
+  const [brandAccent, setBrandAccent] = useState(cafe.brand_accent || '');
   const [menu, setMenu] = useState<CafeMenuCategory[]>(cafe.menu || []);
   const [isSaving, setIsSaving] = useState(false);
   const [webhookReveal, setWebhookReveal] = useState<{ url: string; secret: string } | null>(null);
@@ -62,6 +65,9 @@ export default function CafeSettingsPage() {
     setDescription(cafe.description || '');
     setHeroImageUrl(cafe.hero_image_url || '');
     setContactPhone(cafe.contact_phone || '');
+    setLogoUrl(cafe.logo_url || '');
+    setBrandPrimary(cafe.brand_primary || '');
+    setBrandAccent(cafe.brand_accent || '');
     setMenu(cafe.menu || []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -74,6 +80,9 @@ export default function CafeSettingsPage() {
     cafe.description,
     cafe.hero_image_url,
     cafe.contact_phone,
+    cafe.logo_url,
+    cafe.brand_primary,
+    cafe.brand_accent,
     menuKey,
   ]);
 
@@ -111,6 +120,9 @@ export default function CafeSettingsPage() {
         description,
         hero_image_url: heroImageUrl,
         contact_phone: contactPhone,
+        logo_url: logoUrl,
+        brand_primary: brandPrimary,
+        brand_accent: brandAccent,
         menu: menuForSubmit,
       });
       // `cafe` comes from a Server Component fetch (see [tenant]/layout.tsx),
@@ -293,10 +305,16 @@ export default function CafeSettingsPage() {
             description={description}
             heroImageUrl={heroImageUrl}
             contactPhone={contactPhone}
+            logoUrl={logoUrl}
+            brandPrimary={brandPrimary}
+            brandAccent={brandAccent}
             menu={menu}
             onDescriptionChange={setDescription}
             onHeroImageUrlChange={setHeroImageUrl}
             onContactPhoneChange={setContactPhone}
+            onLogoUrlChange={setLogoUrl}
+            onBrandPrimaryChange={setBrandPrimary}
+            onBrandAccentChange={setBrandAccent}
             onMenuChange={setMenu}
           />
 

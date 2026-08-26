@@ -5,6 +5,7 @@ import { TenantProvider } from './tenant-provider';
 import { useBookingStore } from '@/store/use-booking-store';
 import { useDashboardStore } from '@/store/use-dashboard-store';
 import { Cafe } from '@/lib/types/models';
+import { DEFAULT_TENANT_THEME } from '@/lib/theme/resolve-tenant-theme';
 
 const makeCafe = (id: string): Cafe => ({
   id,
@@ -66,5 +67,45 @@ describe('TenantProvider resets per-tenant client state on tenant switch', () =>
     );
 
     expect(useBookingStore.getState().partySize).toBe(5);
+  });
+});
+
+describe('TenantProvider brand theming', () => {
+  const themedCafe = (overrides: Partial<Cafe> = {}): Cafe => ({ ...makeCafe('cafe_theme'), ...overrides });
+
+  test("injects the cafe's own colours as the brand CSS variables", () => {
+    const { container } = render(
+      <TenantProvider cafe={themedCafe({ brand_primary: '#1B7F5A', brand_accent: '#E4A11B' })}>
+        <span>storefront</span>
+      </TenantProvider>
+    );
+
+    const themed = container.querySelector('div') as HTMLElement;
+    expect(themed.style.getPropertyValue('--brand-primary')).toBe('#1B7F5A');
+    expect(themed.style.getPropertyValue('--brand-accent')).toBe('#E4A11B');
+  });
+
+  test('falls back to the platform palette when the cafe sets no colours', () => {
+    const { container } = render(
+      <TenantProvider cafe={themedCafe({ brand_primary: '', brand_accent: '' })}>
+        <span>storefront</span>
+      </TenantProvider>
+    );
+
+    const themed = container.querySelector('div') as HTMLElement;
+    expect(themed.style.getPropertyValue('--brand-primary')).toBe(DEFAULT_TENANT_THEME.brandPrimary);
+    expect(themed.style.getPropertyValue('--brand-accent')).toBe(DEFAULT_TENANT_THEME.brandAccent);
+  });
+
+  test('a cafe may override only one of the two colours', () => {
+    const { container } = render(
+      <TenantProvider cafe={themedCafe({ brand_primary: '#1B7F5A' })}>
+        <span>storefront</span>
+      </TenantProvider>
+    );
+
+    const themed = container.querySelector('div') as HTMLElement;
+    expect(themed.style.getPropertyValue('--brand-primary')).toBe('#1B7F5A');
+    expect(themed.style.getPropertyValue('--brand-accent')).toBe(DEFAULT_TENANT_THEME.brandAccent);
   });
 });

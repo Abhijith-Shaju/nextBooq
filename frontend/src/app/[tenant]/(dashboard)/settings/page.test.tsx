@@ -260,3 +260,65 @@ describe('CafeSettingsPage — storefront', () => {
     );
   });
 });
+
+describe('CafeSettingsPage — branding', () => {
+  beforeEach(() => {
+    refresh.mockReset();
+    vi.mocked(axiosInstance.put).mockReset().mockResolvedValue({ data: { data: {} } });
+  });
+
+  test("shows the cafe's saved logo and brand colours", () => {
+    vi.mocked(useTenant).mockReturnValue({
+      cafe: {
+        ...makeCafe(),
+        logo_url: 'https://example.com/logo.png',
+        brand_primary: '#1B7F5A',
+        brand_accent: '#E4A11B',
+      },
+    } as any);
+    render(<CafeSettingsPage />);
+
+    expect(screen.getByLabelText(/logo url/i)).toHaveValue('https://example.com/logo.png');
+    expect(screen.getByLabelText(/primary brand colour hex/i)).toHaveValue('#1B7F5A');
+    expect(screen.getByLabelText(/accent brand colour hex/i)).toHaveValue('#E4A11B');
+  });
+
+  test('saving includes logo_url and both brand colours in the request body', async () => {
+    vi.mocked(useTenant).mockReturnValue({
+      cafe: {
+        ...makeCafe(),
+        logo_url: 'https://example.com/logo.png',
+        brand_primary: '#1B7F5A',
+        brand_accent: '#E4A11B',
+      },
+    } as any);
+    render(<CafeSettingsPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /save cafe rules/i }));
+
+    await waitFor(() =>
+      expect(axiosInstance.put).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          logo_url: 'https://example.com/logo.png',
+          brand_primary: '#1B7F5A',
+          brand_accent: '#E4A11B',
+        })
+      )
+    );
+  });
+
+  test('a cafe with no branding set submits empty values, meaning "use the default palette"', async () => {
+    vi.mocked(useTenant).mockReturnValue({ cafe: makeCafe() } as any);
+    render(<CafeSettingsPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /save cafe rules/i }));
+
+    await waitFor(() =>
+      expect(axiosInstance.put).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ logo_url: '', brand_primary: '', brand_accent: '' })
+      )
+    );
+  });
+});

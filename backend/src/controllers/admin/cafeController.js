@@ -15,6 +15,13 @@ const VALID_DAYS_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'frida
 const TIME_STRING_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 const MAX_CONTACT_PHONE_LENGTH = 30;
 
+// The brand colours land in a CSS custom property that Tailwind reads
+// directly (`var(--brand-primary)`), so anything stored here is injected into
+// a stylesheet verbatim. Restricting them to a plain 3- or 6-digit hex colour
+// keeps that injection safe and rules out the bare "220 89% 53%" HSL triplet
+// form, which is valid-looking but produces no colour when used unwrapped.
+const HEX_COLOR_PATTERN = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
 const isValidHttpsUrl = (value) => {
   if (!value.startsWith('https://')) {
     return false;
@@ -112,7 +119,17 @@ const validateMenuInput = (menu) => {
 const updateCafe = async (req, res, next) => {
   try {
     const cafeId = req.tenantId;
-    const { reservation_rules, operating_hours, description, hero_image_url, contact_phone, menu } = req.body;
+    const {
+      reservation_rules,
+      operating_hours,
+      description,
+      hero_image_url,
+      contact_phone,
+      logo_url,
+      brand_primary,
+      brand_accent,
+      menu,
+    } = req.body;
 
     const cafe = await Cafe.findById(cafeId);
     if (!cafe) {
@@ -180,6 +197,32 @@ const updateCafe = async (req, res, next) => {
         throw new BadRequestError(`contact_phone must be ${MAX_CONTACT_PHONE_LENGTH} characters or fewer`);
       }
       cafe.contact_phone = contact_phone.trim();
+    }
+
+    if (logo_url !== undefined) {
+      if (typeof logo_url !== 'string') {
+        throw new BadRequestError('logo_url must be a string');
+      }
+      if (logo_url.length > 0 && !isValidHttpsUrl(logo_url)) {
+        throw new BadRequestError('logo_url must be a valid https URL');
+      }
+      cafe.logo_url = logo_url;
+    }
+
+    // An empty string is meaningful here — it clears the override and puts the
+    // cafe back on the platform default palette.
+    for (const [field, value] of [
+      ['brand_primary', brand_primary],
+      ['brand_accent', brand_accent],
+    ]) {
+      if (value === undefined) continue;
+      if (typeof value !== 'string') {
+        throw new BadRequestError(`${field} must be a string`);
+      }
+      if (value.length > 0 && !HEX_COLOR_PATTERN.test(value.trim())) {
+        throw new BadRequestError(`${field} must be a hex colour such as #C8102E`);
+      }
+      cafe[field] = value.trim();
     }
 
     if (menu !== undefined) {
