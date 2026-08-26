@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { useTenant } from '@/components/providers/tenant-provider';
 import { useDashboardStore } from '@/store/use-dashboard-store';
 import { useManifest } from '@/hooks/host/use-manifest';
@@ -9,7 +10,9 @@ import { FloorplanCanvas } from '@/components/dashboard/floorplan-canvas';
 import { ReservationDrawer } from '@/components/dashboard/reservation-drawer';
 import { AssignTableModal } from '@/components/dashboard/assign-table-modal';
 import { computeShiftMetrics } from '@/lib/dashboard/shift-metrics';
-import { Calendar as CalendarIcon, Users, CheckCircle2, Clock } from 'lucide-react';
+import { sortManifestReservations } from '@/lib/dashboard/manifest-order';
+import { matchesReservationSearch } from '@/lib/dashboard/reservation-search';
+import { Calendar as CalendarIcon, Users, CheckCircle2, Clock, Search } from 'lucide-react';
 
 export default function HostStandDashboardPage() {
   const { cafe } = useTenant();
@@ -17,8 +20,19 @@ export default function HostStandDashboardPage() {
 
   const { data: reservations = [], isLoading: isLoadingManifest } = useManifest(cafe?.id, selectedDate);
   const { data: tables = [] } = useTables(cafe?.id);
+  const [searchTerm, setSearchTerm] = useState('');
 
+  // Metrics describe the whole shift, so they stay on the unfiltered set —
+  // narrowing the list to one guest shouldn't make the cover count drop.
   const { totalCovers, seatedCovers, expectedCovers } = computeShiftMetrics(reservations);
+
+  // Only the manifest list is filtered. The floorplan, the drawer and the
+  // assign modal keep the full set so a search can't hide a booked table or
+  // strand the drawer on a reservation that just got filtered away.
+  const visibleReservations = useMemo(
+    () => sortManifestReservations(reservations).filter((r) => matchesReservationSearch(r, searchTerm)),
+    [reservations, searchTerm]
+  );
 
   return (
     <div className="space-y-6">
@@ -63,11 +77,31 @@ export default function HostStandDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left Panel: Manifest List (5 columns) */}
         <div className="lg:col-span-5 bg-white/70 backdrop-blur-sm rounded-2xl border border-brand-brown/10 overflow-hidden">
-          <div className="p-4 border-b border-brand-brown/10 flex items-center justify-between">
-            <h3 className="font-bold text-brand-brown text-sm font-display">Daily schedule</h3>
-            <span className="text-xs font-mono text-brand-mochaMid tabular-nums">{reservations.length} bookings</span>
+          <div className="p-4 border-b border-brand-brown/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-brand-brown text-sm font-display">Daily schedule</h3>
+              <span className="text-xs font-mono text-brand-mochaMid tabular-nums">
+                {searchTerm.trim()
+                  ? `${visibleReservations.length} of ${reservations.length} bookings`
+                  : `${reservations.length} bookings`}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-brand-brown/15 text-xs">
+              <Search className="w-4 h-4 text-brand-mochaMid" />
+              <input
+                type="text"
+                placeholder="Search token, name, or phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="focus:outline-none bg-transparent w-full text-brand-brown"
+              />
+            </div>
           </div>
-          <ManifestTable reservations={reservations} isLoading={isLoadingManifest} />
+          <ManifestTable
+            reservations={visibleReservations}
+            isLoading={isLoadingManifest}
+            isFiltered={searchTerm.trim().length > 0}
+          />
         </div>
 
         {/* Right Panel: Floorplan Canvas (7 columns) */}

@@ -10,7 +10,8 @@ import {
   getReservationGuestEmail,
   getReservationGuestPhone,
 } from '@/lib/dashboard/reservation-guest';
-import { getReservationToken, matchesReservationToken } from '@/lib/booking/reservation-token';
+import { getReservationToken } from '@/lib/booking/reservation-token';
+import { matchesReservationSearch } from '@/lib/dashboard/reservation-search';
 import { Calendar, Search, Filter, Users, Hash, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -22,25 +23,9 @@ export default function ReservationsHistoryPage() {
 
   const { data: reservations = [], isLoading, isError } = useManifest(cafe?.id, selectedDate);
 
-  const term = searchTerm.trim().toLowerCase();
   const filteredReservations = reservations.filter((r) => {
-    const name = getReservationGuestName(r);
-    const email = getReservationGuestEmail(r) || '';
-    // Digits only, so "+91 98765 43210" is still found by typing "9876543210".
-    const phone = (getReservationGuestPhone(r) || '').replace(/\D/g, '');
-    const digits = term.replace(/\D/g, '');
-
-    // A guest at the door quotes their token, so that has to be searchable
-    // here — it is the one identifier they are actually holding.
-    const matchesSearch =
-      term.length === 0 ||
-      matchesReservationToken(r, searchTerm) ||
-      name.toLowerCase().includes(term) ||
-      email.toLowerCase().includes(term) ||
-      (digits.length > 0 && phone.includes(digits));
-
     const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    return matchesReservationSearch(r, searchTerm) && matchesStatus;
   });
 
   return (
