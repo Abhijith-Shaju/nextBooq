@@ -7,6 +7,9 @@ import { Coffee, ArrowRight, Loader2, Mail } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useVerifyEmail } from '@/hooks/auth/use-verify-email';
 import { useResendVerificationEmail } from '@/hooks/auth/use-resend-verification-email';
+import { useChangeEmail } from '@/hooks/auth/use-change-email';
+import { useRequestStepUpOtp } from '@/hooks/auth/use-request-step-up-otp';
+import { ChangeCredentialForm } from '@/components/auth/change-credential-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -24,8 +27,11 @@ function VerifyEmailContent() {
 
   const [code, setCode] = useState('');
   const [succeeded, setSucceeded] = useState(false);
+  const [changingEmail, setChangingEmail] = useState(false);
   const verifyEmailMutation = useVerifyEmail();
   const resendMutation = useResendVerificationEmail();
+  const changeEmailMutation = useChangeEmail();
+  const requestStepUpOtp = useRequestStepUpOtp();
 
   // After success, invalidate /me so the banner knows verification is done,
   // then show a contextual toast and redirect.
@@ -62,6 +68,31 @@ function VerifyEmailContent() {
     resendMutation.mutate(undefined, {
       onSuccess: () => toast.success('A new code has been sent to your inbox.'),
       onError: () => toast.error('Could not resend code. Please try again.'),
+    });
+  };
+
+  const handleChangeEmail = (newEmail: string, currentPassword: string, otpCode: string) => {
+    changeEmailMutation.mutate(
+      // otpCode only matters once the account's current email is already
+      // verified — irrelevant here for the common case (a fresh, unverified
+      // signup fixing a typo), but the same form/endpoint also covers that
+      // less common case correctly.
+      { newEmail, currentPassword, ...(user?.is_email_verified ? { otpCode } : {}) },
+      {
+        onSuccess: async () => {
+          await queryClient.invalidateQueries({ queryKey: ['me'] });
+          setChangingEmail(false);
+          setCode('');
+          toast.success(`We've sent a new code to ${newEmail}.`);
+        },
+      }
+    );
+  };
+
+  const handleRequestStepUpOtp = () => {
+    requestStepUpOtp.mutate(undefined, {
+      onSuccess: () => toast.success('A security code has been sent to your email.'),
+      onError: () => toast.error('Could not send the security code. Please try again.'),
     });
   };
 
@@ -103,6 +134,24 @@ function VerifyEmailContent() {
           Your email is already verified. Redirecting…
         </p>
         <Loader2 className="w-5 h-5 mx-auto animate-spin text-brand-mocha" />
+      </div>
+    );
+  }
+
+  if (changingEmail) {
+    return (
+      <div className="space-y-3 text-left">
+        <ChangeCredentialForm
+          label="email"
+          placeholder="New email address"
+          inputType="email"
+          isPending={changeEmailMutation.isPending}
+          onCancel={() => setChangingEmail(false)}
+          onSubmit={handleChangeEmail}
+          requireOtp={user?.is_email_verified}
+          onRequestOtp={handleRequestStepUpOtp}
+          isRequestingOtp={requestStepUpOtp.isPending}
+        />
       </div>
     );
   }
@@ -151,6 +200,14 @@ function VerifyEmailContent() {
         className="w-full text-center text-sm text-brand-mocha hover:text-brand-brown underline disabled:opacity-50"
       >
         {resendMutation.isPending ? 'Sending…' : "Didn't get a code? Resend"}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setChangingEmail(true)}
+        className="w-full text-center text-xs text-brand-mocha hover:text-brand-brown underline"
+      >
+        Not your email? Change it
       </button>
     </form>
   );

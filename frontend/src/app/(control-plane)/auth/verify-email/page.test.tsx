@@ -36,12 +36,24 @@ vi.mock('@/hooks/auth/use-resend-verification-email', () => ({
   useResendVerificationEmail: () => ({ mutate: resendMutateMock, isPending: false }),
 }));
 
+const changeEmailMutateMock = vi.fn();
+vi.mock('@/hooks/auth/use-change-email', () => ({
+  useChangeEmail: () => ({ mutate: changeEmailMutateMock, isPending: false }),
+}));
+
+const requestStepUpOtpMutateMock = vi.fn();
+vi.mock('@/hooks/auth/use-request-step-up-otp', () => ({
+  useRequestStepUpOtp: () => ({ mutate: requestStepUpOtpMutateMock, isPending: false }),
+}));
+
 describe('VerifyEmailPage', () => {
   beforeEach(() => {
     replaceMock.mockReset();
     pushMock.mockReset();
     verifyMutateMock.mockReset();
     resendMutateMock.mockReset();
+    changeEmailMutateMock.mockReset();
+    requestStepUpOtpMutateMock.mockReset();
     vi.mocked(toast.success).mockReset();
     vi.mocked(toast.error).mockReset();
   });
@@ -139,5 +151,59 @@ describe('VerifyEmailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /resend/i }));
 
     expect(resendMutateMock).toHaveBeenCalled();
+  });
+
+  test('"Not your email? Change it" swaps the code form for the change-email form', () => {
+    useAuthMock.mockReturnValue({
+      user: { id: 'u1', email: 'wrong-typo@example.com', is_email_verified: false },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+
+    renderWithClient(<VerifyEmailPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /not your email/i }));
+
+    expect(screen.getByPlaceholderText('New email address')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('6-digit code')).not.toBeInTheDocument();
+  });
+
+  test('submitting the change-email form on an unverified account skips the step-up code and shows a confirmation toast', async () => {
+    useAuthMock.mockReturnValue({
+      user: { id: 'u1', email: 'wrong-typo@example.com', is_email_verified: false },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    changeEmailMutateMock.mockImplementation((_payload, { onSuccess }) => onSuccess());
+
+    renderWithClient(<VerifyEmailPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /not your email/i }));
+    fireEvent.change(screen.getByPlaceholderText('New email address'), { target: { value: 'fixed@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('Current password'), { target: { value: 'secret123' } });
+    fireEvent.click(screen.getByRole('button', { name: /save email/i }));
+
+    expect(changeEmailMutateMock).toHaveBeenCalledWith(
+      { newEmail: 'fixed@example.com', currentPassword: 'secret123' },
+      expect.objectContaining({ onSuccess: expect.any(Function) })
+    );
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith("We've sent a new code to fixed@example.com.")
+    );
+  });
+
+  test('cancelling the change-email form returns to the code-entry form', () => {
+    useAuthMock.mockReturnValue({
+      user: { id: 'u1', email: 'wrong-typo@example.com', is_email_verified: false },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+
+    renderWithClient(<VerifyEmailPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /not your email/i }));
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+    expect(screen.getByPlaceholderText('6-digit code')).toBeInTheDocument();
   });
 });
