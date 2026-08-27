@@ -24,6 +24,7 @@ const expectedAuthUserKeys = [
   'is_platform_admin',
   'name',
   'owner_org_id',
+  'pending_email',
   'phone',
   'staff_memberships',
 ].sort();

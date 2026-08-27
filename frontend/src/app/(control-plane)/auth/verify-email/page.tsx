@@ -35,6 +35,8 @@ function VerifyEmailContent() {
 
     if (source === 'register') {
       toast.success('Registration complete! Your email has been verified.', { duration: 4000 });
+    } else if (source === 'email-change') {
+      toast.success('Your email address has been updated and verified.', { duration: 3000 });
     } else {
       toast.success('Email verified successfully!', { duration: 3000 });
     }
@@ -63,12 +65,14 @@ function VerifyEmailContent() {
     });
   };
 
-  // Already verified — redirect immediately.
+  // Already verified — redirect immediately. A pending email change keeps
+  // is_email_verified true for the still-live old address, so don't bounce
+  // away while a change confirmation is actually what brought us here.
   useEffect(() => {
-    if (user?.is_email_verified && !succeeded) {
+    if (user?.is_email_verified && !user?.pending_email && !succeeded) {
       router.replace(callbackUrl);
     }
-  }, [user?.is_email_verified, succeeded, callbackUrl, router]);
+  }, [user?.is_email_verified, user?.pending_email, succeeded, callbackUrl, router]);
 
   if (succeeded) {
     return (
@@ -89,7 +93,7 @@ function VerifyEmailContent() {
   // Already verified on arrival (e.g. a stale link revisited) — the effect
   // above redirects away, but show this instead of flashing the code form
   // while that redirect is in flight.
-  if (user?.is_email_verified) {
+  if (user?.is_email_verified && !user?.pending_email) {
     return (
       <div className="space-y-4 text-center">
         <div className="w-16 h-16 mx-auto bg-emerald-100 rounded-full flex items-center justify-center">
@@ -191,7 +195,7 @@ function VerifyEmailGuard() {
             <h1 className="font-display text-3xl font-bold text-brand-brown">Verify your email</h1>
             <p className="font-sans text-brand-mocha text-sm mt-1">
               Enter the 6-digit code we sent to{' '}
-              <span className="font-semibold text-brand-brown">{user?.email}</span>.
+              <span className="font-semibold text-brand-brown">{user?.pending_email || user?.email}</span>.
             </p>
           </div>
 

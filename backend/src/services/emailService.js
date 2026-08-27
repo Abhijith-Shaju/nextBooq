@@ -63,9 +63,9 @@ const sendVerificationEmail = async ({ to, code }) => {
       to,
       subject: 'Verify your nextBooq email address',
       html: `
-        <p>Welcome to nextBooq! Use the code below to verify your email address.</p>
+        <p>Use the code below to verify this email address on your nextBooq account.</p>
         <p style="font-size: 24px; font-weight: bold; letter-spacing: 4px;">${code}</p>
-        <p>This code expires in 15 minutes. If you didn't create a nextBooq account, you can safely ignore this email.</p>
+        <p>This code expires in 15 minutes. If you didn't request this, you can safely ignore this email.</p>
       `,
     });
 

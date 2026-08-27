@@ -91,6 +91,17 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // Set while an email-change request is awaiting confirmation (see
+    // changeEmail in authController.js). The user's live `email` and
+    // `is_email_verified` are untouched until the code sent to this address
+    // is confirmed via verifyEmail, which then copies this into `email` and
+    // clears it. Reuses the same code-hash/expiry fields above rather than a
+    // separate pair, since only one outstanding code (signup or change) is
+    // ever valid at a time.
+    pending_email: {
+      type: String,
+      default: null,
+    },
     // Bumped on password reset to invalidate every JWT issued before that
     // point (H-05) — JWTs are otherwise stateless, so without this a reset
     // (typically requested because someone else has account access) leaves
