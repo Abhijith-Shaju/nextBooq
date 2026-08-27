@@ -4,6 +4,10 @@ import { axiosInstance } from '@/hooks/api/axios-instance';
 export interface ChangeEmailPayload {
   newEmail: string;
   currentPassword: string;
+  // Required by the backend only when the account's current email is
+  // already verified (a step-up re-authentication gate) — omitted for the
+  // unverified-account recovery path.
+  otpCode?: string;
 }
 
 interface ChangeEmailResponse {

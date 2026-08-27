@@ -102,6 +102,20 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    // 6-digit code, hashed and time-limited (see backend/src/utils/stepUpAuth.js),
+    // sent to the user's own already-verified email as a re-authentication
+    // step before a high-value change (changing a verified account's email,
+    // updating a cafe's Razorpay settings) — guards against a stolen session
+    // alone being enough to make those changes. Cleared once consumed or
+    // overwritten by a newer request.
+    step_up_code_hash: {
+      type: String,
+      default: null,
+    },
+    step_up_expires_at: {
+      type: Date,
+      default: null,
+    },
     // Bumped on password reset to invalidate every JWT issued before that
     // point (H-05) — JWTs are otherwise stateless, so without this a reset
     // (typically requested because someone else has account access) leaves

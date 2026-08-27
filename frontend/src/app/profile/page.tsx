@@ -24,6 +24,7 @@ import { useCustomerReservations } from '@/hooks/customer/use-customer-reservati
 import { useResendVerificationEmail } from '@/hooks/auth/use-resend-verification-email';
 import { useChangeEmail } from '@/hooks/auth/use-change-email';
 import { useChangePhone } from '@/hooks/auth/use-change-phone';
+import { useRequestStepUpOtp } from '@/hooks/auth/use-request-step-up-otp';
 import { useBookingStore } from '@/store/use-booking-store';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -62,6 +63,7 @@ export default function ProfilePage() {
   const resendVerification = useResendVerificationEmail();
   const changeEmail = useChangeEmail();
   const changePhone = useChangePhone();
+  const requestStepUpOtp = useRequestStepUpOtp();
   const [editing, setEditing] = useState<EditField>(null);
 
   if (!user) {
@@ -79,9 +81,12 @@ export default function ProfilePage() {
     });
   };
 
-  const handleChangeEmail = (newEmail: string, currentPassword: string) => {
+  const handleChangeEmail = (newEmail: string, currentPassword: string, otpCode: string) => {
     changeEmail.mutate(
-      { newEmail, currentPassword },
+      // otpCode is only meaningful (and only checked by the backend) once
+      // the current email is already verified — the unverified-account
+      // recovery path doesn't send it at all.
+      { newEmail, currentPassword, ...(user.is_email_verified ? { otpCode } : {}) },
       {
         onSuccess: () => {
           setEditing(null);
@@ -89,6 +94,13 @@ export default function ProfilePage() {
         },
       }
     );
+  };
+
+  const handleRequestStepUpOtp = () => {
+    requestStepUpOtp.mutate(undefined, {
+      onSuccess: () => toast.success('A security code has been sent to your email.'),
+      onError: () => toast.error('Could not send the security code. Please try again.'),
+    });
   };
 
   const handleChangePhone = (newPhone: string, currentPassword: string) => {
@@ -175,6 +187,9 @@ export default function ProfilePage() {
                   isPending={changeEmail.isPending}
                   onCancel={() => setEditing(null)}
                   onSubmit={handleChangeEmail}
+                  requireOtp={user.is_email_verified}
+                  onRequestOtp={handleRequestStepUpOtp}
+                  isRequestingOtp={requestStepUpOtp.isPending}
                 />
               ) : (
                 <div className="flex flex-wrap items-center gap-2">
@@ -441,22 +456,30 @@ function ChangeCredentialForm({
   isPending,
   onSubmit,
   onCancel,
+  requireOtp = false,
+  onRequestOtp,
+  isRequestingOtp = false,
 }: {
   label: string;
   placeholder: string;
   inputType: 'email' | 'tel';
   isPending: boolean;
-  onSubmit: (value: string, currentPassword: string) => void;
+  onSubmit: (value: string, currentPassword: string, otpCode: string) => void;
   onCancel: () => void;
+  requireOtp?: boolean;
+  onRequestOtp?: () => void;
+  isRequestingOtp?: boolean;
 }) {
   const [value, setValue] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
 
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit(value.trim(), currentPassword);
+        onSubmit(value.trim(), currentPassword, otpCode);
       }}
       className="flex flex-col gap-2 rounded-xl border border-brand-brown/15 bg-brand-tan/20 p-3"
     >
@@ -477,6 +500,34 @@ function ChangeCredentialForm({
         onChange={(e) => setCurrentPassword(e.target.value)}
         className="w-full rounded-lg border border-brand-brown/20 bg-white px-3 py-2 text-sm focus:border-brand-red focus:outline-none"
       />
+      {requireOtp && (
+        <div className="flex flex-col gap-2 rounded-lg border border-brand-brown/10 bg-white/60 p-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs text-brand-mocha">For your security, confirm it&apos;s you.</span>
+            <button
+              type="button"
+              onClick={() => {
+                onRequestOtp?.();
+                setCodeSent(true);
+              }}
+              disabled={isRequestingOtp}
+              className="shrink-0 text-xs font-bold text-brand-red hover:underline disabled:opacity-50"
+            >
+              {isRequestingOtp ? 'Sending…' : codeSent ? 'Resend code' : 'Send code'}
+            </button>
+          </div>
+          <input
+            type="text"
+            inputMode="numeric"
+            required
+            maxLength={6}
+            placeholder="6-digit security code"
+            value={otpCode}
+            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+            className="w-full rounded-lg border border-brand-brown/20 bg-white px-3 py-2 text-sm font-mono tracking-widest focus:border-brand-red focus:outline-none"
+          />
+        </div>
+      )}
       <div className="flex items-center gap-3">
         <button
           type="submit"

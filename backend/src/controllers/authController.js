@@ -8,7 +8,8 @@ const { ACTIVE_STAFF_MEMBERSHIP_POPULATE, buildAuthUserPayload } = require('../u
 const { getOwnedOrgId } = require('../services/orgOwnershipService');
 const { generateResetToken, hashResetToken } = require('../utils/passwordReset');
 const { generateVerificationCode, hashVerificationCode } = require('../utils/emailVerification');
-const { sendPasswordResetEmail, sendVerificationEmail } = require('../services/emailService');
+const { generateStepUpOtp, hashStepUpOtp } = require('../utils/stepUpAuth');
+const { sendPasswordResetEmail, sendVerificationEmail, sendStepUpOtpEmail } = require('../services/emailService');
 
 const SESSION_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MIN_PASSWORD_LENGTH = 8;
@@ -428,9 +429,17 @@ const resendVerificationEmail = async (req, res, next) => {
 // confirmed via verifyEmail — this is what lets someone who fat-fingered
 // their address at signup recover, rather than being stuck with an
 // unverifiable account (M-related fix, see profile page change-email UI).
+//
+// If the account's current email is already verified, a password alone is
+// not enough to start this — a stolen session/password combo could
+// otherwise redirect a verified account to an attacker-controlled inbox and
+// take it over from there. In that case the caller must also supply a
+// step-up otpCode (from requestStepUpOtp, sent to the *current* email) — an
+// unverified account skips this since there's no trusted inbox to step up
+// through, and the password-only path is exactly the recovery case above.
 const changeEmail = async (req, res, next) => {
   try {
-    const { newEmail, currentPassword } = req.body;
+    const { newEmail, currentPassword, otpCode } = req.body;
     if (!newEmail || typeof newEmail !== 'string') {
       throw new BadRequestError('New email address is required');
     }
@@ -442,6 +451,22 @@ const changeEmail = async (req, res, next) => {
     const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
     if (!isMatch) {
       throw new UnauthorizedError('Current password is incorrect');
+    }
+
+    if (user.is_email_verified) {
+      if (!otpCode || typeof otpCode !== 'string') {
+        throw new BadRequestError('Security code is required');
+      }
+      if (
+        !user.step_up_code_hash ||
+        !user.step_up_expires_at ||
+        user.step_up_expires_at.getTime() < Date.now() ||
+        hashStepUpOtp(otpCode) !== user.step_up_code_hash
+      ) {
+        throw new BadRequestError('Invalid or expired security code.');
+      }
+      user.step_up_code_hash = null;
+      user.step_up_expires_at = null;
     }
 
     const cleanEmail = newEmail.trim().toLowerCase();
@@ -531,6 +556,46 @@ const changePhone = async (req, res, next) => {
       status: 'success',
       message: 'Phone number updated.',
       data: { phone: cleanPhone },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Sends a step-up code to the caller's own current (already-verified) email
+// — a re-authentication gate for a small set of high-value actions (changing
+// a verified account's email, updating a cafe's Razorpay settings) where a
+// password/session alone shouldn't be enough. Requires is_email_verified
+// since there's no trusted inbox to step up through otherwise; those actions'
+// own unverified-account paths don't need this gate in the first place (see
+// changeEmail).
+const requestStepUpOtp = async (req, res, next) => {
+  try {
+    if (!req.user.is_email_verified) {
+      throw new BadRequestError('Verify your email before requesting a security code.');
+    }
+
+    const { code, codeHash, expiresAt } = generateStepUpOtp();
+    const user = await User.findById(req.user._id);
+    user.step_up_code_hash = codeHash;
+    user.step_up_expires_at = expiresAt;
+    await user.save();
+
+    sendStepUpOtpEmail({ to: user.email, code }).catch((err) => {
+      console.error('[requestStepUpOtp] Failed to send step-up code:', err);
+    });
+
+    await logAuditEvent({
+      cafeId: null,
+      entityType: 'User',
+      entityId: user._id,
+      action: 'STEP_UP_OTP_REQUESTED',
+      performedByUserId: user._id,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'A security code has been sent to your email.',
     });
   } catch (error) {
     next(error);
@@ -666,5 +731,6 @@ module.exports = {
   getSocketToken,
   changeEmail,
   changePhone,
+  requestStepUpOtp,
 };
 

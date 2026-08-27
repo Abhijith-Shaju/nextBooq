@@ -6,6 +6,7 @@ const { setupTestDB } = require('../setup');
 jest.mock('../../src/services/emailService', () => ({
   sendPasswordResetEmail: jest.fn().mockResolvedValue({ logged: true, data: null, error: null }),
   sendVerificationEmail: jest.fn().mockResolvedValue({ logged: true, data: null, error: null }),
+  sendStepUpOtpEmail: jest.fn().mockResolvedValue({ logged: true, data: null, error: null }),
 }));
 const { sendVerificationEmail } = require('../../src/services/emailService');
 

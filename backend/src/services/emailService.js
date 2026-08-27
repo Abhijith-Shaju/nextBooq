@@ -80,6 +80,39 @@ const sendVerificationEmail = async ({ to, code }) => {
   }
 };
 
+const sendStepUpOtpEmail = async ({ to, code }) => {
+  if (!config.RESEND_API_KEY) {
+    console.log(
+      `[emailService] RESEND_API_KEY not set — logging step-up code instead of sending. to=${to} code=${code}`
+    );
+    return { logged: true, data: null, error: null };
+  }
+
+  const resend = new Resend(config.RESEND_API_KEY);
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: config.FROM_EMAIL,
+      to,
+      subject: 'Your nextBooq security code',
+      html: `
+        <p>Use the code below to confirm it's you before making this change.</p>
+        <p style="font-size: 24px; font-weight: bold; letter-spacing: 4px;">${code}</p>
+        <p>This code expires in 10 minutes. If you didn't request this, you can safely ignore this email — no change will be made without it.</p>
+      `,
+    });
+
+    if (error) {
+      console.error('[emailService] Failed to send step-up OTP email:', error);
+    }
+
+    return { logged: false, data, error };
+  } catch (err) {
+    console.error('[emailService] Failed to send step-up OTP email:', err);
+    return { logged: false, data: null, error: { message: err.message } };
+  }
+};
+
 const sendContactEmail = async ({ name, email, message }) => {
   const recipient = config.CONTACT_EMAIL || config.FROM_EMAIL;
 
@@ -124,4 +157,4 @@ const sendContactEmail = async ({ name, email, message }) => {
   }
 };
 
-module.exports = { sendPasswordResetEmail, sendVerificationEmail, sendContactEmail };
+module.exports = { sendPasswordResetEmail, sendVerificationEmail, sendStepUpOtpEmail, sendContactEmail };
