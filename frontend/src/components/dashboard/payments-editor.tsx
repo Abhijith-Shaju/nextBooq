@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { axiosInstance } from '@/hooks/api/axios-instance';
+import { useRequestStepUpOtp } from '@/hooks/auth/use-request-step-up-otp';
 import { CreditCard, Loader2, ShieldCheck, TriangleAlert } from 'lucide-react';
 
 interface WebhookReveal {
@@ -20,10 +21,17 @@ export function PaymentsEditor({ cafeId, razorpayKeyId, configured, onSaved }: P
   const [replacing, setReplacing] = useState(!configured);
   const [keyId, setKeyId] = useState('');
   const [keySecret, setKeySecret] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestStepUpOtp = useRequestStepUpOtp();
 
   const modeLabel = razorpayKeyId.startsWith('rzp_live_') ? 'Live mode' : razorpayKeyId.startsWith('rzp_test_') ? 'Test mode' : null;
+
+  const handleRequestOtp = () => {
+    requestStepUpOtp.mutate(undefined, { onSuccess: () => setCodeSent(true) });
+  };
 
   const handleSave = async () => {
     setError(null);
@@ -32,11 +40,14 @@ export function PaymentsEditor({ cafeId, razorpayKeyId, configured, onSaved }: P
       const res = await axiosInstance.put(`/api/v1/cafes/${cafeId}/payments`, {
         razorpay_key_id: keyId,
         razorpay_key_secret: keySecret,
+        otp_code: otpCode,
       });
       onSaved(res.data.data.payments_webhook);
       setReplacing(false);
       setKeyId('');
       setKeySecret('');
+      setOtpCode('');
+      setCodeSent(false);
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to save Razorpay credentials');
     } finally {
@@ -100,12 +111,37 @@ export function PaymentsEditor({ cafeId, razorpayKeyId, configured, onSaved }: P
             />
           </div>
 
+          <div className="flex flex-col gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-amber-800">
+                For your security, confirm it&apos;s you before saving payout details.
+              </span>
+              <button
+                type="button"
+                onClick={handleRequestOtp}
+                disabled={requestStepUpOtp.isPending}
+                className="shrink-0 text-xs font-bold text-brand-red hover:underline disabled:opacity-50"
+              >
+                {requestStepUpOtp.isPending ? 'Sending…' : codeSent ? 'Resend code' : 'Send code'}
+              </button>
+            </div>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="6-digit security code"
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+              className="w-full rounded-lg border border-brand-brown/20 bg-white px-3 py-2 text-sm font-mono tracking-widest focus:border-brand-red focus:outline-none"
+            />
+          </div>
+
           {error && <p className="text-xs font-semibold text-rose-600">{error}</p>}
 
           <button
             type="button"
             onClick={handleSave}
-            disabled={isSaving || !keyId || !keySecret}
+            disabled={isSaving || !keyId || !keySecret || otpCode.length < 6}
             className="inline-flex items-center gap-1.5 rounded-full bg-brand-red px-4 py-2 text-sm font-semibold text-white shadow-brand-sm transition-colors hover:bg-brand-redDark disabled:opacity-50"
           >
             {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}

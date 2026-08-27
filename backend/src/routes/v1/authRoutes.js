@@ -11,6 +11,9 @@ const {
   resendVerificationEmail,
   customerQuickAuth,
   getSocketToken,
+  changeEmail,
+  changePhone,
+  requestStepUpOtp,
 } = require('../../controllers/authController');
 const { authenticate } = require('../../middleware/auth');
 const { authRateLimiter } = require('../../middleware/rateLimiter');
@@ -21,6 +24,9 @@ router.post('/forgot-password', authRateLimiter, forgotPassword);
 router.post('/reset-password', authRateLimiter, resetPassword);
 router.post('/verify-email', authenticate, authRateLimiter, verifyEmail);
 router.post('/resend-verification-email', authenticate, authRateLimiter, resendVerificationEmail);
+router.post('/change-email', authenticate, authRateLimiter, changeEmail);
+router.post('/change-phone', authenticate, authRateLimiter, changePhone);
+router.post('/request-step-up-otp', authenticate, authRateLimiter, requestStepUpOtp);
 router.post('/customer-quick-auth', authRateLimiter, customerQuickAuth);
 router.get('/me', authenticate, getMe);
 router.post('/logout', logoutUser);

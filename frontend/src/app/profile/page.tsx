@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
@@ -12,6 +13,7 @@ import {
   Clock,
   Loader2,
   Mail,
+  Pencil,
   Phone,
   Users,
 } from 'lucide-react';
@@ -20,12 +22,17 @@ import { useOrganization } from '@/hooks/org/use-organization';
 import { useOrgCafes } from '@/hooks/org/use-org-cafes';
 import { useCustomerReservations } from '@/hooks/customer/use-customer-reservations';
 import { useResendVerificationEmail } from '@/hooks/auth/use-resend-verification-email';
+import { useChangeEmail } from '@/hooks/auth/use-change-email';
+import { useChangePhone } from '@/hooks/auth/use-change-phone';
+import { useRequestStepUpOtp } from '@/hooks/auth/use-request-step-up-otp';
 import { useBookingStore } from '@/store/use-booking-store';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getManagerCafes, getProfileRole, PROFILE_ROLE_LABELS } from '@/lib/profile/user-workspace';
 import { Reservation } from '@/lib/types/models';
 import { toast } from 'sonner';
+
+type EditField = 'email' | 'phone' | null;
 
 const SUBSCRIPTION_STATUS_STYLES: Record<string, string> = {
   active: 'border-emerald-200 bg-emerald-100 text-emerald-800',
@@ -54,6 +61,10 @@ export default function ProfilePage() {
   const { data: ownedCafes = [], isLoading: isCafesLoading } = useOrgCafes(isOwner);
   const { data: reservations = [], isLoading: isReservationsLoading } = useCustomerReservations(!!user);
   const resendVerification = useResendVerificationEmail();
+  const changeEmail = useChangeEmail();
+  const changePhone = useChangePhone();
+  const requestStepUpOtp = useRequestStepUpOtp();
+  const [editing, setEditing] = useState<EditField>(null);
 
   if (!user) {
     return null;
@@ -68,6 +79,40 @@ export default function ProfilePage() {
       onSuccess: () => toast.success("We've sent a new verification email."),
       onError: () => toast.error('Could not send the verification email. Please try again.'),
     });
+  };
+
+  const handleChangeEmail = (newEmail: string, currentPassword: string, otpCode: string) => {
+    changeEmail.mutate(
+      // otpCode is only meaningful (and only checked by the backend) once
+      // the current email is already verified — the unverified-account
+      // recovery path doesn't send it at all.
+      { newEmail, currentPassword, ...(user.is_email_verified ? { otpCode } : {}) },
+      {
+        onSuccess: () => {
+          setEditing(null);
+          router.push(`/auth/verify-email?callbackUrl=${encodeURIComponent('/profile')}&source=email-change`);
+        },
+      }
+    );
+  };
+
+  const handleRequestStepUpOtp = () => {
+    requestStepUpOtp.mutate(undefined, {
+      onSuccess: () => toast.success('A security code has been sent to your email.'),
+      onError: () => toast.error('Could not send the security code. Please try again.'),
+    });
+  };
+
+  const handleChangePhone = (newPhone: string, currentPassword: string) => {
+    changePhone.mutate(
+      { newPhone, currentPassword },
+      {
+        onSuccess: () => {
+          setEditing(null);
+          toast.success('Phone number updated.');
+        },
+      }
+    );
   };
 
   const resumePayment = (res: Reservation) => {
@@ -134,30 +179,56 @@ export default function ProfilePage() {
                 <Mail className="h-3.5 w-3.5" />
                 Email
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-semibold text-brand-brown">{user.email}</span>
-                {user.is_email_verified ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                    <CheckCircle2 className="h-3 w-3" />
-                    Verified
-                  </span>
-                ) : (
-                  <>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-brand-red/10 px-2 py-0.5 text-[10px] font-bold text-brand-redDark">
-                      <AlertCircle className="h-3 w-3" />
-                      Not verified
+              {editing === 'email' ? (
+                <ChangeCredentialForm
+                  label="email"
+                  placeholder="New email address"
+                  inputType="email"
+                  isPending={changeEmail.isPending}
+                  onCancel={() => setEditing(null)}
+                  onSubmit={handleChangeEmail}
+                  requireOtp={user.is_email_verified}
+                  onRequestOtp={handleRequestStepUpOtp}
+                  isRequestingOtp={requestStepUpOtp.isPending}
+                />
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-brand-brown">{user.email}</span>
+                  {user.pending_email ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-brand-gold/15 px-2 py-0.5 text-[10px] font-bold text-brand-gold">
+                      Pending change to {user.pending_email}
                     </span>
-                    <button
-                      type="button"
-                      onClick={handleResendVerification}
-                      disabled={resendVerification.isPending}
-                      className="text-xs font-bold text-brand-red hover:underline disabled:opacity-50"
-                    >
-                      {resendVerification.isPending ? 'Sending…' : 'Resend verification email'}
-                    </button>
-                  </>
-                )}
-              </div>
+                  ) : user.is_email_verified ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Verified
+                    </span>
+                  ) : (
+                    <>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-brand-red/10 px-2 py-0.5 text-[10px] font-bold text-brand-redDark">
+                        <AlertCircle className="h-3 w-3" />
+                        Not verified
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleResendVerification}
+                        disabled={resendVerification.isPending}
+                        className="text-xs font-bold text-brand-red hover:underline disabled:opacity-50"
+                      >
+                        {resendVerification.isPending ? 'Sending…' : 'Resend verification email'}
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setEditing('email')}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-brand-mocha hover:text-brand-brown hover:underline"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Change
+                  </button>
+                </div>
+              )}
             </div>
 
             <div>
@@ -165,7 +236,28 @@ export default function ProfilePage() {
                 <Phone className="h-3.5 w-3.5" />
                 Phone
               </div>
-              <div className="text-sm font-semibold text-brand-brown">{user.phone}</div>
+              {editing === 'phone' ? (
+                <ChangeCredentialForm
+                  label="phone number"
+                  placeholder="New phone number"
+                  inputType="tel"
+                  isPending={changePhone.isPending}
+                  onCancel={() => setEditing(null)}
+                  onSubmit={handleChangePhone}
+                />
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-brand-brown">{user.phone}</span>
+                  <button
+                    type="button"
+                    onClick={() => setEditing('phone')}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-brand-mocha hover:text-brand-brown hover:underline"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Change
+                  </button>
+                </div>
+              )}
             </div>
 
             <div>
@@ -354,5 +446,104 @@ export default function ProfilePage() {
         )}
       </section>
     </div>
+  );
+}
+
+function ChangeCredentialForm({
+  label,
+  placeholder,
+  inputType,
+  isPending,
+  onSubmit,
+  onCancel,
+  requireOtp = false,
+  onRequestOtp,
+  isRequestingOtp = false,
+}: {
+  label: string;
+  placeholder: string;
+  inputType: 'email' | 'tel';
+  isPending: boolean;
+  onSubmit: (value: string, currentPassword: string, otpCode: string) => void;
+  onCancel: () => void;
+  requireOtp?: boolean;
+  onRequestOtp?: () => void;
+  isRequestingOtp?: boolean;
+}) {
+  const [value, setValue] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit(value.trim(), currentPassword, otpCode);
+      }}
+      className="flex flex-col gap-2 rounded-xl border border-brand-brown/15 bg-brand-tan/20 p-3"
+    >
+      <input
+        type={inputType}
+        required
+        autoFocus
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="w-full rounded-lg border border-brand-brown/20 bg-white px-3 py-2 text-sm focus:border-brand-red focus:outline-none"
+      />
+      <input
+        type="password"
+        required
+        placeholder="Current password"
+        value={currentPassword}
+        onChange={(e) => setCurrentPassword(e.target.value)}
+        className="w-full rounded-lg border border-brand-brown/20 bg-white px-3 py-2 text-sm focus:border-brand-red focus:outline-none"
+      />
+      {requireOtp && (
+        <div className="flex flex-col gap-2 rounded-lg border border-brand-brown/10 bg-white/60 p-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs text-brand-mocha">For your security, confirm it&apos;s you.</span>
+            <button
+              type="button"
+              onClick={() => {
+                onRequestOtp?.();
+                setCodeSent(true);
+              }}
+              disabled={isRequestingOtp}
+              className="shrink-0 text-xs font-bold text-brand-red hover:underline disabled:opacity-50"
+            >
+              {isRequestingOtp ? 'Sending…' : codeSent ? 'Resend code' : 'Send code'}
+            </button>
+          </div>
+          <input
+            type="text"
+            inputMode="numeric"
+            required
+            maxLength={6}
+            placeholder="6-digit security code"
+            value={otpCode}
+            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+            className="w-full rounded-lg border border-brand-brown/20 bg-white px-3 py-2 text-sm font-mono tracking-widest focus:border-brand-red focus:outline-none"
+          />
+        </div>
+      )}
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={isPending}
+          className="rounded-lg bg-brand-red px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+        >
+          {isPending ? 'Saving…' : `Save ${label}`}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-xs font-bold text-brand-mocha hover:underline"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
   );
 }

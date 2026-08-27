@@ -8,7 +8,8 @@ const { ACTIVE_STAFF_MEMBERSHIP_POPULATE, buildAuthUserPayload } = require('../u
 const { getOwnedOrgId } = require('../services/orgOwnershipService');
 const { generateResetToken, hashResetToken } = require('../utils/passwordReset');
 const { generateVerificationCode, hashVerificationCode } = require('../utils/emailVerification');
-const { sendPasswordResetEmail, sendVerificationEmail } = require('../services/emailService');
+const { generateStepUpOtp, hashStepUpOtp } = require('../utils/stepUpAuth');
+const { sendPasswordResetEmail, sendVerificationEmail, sendStepUpOtpEmail } = require('../services/emailService');
 
 const SESSION_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MIN_PASSWORD_LENGTH = 8;
@@ -325,9 +326,14 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+// Doubles as the confirmation step for changeEmail: if the account has a
+// pending_email (set by changeEmail), a matching code swaps it into `email`
+// instead of just flipping is_email_verified on the already-verified live
+// address. Both cases share the same code-hash/expiry fields, since only one
+// outstanding code (signup or change) is ever valid at a time.
 const verifyEmail = async (req, res, next) => {
   try {
-    if (req.user.is_email_verified) {
+    if (req.user.is_email_verified && !req.user.pending_email) {
       return res.status(200).json({
         status: 'success',
         message: 'Your email is already verified.',
@@ -350,6 +356,11 @@ const verifyEmail = async (req, res, next) => {
       throw new BadRequestError('Invalid or expired code.');
     }
 
+    const wasEmailChange = Boolean(user.pending_email);
+    if (wasEmailChange) {
+      user.email = user.pending_email;
+      user.pending_email = null;
+    }
     user.is_email_verified = true;
     user.email_verification_code_hash = null;
     user.email_verification_expires_at = null;
@@ -359,13 +370,14 @@ const verifyEmail = async (req, res, next) => {
       cafeId: null,
       entityType: 'User',
       entityId: user._id,
-      action: 'EMAIL_VERIFIED',
+      action: wasEmailChange ? 'EMAIL_CHANGED' : 'EMAIL_VERIFIED',
+      afterState: wasEmailChange ? { email: user.email } : undefined,
       performedByUserId: user._id,
     });
 
     res.status(200).json({
       status: 'success',
-      message: 'Email verified.',
+      message: wasEmailChange ? 'Email address updated and verified.' : 'Email verified.',
     });
   } catch (error) {
     next(error);
@@ -374,7 +386,7 @@ const verifyEmail = async (req, res, next) => {
 
 const resendVerificationEmail = async (req, res, next) => {
   try {
-    if (req.user.is_email_verified) {
+    if (req.user.is_email_verified && !req.user.pending_email) {
       return res.status(200).json({
         status: 'success',
         message: 'Your email is already verified.',
@@ -388,7 +400,9 @@ const resendVerificationEmail = async (req, res, next) => {
     user.email_verification_expires_at = expiresAt;
     await user.save();
 
-    sendVerificationEmail({ to: user.email, code }).catch((err) => {
+    // A pending email change resends to the new (unconfirmed) address, not
+    // the still-live current one.
+    sendVerificationEmail({ to: user.pending_email || user.email, code }).catch((err) => {
       console.error('[resendVerificationEmail] Failed to send verification email:', err);
     });
 
@@ -403,6 +417,185 @@ const resendVerificationEmail = async (req, res, next) => {
     res.status(200).json({
       status: 'success',
       message: 'Verification code sent.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Starts an email change: verifies the caller's password, checks the new
+// address isn't taken, and sends it a verification code. The live `email`
+// stays untouched (and reservations/login keep working) until that code is
+// confirmed via verifyEmail — this is what lets someone who fat-fingered
+// their address at signup recover, rather than being stuck with an
+// unverifiable account (M-related fix, see profile page change-email UI).
+//
+// If the account's current email is already verified, a password alone is
+// not enough to start this — a stolen session/password combo could
+// otherwise redirect a verified account to an attacker-controlled inbox and
+// take it over from there. In that case the caller must also supply a
+// step-up otpCode (from requestStepUpOtp, sent to the *current* email) — an
+// unverified account skips this since there's no trusted inbox to step up
+// through, and the password-only path is exactly the recovery case above.
+const changeEmail = async (req, res, next) => {
+  try {
+    const { newEmail, currentPassword, otpCode } = req.body;
+    if (!newEmail || typeof newEmail !== 'string') {
+      throw new BadRequestError('New email address is required');
+    }
+    if (!currentPassword || typeof currentPassword !== 'string') {
+      throw new BadRequestError('Current password is required');
+    }
+
+    const user = await User.findById(req.user._id);
+    const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isMatch) {
+      throw new UnauthorizedError('Current password is incorrect');
+    }
+
+    if (user.is_email_verified) {
+      if (!otpCode || typeof otpCode !== 'string') {
+        throw new BadRequestError('Security code is required');
+      }
+      if (
+        !user.step_up_code_hash ||
+        !user.step_up_expires_at ||
+        user.step_up_expires_at.getTime() < Date.now() ||
+        hashStepUpOtp(otpCode) !== user.step_up_code_hash
+      ) {
+        throw new BadRequestError('Invalid or expired security code.');
+      }
+      user.step_up_code_hash = null;
+      user.step_up_expires_at = null;
+    }
+
+    const cleanEmail = newEmail.trim().toLowerCase();
+    if (cleanEmail === user.email) {
+      throw new BadRequestError('That is already your current email address');
+    }
+
+    // Authenticated, single-field check — unlike registerUser's deliberately
+    // generic conflict message (L-06, guards against an unauthenticated
+    // caller enumerating registered accounts), the caller here already knows
+    // the value they're submitting isn't secret.
+    const existing = await User.findOne({ email: cleanEmail });
+    if (existing) {
+      throw new BadRequestError('That email address is already in use');
+    }
+
+    const { code, codeHash, expiresAt } = generateVerificationCode();
+    user.pending_email = cleanEmail;
+    user.email_verification_code_hash = codeHash;
+    user.email_verification_expires_at = expiresAt;
+    await user.save();
+
+    sendVerificationEmail({ to: cleanEmail, code }).catch((err) => {
+      console.error('[changeEmail] Failed to send verification email:', err);
+    });
+
+    await logAuditEvent({
+      cafeId: null,
+      entityType: 'User',
+      entityId: user._id,
+      action: 'EMAIL_CHANGE_REQUESTED',
+      afterState: { pending_email: cleanEmail },
+      performedByUserId: user._id,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: `A verification code has been sent to ${cleanEmail}.`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Phone has no verification step (unlike email) — a typo here only affects
+// staff being able to reach the guest, not account access, so it updates
+// immediately once the password check and uniqueness check pass.
+const changePhone = async (req, res, next) => {
+  try {
+    const { newPhone, currentPassword } = req.body;
+    if (!newPhone || typeof newPhone !== 'string') {
+      throw new BadRequestError('New phone number is required');
+    }
+    if (!currentPassword || typeof currentPassword !== 'string') {
+      throw new BadRequestError('Current password is required');
+    }
+
+    const user = await User.findById(req.user._id);
+    const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isMatch) {
+      throw new UnauthorizedError('Current password is incorrect');
+    }
+
+    const cleanPhone = newPhone.trim();
+    if (cleanPhone === user.phone) {
+      throw new BadRequestError('That is already your current phone number');
+    }
+
+    const existing = await User.findOne({ phone: cleanPhone });
+    if (existing) {
+      throw new BadRequestError('That phone number is already in use');
+    }
+
+    user.phone = cleanPhone;
+    await user.save();
+
+    await logAuditEvent({
+      cafeId: null,
+      entityType: 'User',
+      entityId: user._id,
+      action: 'PHONE_CHANGED',
+      afterState: { phone: cleanPhone },
+      performedByUserId: user._id,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Phone number updated.',
+      data: { phone: cleanPhone },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Sends a step-up code to the caller's own current (already-verified) email
+// — a re-authentication gate for a small set of high-value actions (changing
+// a verified account's email, updating a cafe's Razorpay settings) where a
+// password/session alone shouldn't be enough. Requires is_email_verified
+// since there's no trusted inbox to step up through otherwise; those actions'
+// own unverified-account paths don't need this gate in the first place (see
+// changeEmail).
+const requestStepUpOtp = async (req, res, next) => {
+  try {
+    if (!req.user.is_email_verified) {
+      throw new BadRequestError('Verify your email before requesting a security code.');
+    }
+
+    const { code, codeHash, expiresAt } = generateStepUpOtp();
+    const user = await User.findById(req.user._id);
+    user.step_up_code_hash = codeHash;
+    user.step_up_expires_at = expiresAt;
+    await user.save();
+
+    sendStepUpOtpEmail({ to: user.email, code }).catch((err) => {
+      console.error('[requestStepUpOtp] Failed to send step-up code:', err);
+    });
+
+    await logAuditEvent({
+      cafeId: null,
+      entityType: 'User',
+      entityId: user._id,
+      action: 'STEP_UP_OTP_REQUESTED',
+      performedByUserId: user._id,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'A security code has been sent to your email.',
     });
   } catch (error) {
     next(error);
@@ -536,5 +729,8 @@ module.exports = {
   resendVerificationEmail,
   customerQuickAuth,
   getSocketToken,
+  changeEmail,
+  changePhone,
+  requestStepUpOtp,
 };
 

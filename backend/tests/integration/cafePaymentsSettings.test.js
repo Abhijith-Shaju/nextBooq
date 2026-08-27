@@ -34,6 +34,17 @@ jest.mock('../../src/config/razorpay', () => ({
 
 const { createRazorpayClient } = require('../../src/config/razorpay');
 
+// Same rationale as the razorpay mock above: app is required before setup.js
+// runs its own jest.mock of this module, so this file needs its own local
+// mock to intercept the reference cafeController.js/authController.js
+// already captured.
+jest.mock('../../src/services/emailService', () => ({
+  sendPasswordResetEmail: jest.fn().mockResolvedValue({ logged: true, data: null, error: null }),
+  sendVerificationEmail: jest.fn().mockResolvedValue({ logged: true, data: null, error: null }),
+  sendStepUpOtpEmail: jest.fn().mockResolvedValue({ logged: true, data: null, error: null }),
+}));
+const { sendStepUpOtpEmail } = require('../../src/services/emailService');
+
 setupTestDB();
 
 describe('Integration Test: cafe Payments settings (Razorpay credentials)', () => {
@@ -80,13 +91,29 @@ describe('Integration Test: cafe Payments settings (Razorpay credentials)', () =
     managerToken = jwt.sign({ id: manager._id.toString() }, config.JWT_SECRET);
 
     createRazorpayClient.mockClear();
+    sendStepUpOtpEmail.mockClear();
   });
 
   const putSettings = (body) =>
     request(app).put(`/api/v1/cafes/${cafe._id}`).set('Authorization', `Bearer ${ownerToken}`).send(body);
 
-  const putPayments = (body, token = ownerToken) =>
-    request(app).put(`/api/v1/cafes/${cafe._id}/payments`).set('Authorization', `Bearer ${token}`).send(body);
+  // Every payments update now requires a fresh step-up code sent to the
+  // acting user's own email (see requestStepUpOtp in authController.js) —
+  // request one and capture the code the mocked email service was called
+  // with, the same pattern authChangeCredentials.test.js uses.
+  const requestOtp = async (token) => {
+    await request(app).post('/api/v1/auth/request-step-up-otp').set('Authorization', `Bearer ${token}`);
+    const lastCall = sendStepUpOtpEmail.mock.calls[sendStepUpOtpEmail.mock.calls.length - 1];
+    return lastCall[0].code;
+  };
+
+  const putPayments = async (body, token = ownerToken) => {
+    const otp_code = await requestOtp(token);
+    return request(app)
+      .put(`/api/v1/cafes/${cafe._id}/payments`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ ...body, otp_code });
+  };
 
   test('validates credentials against Razorpay before saving, and marks payments configured', async () => {
     const res = await putPayments({ razorpay_key_id: 'rzp_test_valid123', razorpay_key_secret: 'supersecretvalue' });
@@ -188,5 +215,34 @@ describe('Integration Test: cafe Payments settings (Razorpay credentials)', () =
 
     expect(res.status).toBe(200);
     expect(res.body.data.payments.configured).toBe(true);
+  });
+
+  // Step-up OTP: even the owner, with a valid session and manage_billing,
+  // cannot rewrite payout credentials without a fresh code — the whole point
+  // is that session/permission alone isn't enough for this endpoint.
+  test('rejects a payments update with no otp_code at all', async () => {
+    const res = await request(app)
+      .put(`/api/v1/cafes/${cafe._id}/payments`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ razorpay_key_id: 'rzp_test_no_otp', razorpay_key_secret: 'nosecretotp' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/security code/i);
+    const persisted = await Cafe.findById(cafe._id);
+    expect(persisted.payments.configured).toBe(false);
+    expect(createRazorpayClient).not.toHaveBeenCalled();
+  });
+
+  test('rejects a payments update with an incorrect otp_code, without touching Razorpay', async () => {
+    await requestOtp(ownerToken);
+
+    const res = await request(app)
+      .put(`/api/v1/cafes/${cafe._id}/payments`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ razorpay_key_id: 'rzp_test_wrong_otp', razorpay_key_secret: 'wrongotpsecret', otp_code: '000000' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/invalid or expired/i);
+    expect(createRazorpayClient).not.toHaveBeenCalled();
   });
 });

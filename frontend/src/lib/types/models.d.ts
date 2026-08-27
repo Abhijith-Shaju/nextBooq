@@ -203,5 +203,6 @@ export interface User {
   is_platform_admin: boolean;
   owner_org_id: string | null;
   is_email_verified: boolean;
+  pending_email?: string | null;
 }
 

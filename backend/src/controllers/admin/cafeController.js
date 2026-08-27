@@ -1,8 +1,11 @@
 const crypto = require('crypto');
 const Cafe = require('../../models/Cafe');
+const User = require('../../models/User');
 const { BadRequestError, NotFoundError } = require('../../utils/errors');
 const { encrypt } = require('../../utils/encryption');
+const { hashStepUpOtp } = require('../../utils/stepUpAuth');
 const { createRazorpayClient } = require('../../config/razorpay');
+const { logAuditEvent } = require('../../services/auditService');
 const config = require('../../config/env');
 
 const POSITIVE_INT_RULES = ['default_turn_time_minutes', 'max_party_size', 'hold_duration_minutes'];
@@ -248,10 +251,35 @@ const updateCafe = async (req, res, next) => {
 // choosing (H-03). manage_billing is not granted to any role by default, so
 // only the owner (who bypasses per-permission checks entirely — see rbac.js)
 // can reach this today.
+//
+// Also requires a step-up otp_code (from POST /auth/request-step-up-otp,
+// sent to the caller's own email) — permission + password/session alone
+// isn't enough here, since a compromised owner session is exactly the
+// scenario that would otherwise let an attacker redirect this cafe's payouts.
 const updateCafePayments = async (req, res, next) => {
   try {
     const cafeId = req.tenantId;
-    const { razorpay_key_id: razorpayKeyId, razorpay_key_secret: razorpayKeySecret } = req.body || {};
+    const {
+      razorpay_key_id: razorpayKeyId,
+      razorpay_key_secret: razorpayKeySecret,
+      otp_code: otpCode,
+    } = req.body || {};
+
+    const actingUser = await User.findById(req.user._id);
+    if (!otpCode || typeof otpCode !== 'string') {
+      throw new BadRequestError('Security code is required');
+    }
+    if (
+      !actingUser.step_up_code_hash ||
+      !actingUser.step_up_expires_at ||
+      actingUser.step_up_expires_at.getTime() < Date.now() ||
+      hashStepUpOtp(otpCode) !== actingUser.step_up_code_hash
+    ) {
+      throw new BadRequestError('Invalid or expired security code.');
+    }
+    actingUser.step_up_code_hash = null;
+    actingUser.step_up_expires_at = null;
+    await actingUser.save();
 
     const cafe = await Cafe.findById(cafeId);
     if (!cafe) {
@@ -277,6 +305,17 @@ const updateCafePayments = async (req, res, next) => {
     };
 
     await cafe.save();
+
+    // Never a secret in afterState — only the key ID (public) and the fact
+    // that credentials are now configured.
+    await logAuditEvent({
+      cafeId: cafe._id,
+      entityType: 'Cafe',
+      entityId: cafe._id,
+      action: 'RAZORPAY_SETTINGS_UPDATED',
+      afterState: { razorpay_key_id: razorpayKeyId, configured: true },
+      performedByUserId: req.user._id,
+    });
 
     const responseData = cafe.toJSON();
     responseData.payments_webhook = {

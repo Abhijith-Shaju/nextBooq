@@ -38,6 +38,21 @@ vi.mock('@/hooks/auth/use-resend-verification-email', () => ({
   useResendVerificationEmail: () => ({ mutate: resendMutateMock, isPending: false }),
 }));
 
+const changeEmailMutateMock = vi.fn();
+vi.mock('@/hooks/auth/use-change-email', () => ({
+  useChangeEmail: () => ({ mutate: changeEmailMutateMock, isPending: false }),
+}));
+
+const changePhoneMutateMock = vi.fn();
+vi.mock('@/hooks/auth/use-change-phone', () => ({
+  useChangePhone: () => ({ mutate: changePhoneMutateMock, isPending: false }),
+}));
+
+const requestStepUpOtpMutateMock = vi.fn();
+vi.mock('@/hooks/auth/use-request-step-up-otp', () => ({
+  useRequestStepUpOtp: () => ({ mutate: requestStepUpOtpMutateMock, isPending: false }),
+}));
+
 const guestUser = {
   id: 'u1',
   name: 'Priya Sharma',
@@ -54,6 +69,9 @@ describe('ProfilePage', () => {
   beforeEach(() => {
     push.mockReset();
     resendMutateMock.mockReset();
+    changeEmailMutateMock.mockReset();
+    changePhoneMutateMock.mockReset();
+    requestStepUpOtpMutateMock.mockReset();
     useBookingStore.getState().resetBooking();
     useOrganizationMock.mockReturnValue({ data: null, isLoading: false });
     useOrgCafesMock.mockReturnValue({ data: [], isLoading: false });
@@ -77,6 +95,75 @@ describe('ProfilePage', () => {
     expect(screen.getByText('Not verified')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /resend verification/i }));
     expect(resendMutateMock).toHaveBeenCalled();
+  });
+
+  test('shows a pending-change badge instead of the verified badge when an email change is pending', () => {
+    useAuthMock.mockReturnValue({ user: { ...guestUser, is_email_verified: true, pending_email: 'new@test.com' } });
+
+    render(<ProfilePage />);
+
+    expect(screen.getByText(/pending change to new@test\.com/i)).toBeInTheDocument();
+    expect(screen.queryByText('Verified')).not.toBeInTheDocument();
+  });
+
+  test('submitting the change-email form on a verified account requires a step-up code and includes it', () => {
+    useAuthMock.mockReturnValue({ user: { ...guestUser, is_email_verified: true } });
+    changeEmailMutateMock.mockImplementation((_payload, { onSuccess }) => onSuccess());
+
+    render(<ProfilePage />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: /change/i })[0]);
+    expect(screen.getByText(/confirm it's you/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /send code/i }));
+    expect(requestStepUpOtpMutateMock).toHaveBeenCalled();
+
+    fireEvent.change(screen.getByPlaceholderText('New email address'), { target: { value: 'fixed@test.com' } });
+    fireEvent.change(screen.getByPlaceholderText('Current password'), { target: { value: 'secret123' } });
+    fireEvent.change(screen.getByPlaceholderText('6-digit security code'), { target: { value: '123456' } });
+    fireEvent.click(screen.getByRole('button', { name: /save email/i }));
+
+    expect(changeEmailMutateMock).toHaveBeenCalledWith(
+      { newEmail: 'fixed@test.com', currentPassword: 'secret123', otpCode: '123456' },
+      expect.objectContaining({ onSuccess: expect.any(Function) })
+    );
+    expect(push).toHaveBeenCalledWith(expect.stringContaining('/auth/verify-email'));
+  });
+
+  test('submitting the change-email form on an unverified account skips the step-up code', () => {
+    useAuthMock.mockReturnValue({ user: { ...guestUser, is_email_verified: false } });
+    changeEmailMutateMock.mockImplementation((_payload, { onSuccess }) => onSuccess());
+
+    render(<ProfilePage />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: /change/i })[0]);
+    expect(screen.queryByText(/confirm it's you/i)).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText('New email address'), { target: { value: 'fixed@test.com' } });
+    fireEvent.change(screen.getByPlaceholderText('Current password'), { target: { value: 'secret123' } });
+    fireEvent.click(screen.getByRole('button', { name: /save email/i }));
+
+    expect(changeEmailMutateMock).toHaveBeenCalledWith(
+      { newEmail: 'fixed@test.com', currentPassword: 'secret123' },
+      expect.objectContaining({ onSuccess: expect.any(Function) })
+    );
+  });
+
+  test('submitting the change-phone form calls the mutation with the new number', () => {
+    useAuthMock.mockReturnValue({ user: guestUser });
+    changePhoneMutateMock.mockImplementation((_payload, { onSuccess }) => onSuccess());
+
+    render(<ProfilePage />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: /change/i })[1]);
+    fireEvent.change(screen.getByPlaceholderText('New phone number'), { target: { value: '+15559998888' } });
+    fireEvent.change(screen.getByPlaceholderText('Current password'), { target: { value: 'secret123' } });
+    fireEvent.click(screen.getByRole('button', { name: /save phone number/i }));
+
+    expect(changePhoneMutateMock).toHaveBeenCalledWith(
+      { newPhone: '+15559998888', currentPassword: 'secret123' },
+      expect.objectContaining({ onSuccess: expect.any(Function) })
+    );
   });
 
   test('shows real account fields: phone and member-since date', () => {
