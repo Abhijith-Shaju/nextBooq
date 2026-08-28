@@ -40,6 +40,7 @@ export default function CafeSettingsPage() {
   );
   const [description, setDescription] = useState(cafe.description || '');
   const [heroImageUrl, setHeroImageUrl] = useState(cafe.hero_image_url || '');
+  const [heroOverlay, setHeroOverlay] = useState(cafe.hero_overlay || 'balanced');
   const [contactPhone, setContactPhone] = useState(cafe.contact_phone || '');
   const [logoUrl, setLogoUrl] = useState(cafe.logo_url || '');
   const [brandPrimary, setBrandPrimary] = useState(cafe.brand_primary || '');
@@ -64,6 +65,7 @@ export default function CafeSettingsPage() {
     setOperatingHours(mergeOperatingHours(cafe.operating_hours));
     setDescription(cafe.description || '');
     setHeroImageUrl(cafe.hero_image_url || '');
+    setHeroOverlay(cafe.hero_overlay || 'balanced');
     setContactPhone(cafe.contact_phone || '');
     setLogoUrl(cafe.logo_url || '');
     setBrandPrimary(cafe.brand_primary || '');
@@ -79,6 +81,7 @@ export default function CafeSettingsPage() {
     operatingHoursKey,
     cafe.description,
     cafe.hero_image_url,
+    cafe.hero_overlay,
     cafe.contact_phone,
     cafe.logo_url,
     cafe.brand_primary,
@@ -119,6 +122,7 @@ export default function CafeSettingsPage() {
         operating_hours: operatingHours,
         description,
         hero_image_url: heroImageUrl,
+        hero_overlay: heroOverlay,
         contact_phone: contactPhone,
         logo_url: logoUrl,
         brand_primary: brandPrimary,
@@ -304,6 +308,7 @@ export default function CafeSettingsPage() {
           <StorefrontEditor
             description={description}
             heroImageUrl={heroImageUrl}
+            heroOverlay={heroOverlay}
             contactPhone={contactPhone}
             logoUrl={logoUrl}
             brandPrimary={brandPrimary}
@@ -311,6 +316,7 @@ export default function CafeSettingsPage() {
             menu={menu}
             onDescriptionChange={setDescription}
             onHeroImageUrlChange={setHeroImageUrl}
+            onHeroOverlayChange={setHeroOverlay}
             onContactPhoneChange={setContactPhone}
             onLogoUrlChange={setLogoUrl}
             onBrandPrimaryChange={setBrandPrimary}

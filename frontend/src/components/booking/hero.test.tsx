@@ -69,4 +69,26 @@ describe('Hero', () => {
     expect(screen.queryByAltText('Demo Cafe')).not.toBeInTheDocument();
     expect(screen.getByTestId('hero-gradient-fallback')).toBeInTheDocument();
   });
+
+  test('defaults to the balanced (40%) overlay when hero_overlay is not set', () => {
+    vi.mocked(useTenant).mockReturnValue({
+      cafe: { ...baseCafe, hero_image_url: 'https://example.com/hero.jpg' },
+    } as any);
+    render(<Hero />);
+
+    expect(screen.getByAltText('Demo Cafe')).toHaveClass('opacity-40');
+  });
+
+  test.each([
+    ['subtle', 'opacity-25'],
+    ['balanced', 'opacity-40'],
+    ['vivid', 'opacity-60'],
+  ])('applies the %s preset as %s', (hero_overlay, expectedClass) => {
+    vi.mocked(useTenant).mockReturnValue({
+      cafe: { ...baseCafe, hero_image_url: 'https://example.com/hero.jpg', hero_overlay },
+    } as any);
+    render(<Hero />);
+
+    expect(screen.getByAltText('Demo Cafe')).toHaveClass(expectedClass);
+  });
 });

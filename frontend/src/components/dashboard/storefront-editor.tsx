@@ -8,9 +8,18 @@ import { DEFAULT_TENANT_THEME } from '@/lib/theme/resolve-tenant-theme';
 const DESCRIPTION_MAX_LENGTH = 1000;
 const CONTACT_PHONE_MAX_LENGTH = 30;
 
+type HeroOverlay = 'subtle' | 'balanced' | 'vivid';
+
+const HERO_OVERLAY_OPTIONS: { value: HeroOverlay; label: string; hint: string }[] = [
+  { value: 'subtle', label: 'Subtle', hint: '25% — photo barely visible' },
+  { value: 'balanced', label: 'Balanced', hint: '40% — the default' },
+  { value: 'vivid', label: 'Vivid', hint: '60% — most visible, still readable' },
+];
+
 interface StorefrontEditorProps {
   description: string;
   heroImageUrl: string;
+  heroOverlay: HeroOverlay;
   contactPhone: string;
   logoUrl: string;
   brandPrimary: string;
@@ -18,6 +27,7 @@ interface StorefrontEditorProps {
   menu: CafeMenuCategory[];
   onDescriptionChange: (value: string) => void;
   onHeroImageUrlChange: (value: string) => void;
+  onHeroOverlayChange: (value: HeroOverlay) => void;
   onContactPhoneChange: (value: string) => void;
   onLogoUrlChange: (value: string) => void;
   onBrandPrimaryChange: (value: string) => void;
@@ -30,6 +40,7 @@ const EMPTY_ITEM: CafeMenuItem = { name: '', description: '', price: undefined }
 export function StorefrontEditor({
   description,
   heroImageUrl,
+  heroOverlay,
   contactPhone,
   logoUrl,
   brandPrimary,
@@ -37,6 +48,7 @@ export function StorefrontEditor({
   menu,
   onDescriptionChange,
   onHeroImageUrlChange,
+  onHeroOverlayChange,
   onContactPhoneChange,
   onLogoUrlChange,
   onBrandPrimaryChange,
@@ -127,16 +139,45 @@ export function StorefrontEditor({
           </div>
         ) : (
           heroImageUrl && (
+            // Same aspect-[8/3] + object-cover as the live storefront hero
+            // (frontend/src/components/booking/hero.tsx) — so this preview
+            // shows the actual crop the photo will get, not an unrelated
+            // thumbnail shape.
             // eslint-disable-next-line @next/next/no-img-element
             <img
               key={heroImageUrl}
               src={heroImageUrl}
               alt="Hero preview"
               onError={() => setPreviewFailedFor(heroImageUrl)}
-              className="mt-2 h-32 w-full max-w-sm rounded-xl object-cover border border-brand-brown/10"
+              className="mt-2 aspect-[8/3] w-full max-w-sm rounded-xl object-cover border border-brand-brown/10"
             />
           )
         )}
+
+        <div className="mt-3">
+          <span className="block text-xs font-semibold text-brand-brown mb-1.5">Photo visibility</span>
+          <div className="flex flex-wrap gap-2">
+            {HERO_OVERLAY_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => onHeroOverlayChange(option.value)}
+                title={option.hint}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  heroOverlay === option.value
+                    ? 'border-brand-red bg-brand-red text-white'
+                    : 'border-brand-brown/20 bg-white text-brand-mocha hover:border-brand-red/40'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-[11px] text-brand-mochaMid mt-1">
+            How much of the photo shows through behind your headline text. Capped at a level that keeps the
+            text readable.
+          </p>
+        </div>
       </div>
 
       <div>
