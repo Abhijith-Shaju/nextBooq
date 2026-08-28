@@ -126,7 +126,11 @@
       }
 
       html {
-        /* scroll-behavior handled via data-scroll-behavior="smooth" on <html> element in layout.tsx */
+        /* Smooth-scrolls in-page anchor navigation (nav links, "Back to top",
+           etc). The prefers-reduced-motion block below forces this back to
+           `auto` with !important, so motion-sensitive visitors still get an
+           instant jump instead of an animated scroll. */
+        scroll-behavior: smooth;
       }
 
       body {
