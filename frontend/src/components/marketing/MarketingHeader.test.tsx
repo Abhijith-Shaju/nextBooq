@@ -29,6 +29,28 @@ describe('MarketingHeader', () => {
     expect(screen.getByRole('link', { name: 'Get Started' })).toBeInTheDocument();
   });
 
+  // A returning café owner previously had to guess that the unlabeled
+  // account-menu icon opened a login option — a visible text link fixes that.
+  test('shows a visible "Log in" text link on the desktop nav for a signed-out visitor', () => {
+    mockUseAuth.mockReturnValue({ user: null, isAuthenticated: false, logout: logoutMock });
+
+    render(<MarketingHeader />);
+
+    expect(screen.getByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/auth/login');
+  });
+
+  test('does not show the plain "Log in" link for a signed-in visitor', () => {
+    mockUseAuth.mockReturnValue({
+      user: { name: 'Regular User', staff_memberships: [], owner_org_id: null, is_platform_admin: false },
+      isAuthenticated: true,
+      logout: logoutMock,
+    });
+
+    render(<MarketingHeader />);
+
+    expect(screen.queryByRole('link', { name: 'Log in' })).not.toBeInTheDocument();
+  });
+
   test('shows View Account and Log out for a signed-in visitor with no dashboard access', () => {
     mockUseAuth.mockReturnValue({
       user: { name: 'Regular User', staff_memberships: [], owner_org_id: null, is_platform_admin: false },
