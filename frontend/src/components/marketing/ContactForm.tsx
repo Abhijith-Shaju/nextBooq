@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 // "forgot the @" / "forgot the domain" typos before they reach the server,
 // without rejecting anything a real address might legitimately look like.
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MESSAGE_MAX_LENGTH = 2000;
 
 interface FieldErrors {
   name?: string;
@@ -124,15 +125,19 @@ export function ContactForm() {
           <textarea
             id="contact-message"
             rows={5}
+            maxLength={MESSAGE_MAX_LENGTH}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             aria-invalid={!!fieldErrors.message}
-            aria-describedby={fieldErrors.message ? 'contact-message-error' : undefined}
+            aria-describedby={fieldErrors.message ? 'contact-message-error' : 'contact-message-count'}
             className="w-full pl-11 pr-4 py-3 rounded-2xl border border-brand-brown/15 bg-white
                        focus:ring-2 focus:ring-brand-red focus:border-transparent focus:outline-none
                        text-sm transition-shadow resize-none"
           />
         </div>
+        <p id="contact-message-count" className="mt-1.5 text-[11px] text-brand-mochaMid text-right">
+          {message.length}/{MESSAGE_MAX_LENGTH}
+        </p>
         {fieldErrors.message && (
           <p id="contact-message-error" className="mt-1.5 text-xs font-semibold text-rose-600">
             {fieldErrors.message}

@@ -28,19 +28,19 @@ export default function LandingHero() {
         {/* Large blush blob — top right */}
         <div
           className="absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full
-                     bg-brand-blush/60 blur-[120px] animate-blob-pulse"
+                     bg-brand-blush/60 blur-[120px] animate-blob-pulse motion-reduce:animate-none"
           style={{ animationDelay: '0s' }}
         />
         {/* Secondary tan blob — bottom left */}
         <div
           className="absolute -bottom-48 -left-24 w-[500px] h-[500px] rounded-full
-                     bg-brand-tan/80 blur-[100px] animate-blob-pulse"
+                     bg-brand-tan/80 blur-[100px] animate-blob-pulse motion-reduce:animate-none"
           style={{ animationDelay: '2.5s' }}
         />
         {/* Accent blush blob — center-right */}
         <div
           className="absolute top-1/3 right-1/4 w-[300px] h-[300px] rounded-full
-                     bg-brand-blushLight/50 blur-[80px] animate-blob-pulse"
+                     bg-brand-blushLight/50 blur-[80px] animate-blob-pulse motion-reduce:animate-none"
           style={{ animationDelay: '5s' }}
         />
         {/* Subtle red accent — far right */}
@@ -55,7 +55,7 @@ export default function LandingHero() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center py-16 lg:py-24">
 
           {/* ── Left column — copy & CTA ──────────────────────────────────── */}
-          <div className="space-y-8 animate-fade-up">
+          <div className="space-y-8 animate-fade-up motion-reduce:animate-none">
 
             {/* Eyebrow badge — states who this page is for up front, so a café
                 owner doesn't mistake this for a café's own guest-facing site */}
@@ -95,8 +95,8 @@ export default function LandingHero() {
               </Button>
             </div>
 
-            {/* Feature pills */}
-            <div className="flex flex-wrap gap-3 pt-2">
+            {/* Feature pills — also the nav's #features anchor target */}
+            <div id="features" className="flex flex-wrap gap-3 pt-2 scroll-mt-24">
               {features.map(({ icon: Icon, label }) => (
                 <div
                   key={label}
@@ -120,7 +120,7 @@ export default function LandingHero() {
               <div
                 className="relative w-72 h-72 sm:w-96 sm:h-96 lg:w-[460px] lg:h-[460px]
                            rounded-full overflow-hidden border-4 border-white/60
-                           shadow-hero-img animate-float"
+                           shadow-hero-img animate-float motion-reduce:animate-none"
               >
                 {/*
                   PLACEHOLDER: Replace this Unsplash URL with your actual hero product
@@ -141,7 +141,7 @@ export default function LandingHero() {
               <div
                 className="absolute -bottom-4 -left-4 sm:-bottom-6 sm:-left-12
                            glass rounded-2xl p-3 shadow-card-glass
-                           animate-fade-up w-40 sm:w-48"
+                           animate-fade-up motion-reduce:animate-none w-40 sm:w-48"
                 style={{ animationDelay: '0.3s' }}
               >
                 <div className="relative w-full h-24 rounded-xl overflow-hidden mb-2">
@@ -163,7 +163,7 @@ export default function LandingHero() {
               <div
                 className="absolute -top-4 -right-2 sm:-top-6 sm:-right-10
                            glass rounded-2xl p-3 shadow-card-glass
-                           animate-fade-up w-36 sm:w-44"
+                           animate-fade-up motion-reduce:animate-none w-36 sm:w-44"
                 style={{ animationDelay: '0.5s' }}
               >
                 <div className="relative w-full h-20 rounded-xl overflow-hidden mb-2">

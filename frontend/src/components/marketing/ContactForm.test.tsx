@@ -21,6 +21,17 @@ describe('ContactForm', () => {
     expect(screen.getByLabelText(/message/i)).toHaveValue('');
   });
 
+  test('shows a live character count for the message field, capped by maxLength', () => {
+    render(<ContactForm />);
+
+    expect(screen.getByText('0/2000')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/message/i), { target: { value: 'Hello there.' } });
+
+    expect(screen.getByText('12/2000')).toBeInTheDocument();
+    expect(screen.getByLabelText(/message/i)).toHaveAttribute('maxLength', '2000');
+  });
+
   test('shows a per-field inline error and does not submit when a field is left blank', async () => {
     render(<ContactForm />);
 
