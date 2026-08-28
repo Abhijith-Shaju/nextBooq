@@ -95,8 +95,14 @@ export default function LandingHero() {
               </Button>
             </div>
 
-            {/* Feature pills — also the nav's #features anchor target */}
-            <div id="features" className="flex flex-wrap gap-3 pt-2 scroll-mt-24">
+            {/* Feature pills — a quick teaser; the nav's Features link anchors
+                to the dedicated FeaturesSection below instead of here.
+                Anchoring directly into the hero (a min-h-screen, flex-centered,
+                overflow-hidden section) broke page scroll on click — the
+                browser's scroll-into-view landed mid-hero and the layout could
+                no longer settle back to the top. A plain document-flow section
+                doesn't have that problem. */}
+            <div className="flex flex-wrap gap-3 pt-2">
               {features.map(({ icon: Icon, label }) => (
                 <div
                   key={label}
