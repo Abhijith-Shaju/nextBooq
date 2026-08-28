@@ -35,6 +35,7 @@ export interface Cafe {
   brand_accent?: string;
   logo_url?: string;
   hero_image_url?: string;
+  hero_overlay?: 'subtle' | 'balanced' | 'vivid';
   contact_phone?: string;
   menu?: CafeMenuCategory[];
   payments?: {

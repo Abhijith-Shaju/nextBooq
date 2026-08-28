@@ -13,6 +13,8 @@ describe('StorefrontEditor', () => {
       <StorefrontEditor
         description="A cozy cafe."
         heroImageUrl="https://example.com/hero.jpg"
+        heroOverlay="balanced"
+        onHeroOverlayChange={noop}
         menu={[]}
         onDescriptionChange={noop}
         contactPhone="+91 98765 43210"
@@ -39,6 +41,8 @@ describe('StorefrontEditor', () => {
       <StorefrontEditor
         description=""
         heroImageUrl=""
+        heroOverlay="balanced"
+        onHeroOverlayChange={noop}
         menu={[]}
         onDescriptionChange={noop}
         contactPhone=""
@@ -65,6 +69,8 @@ describe('StorefrontEditor', () => {
       <StorefrontEditor
         description=""
         heroImageUrl=""
+        heroOverlay="balanced"
+        onHeroOverlayChange={noop}
         menu={[]}
         onDescriptionChange={onDescriptionChange}
         contactPhone=""
@@ -91,6 +97,8 @@ describe('StorefrontEditor', () => {
       <StorefrontEditor
         description=""
         heroImageUrl=""
+        heroOverlay="balanced"
+        onHeroOverlayChange={noop}
         menu={[]}
         onDescriptionChange={noop}
         contactPhone=""
@@ -121,6 +129,8 @@ describe('StorefrontEditor', () => {
       <StorefrontEditor
         description=""
         heroImageUrl=""
+        heroOverlay="balanced"
+        onHeroOverlayChange={noop}
         menu={menu}
         onDescriptionChange={noop}
         contactPhone=""
@@ -154,6 +164,8 @@ describe('StorefrontEditor', () => {
       <StorefrontEditor
         description=""
         heroImageUrl=""
+        heroOverlay="balanced"
+        onHeroOverlayChange={noop}
         menu={menu}
         onDescriptionChange={noop}
         contactPhone=""
@@ -181,6 +193,8 @@ describe('StorefrontEditor', () => {
       <StorefrontEditor
         description=""
         heroImageUrl=""
+        heroOverlay="balanced"
+        onHeroOverlayChange={noop}
         menu={menu}
         onDescriptionChange={noop}
         contactPhone=""
@@ -208,6 +222,8 @@ describe('StorefrontEditor', () => {
       <StorefrontEditor
         description=""
         heroImageUrl="https://www.google.com/imgres?imgurl=https://cdn.pixabay.com/photo.jpg"
+        heroOverlay="balanced"
+        onHeroOverlayChange={noop}
         menu={[]}
         onDescriptionChange={noop}
         contactPhone=""
@@ -234,6 +250,8 @@ describe('StorefrontEditor', () => {
       <StorefrontEditor
         description=""
         heroImageUrl="https://example.com/broken.jpg"
+        heroOverlay="balanced"
+        onHeroOverlayChange={noop}
         menu={[]}
         onDescriptionChange={noop}
         contactPhone=""
@@ -256,6 +274,8 @@ describe('StorefrontEditor', () => {
       <StorefrontEditor
         description=""
         heroImageUrl="https://example.com/working.jpg"
+        heroOverlay="balanced"
+        onHeroOverlayChange={noop}
         menu={[]}
         onDescriptionChange={noop}
         contactPhone=""
@@ -276,12 +296,46 @@ describe('StorefrontEditor', () => {
   });
 });
 
+describe('StorefrontEditor hero overlay preset', () => {
+  test('highlights the currently selected preset and calls onHeroOverlayChange for another', () => {
+    const onHeroOverlayChange = vi.fn();
+    render(
+      <StorefrontEditor
+        description=""
+        heroImageUrl=""
+        heroOverlay="subtle"
+        onHeroOverlayChange={onHeroOverlayChange}
+        menu={[]}
+        onDescriptionChange={noop}
+        contactPhone=""
+        onHeroImageUrlChange={noop}
+        onContactPhoneChange={noop}
+        logoUrl=""
+        brandPrimary=""
+        brandAccent=""
+        onLogoUrlChange={noop}
+        onBrandPrimaryChange={noop}
+        onBrandAccentChange={noop}
+        onMenuChange={noop}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Subtle' })).toHaveClass('bg-brand-red');
+    expect(screen.getByRole('button', { name: 'Vivid' })).not.toHaveClass('bg-brand-red');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Vivid' }));
+    expect(onHeroOverlayChange).toHaveBeenCalledWith('vivid');
+  });
+});
+
 describe('StorefrontEditor branding', () => {
   const renderBranding = (props: Record<string, unknown> = {}) =>
     render(
       <StorefrontEditor
         description=""
         heroImageUrl=""
+        heroOverlay="balanced"
+        onHeroOverlayChange={noop}
         contactPhone=""
         logoUrl=""
         brandPrimary=""

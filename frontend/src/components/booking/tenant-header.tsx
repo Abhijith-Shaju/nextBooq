@@ -46,7 +46,7 @@ export function TenantPublicHeader() {
               <img
                 src={cafe.logo_url}
                 alt={`${cafe.name} logo`}
-                className="w-9 h-9 rounded-xl object-contain bg-white shadow-brand-md transition-transform group-hover:scale-105"
+                className="h-9 w-auto max-w-[140px] rounded-xl object-contain bg-white shadow-brand-md transition-transform group-hover:scale-105"
               />
             ) : (
               <div className="w-9 h-9 bg-brand-red rounded-xl flex items-center justify-center text-white shadow-brand-md transition-transform group-hover:scale-105">

@@ -6,6 +6,14 @@ import Image from 'next/image';
 import { Coffee, Clock, ShieldCheck, Sparkles, MapPin, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+// Fixed dims, not a free-form value a cafe could set — capped at 60% so the
+// white headline/badges stay legible over any photo (see Cafe.hero_overlay).
+const HERO_OVERLAY_OPACITY: Record<'subtle' | 'balanced' | 'vivid', string> = {
+  subtle: 'opacity-25',
+  balanced: 'opacity-40',
+  vivid: 'opacity-60',
+};
+
 export function Hero() {
   const { cafe } = useTenant();
   // A cafe owner can save a URL that isn't actually a direct image link (the
@@ -15,16 +23,17 @@ export function Hero() {
   // rather than leaving a broken/blank image in the hero banner.
   const [heroImageFailed, setHeroImageFailed] = useState(false);
   const showHeroImage = !!cafe.hero_image_url && !heroImageFailed;
+  const overlayOpacity = HERO_OVERLAY_OPACITY[cafe.hero_overlay || 'balanced'];
 
   return (
-    <div className="relative w-full min-h-[440px] lg:min-h-[500px] bg-brand-brown text-white flex items-center justify-center overflow-hidden py-16 px-4">
+    <div className="relative w-full aspect-[8/3] min-h-[360px] max-h-[520px] bg-brand-brown text-white flex items-center justify-center overflow-hidden py-16 px-4">
       {/* Background Hero Image / Ambient Glow */}
       {showHeroImage ? (
         <Image
           src={cafe.hero_image_url!}
           alt={cafe.name}
           fill
-          className="object-cover opacity-40 mix-blend-overlay"
+          className={`object-cover mix-blend-overlay ${overlayOpacity}`}
           priority
           onError={() => setHeroImageFailed(true)}
         />

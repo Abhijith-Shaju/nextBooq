@@ -167,4 +167,16 @@ describe('TenantPublicHeader logo', () => {
     const logo = screen.getByAltText(/demo cafe logo/i);
     expect(logo).toHaveAttribute('src', 'https://example.com/logo.png');
   });
+
+  // A wordmark logo forced into a square box (fixed width + height) would be
+  // squashed illegibly — only height should be fixed, width follows the
+  // image's own aspect ratio (capped so it can't overrun the header).
+  test('fixes the logo height but leaves width auto, capped, so a wide wordmark logo is not squashed', () => {
+    mockCafe = { ...baseCafe, logo_url: 'https://example.com/wordmark-logo.png' };
+    render(<TenantPublicHeader />);
+
+    const logo = screen.getByAltText(/demo cafe logo/i);
+    expect(logo).toHaveClass('h-9', 'w-auto', 'max-w-[140px]');
+    expect(logo).not.toHaveClass('w-9');
+  });
 });

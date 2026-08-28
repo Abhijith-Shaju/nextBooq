@@ -2,20 +2,18 @@ import React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Leaf, Star, Clock, MapPin } from 'lucide-react'
+import { ArrowRight, LayoutGrid, Zap, ShieldCheck, CalendarCheck } from 'lucide-react'
 
 // ─── Feature pills shown below the CTA ───────────────────────────────────────
+// Owner-facing proof points (what a café owner is actually buying), not
+// diner-facing café marketing — see the P0 finding from the landing-page
+// critique: the previous copy ("Premium Beans", "100% Organic") described why
+// a guest should visit a café, not why its owner should buy this software.
 const features = [
-  { icon: Star,  label: 'Premium Beans' },
-  { icon: Clock, label: 'Fast Service' },
-  { icon: Leaf,  label: '100% Organic' },
-  { icon: MapPin,label: 'Find Us Nearby' },
-]
-
-// ─── Small floating stat cards ────────────────────────────────────────────────
-const stats = [
-  { value: '50K+', label: 'Happy Customers' },
-  { value: '4.9★', label: 'Average Rating' },
+  { icon: LayoutGrid,    label: 'Live Table View' },
+  { icon: Zap,           label: 'Instant Confirmation' },
+  { icon: ShieldCheck,   label: 'Secure Razorpay Payouts' },
+  { icon: CalendarCheck, label: 'No-Show Protection' },
 ]
 
 export default function LandingHero() {
@@ -59,33 +57,32 @@ export default function LandingHero() {
           {/* ── Left column — copy & CTA ──────────────────────────────────── */}
           <div className="space-y-8 animate-fade-up">
 
-            {/* Eyebrow badge */}
+            {/* Eyebrow badge — states who this page is for up front, so a café
+                owner doesn't mistake this for a café's own guest-facing site */}
             <div className="inline-flex items-center gap-2 bg-brand-blush/40 border border-brand-blush
                             text-brand-red text-sm font-semibold px-4 py-1.5 rounded-full">
               <span className="w-2 h-2 bg-brand-red rounded-full animate-pulse" />
-              Now serving — across 200+ venues
+              Reservation software for café owners
             </div>
 
-            {/* Main headline */}
+            {/* Main headline — the actual value proposition now, not
+                decorative filler, so it doesn't get buried under a bigger
+                headline the way the previous "Coffee." framing did */}
             <div>
-              {/* Decorative quote marks */}
-              <div className="text-brand-mocha/30 font-display text-6xl leading-none mb-2 select-none" aria-hidden="true">
-                ❝
-              </div>
               <h1
                 id="hero-headline"
                 className="font-display text-5xl sm:text-6xl lg:text-7xl font-bold text-brand-brown leading-[1.05] tracking-tight"
               >
-                Coffee.{' '}
-                <span className="block text-brand-red italic">The Best</span>
-                <span className="block">For You.</span>
+                Never Lose{' '}
+                <span className="block text-brand-red italic">A Table</span>
+                <span className="block">Again.</span>
               </h1>
             </div>
 
             {/* Sub-tagline */}
             <p className="font-sans text-brand-mocha text-lg leading-relaxed max-w-md">
-              nextBooq powers the cafés you love — seamless reservations, curated menus,
-              and unforgettable experiences. Built for café owners, loved by guests.
+              Real-time table holds, deposit-secured bookings, and a live floor view —
+              built for how your café actually runs. Set up in minutes, no phone tag required.
             </p>
 
             {/* CTA row */}
@@ -184,21 +181,6 @@ export default function LandingHero() {
                 </p>
               </div>
 
-              {/* Stat bubbles */}
-              {stats.map((stat, i) => (
-                <div
-                  key={stat.value}
-                  className={`absolute glass rounded-xl px-3 py-2 shadow-card-glass text-center animate-fade-up ${
-                    i === 0
-                      ? 'bottom-16 right-0 sm:-right-8 lg:-right-16'
-                      : 'top-24 -left-8 sm:-left-16'
-                  }`}
-                  style={{ animationDelay: `${0.6 + i * 0.15}s` }}
-                >
-                  <p className="font-display font-bold text-brand-brown text-lg leading-none">{stat.value}</p>
-                  <p className="font-sans text-brand-mocha text-xs mt-0.5">{stat.label}</p>
-                </div>
-              ))}
             </div>
           </div>
 

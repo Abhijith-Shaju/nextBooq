@@ -7,7 +7,7 @@ import ContactSection from '@/components/marketing/ContactSection'
 export const metadata: Metadata = {
   title: 'nextBooq — Café Reservation Platform for Modern Businesses',
   description:
-    'Power your café with nextBooq — seamless reservations and unforgettable guest experiences. Join 200+ venues already using nextBooq.',
+    'Power your café with nextBooq — seamless reservations and unforgettable guest experiences.',
   openGraph: {
     title: 'nextBooq — Café Reservation Platform',
     description: 'Seamless reservations and unforgettable guest experiences.',

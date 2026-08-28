@@ -77,6 +77,28 @@ describe('Integration Test: cafe storefront settings (description, hero image, m
     expect(res.body.data.description).toBe('');
     expect(res.body.data.hero_image_url).toBe('');
     expect(res.body.data.menu).toEqual([]);
+    expect(res.body.data.hero_overlay).toBe('balanced');
+  });
+
+  test('accepts each valid hero_overlay preset and persists it', async () => {
+    for (const value of ['subtle', 'balanced', 'vivid']) {
+      const res = await putSettings({ hero_overlay: value });
+      expect(res.status).toBe(200);
+      expect(res.body.data.hero_overlay).toBe(value);
+    }
+
+    const persisted = await Cafe.findById(cafe._id);
+    expect(persisted.hero_overlay).toBe('vivid');
+  });
+
+  test('rejects a hero_overlay value outside the fixed preset list', async () => {
+    const res = await putSettings({ hero_overlay: 'maximum' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/hero_overlay/i);
+
+    const persisted = await Cafe.findById(cafe._id);
+    expect(persisted.hero_overlay).toBe('balanced');
   });
 
   test('rejects a hero_image_url that is not https', async () => {

@@ -55,6 +55,15 @@ const cafeSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    // How strongly the hero photo shows through behind the storefront's
+    // white headline/badges — a fixed dim (not a free-form value) so a cafe
+    // can't pick a setting that makes their own hero text unreadable against
+    // a bright/busy photo. See frontend/src/components/booking/hero.tsx.
+    hero_overlay: {
+      type: String,
+      enum: ['subtle', 'balanced', 'vivid'],
+      default: 'balanced',
+    },
     contact_phone: {
       type: String,
       trim: true,

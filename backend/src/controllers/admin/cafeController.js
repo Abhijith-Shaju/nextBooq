@@ -24,6 +24,7 @@ const MAX_CONTACT_PHONE_LENGTH = 30;
 // keeps that injection safe and rules out the bare "220 89% 53%" HSL triplet
 // form, which is valid-looking but produces no colour when used unwrapped.
 const HEX_COLOR_PATTERN = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+const HERO_OVERLAY_VALUES = ['subtle', 'balanced', 'vivid'];
 
 const isValidHttpsUrl = (value) => {
   if (!value.startsWith('https://')) {
@@ -127,6 +128,7 @@ const updateCafe = async (req, res, next) => {
       operating_hours,
       description,
       hero_image_url,
+      hero_overlay,
       contact_phone,
       logo_url,
       brand_primary,
@@ -190,6 +192,13 @@ const updateCafe = async (req, res, next) => {
         throw new BadRequestError('hero_image_url must be a valid https URL');
       }
       cafe.hero_image_url = hero_image_url;
+    }
+
+    if (hero_overlay !== undefined) {
+      if (!HERO_OVERLAY_VALUES.includes(hero_overlay)) {
+        throw new BadRequestError(`hero_overlay must be one of: ${HERO_OVERLAY_VALUES.join(', ')}`);
+      }
+      cafe.hero_overlay = hero_overlay;
     }
 
     if (contact_phone !== undefined) {
