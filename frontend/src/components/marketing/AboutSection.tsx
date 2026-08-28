@@ -32,11 +32,11 @@ export default function AboutSection() {
       <div aria-hidden="true" className="absolute inset-0 pointer-events-none select-none">
         <div
           className="absolute -top-40 -right-32 w-[420px] h-[420px] rounded-full
-                     bg-brand-blush/30 blur-[110px] animate-blob-pulse"
+                     bg-brand-blush/30 blur-[110px] animate-blob-pulse motion-reduce:animate-none"
         />
         <div
           className="absolute -top-24 -left-40 w-[380px] h-[380px] rounded-full
-                     bg-brand-tan/50 blur-[100px] animate-blob-pulse"
+                     bg-brand-tan/50 blur-[100px] animate-blob-pulse motion-reduce:animate-none"
           style={{ animationDelay: '3s' }}
         />
       </div>
@@ -94,6 +94,9 @@ export default function AboutSection() {
                 <ArrowRight className="w-5 h-5" />
               </Link>
             </Button>
+            <p className="mt-4 font-sans text-white/70 text-xs sm:text-sm">
+              No credit card required to sign up.
+            </p>
           </div>
         </div>
       </div>

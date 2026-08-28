@@ -12,7 +12,7 @@ export default function ContactSection() {
       <div aria-hidden="true" className="absolute inset-0 pointer-events-none select-none">
         <div
           className="absolute top-1/3 -right-40 w-[380px] h-[380px] rounded-full
-                     bg-brand-blush/20 blur-[110px] animate-blob-pulse"
+                     bg-brand-blush/20 blur-[110px] animate-blob-pulse motion-reduce:animate-none"
           style={{ animationDelay: '1.5s' }}
         />
       </div>

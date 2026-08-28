@@ -15,6 +15,14 @@ describe('MarketingHeader', () => {
     logoutMock.mockReset();
   });
 
+  test('links to the hero\'s feature pills section', () => {
+    mockUseAuth.mockReturnValue({ user: null, isAuthenticated: false, logout: logoutMock });
+
+    render(<MarketingHeader />);
+
+    expect(screen.getAllByRole('link', { name: 'Features' })[0]).toHaveAttribute('href', '/#features');
+  });
+
   test('shows an account menu offering only Log in for a signed-out visitor', () => {
     mockUseAuth.mockReturnValue({ user: null, isAuthenticated: false, logout: logoutMock });
 

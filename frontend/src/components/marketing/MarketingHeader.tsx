@@ -11,6 +11,7 @@ import { resolvePostAuthDestination } from '@/lib/auth/post-auth-destination'
 import { AccountMenu } from '@/components/shared/account-menu'
 
 const navLinks = [
+  { label: 'Features', href: '/#features' },
   { label: 'About', href: '/#about' },
   { label: 'Contact', href: '/#contact' },
 ]
