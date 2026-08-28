@@ -82,9 +82,20 @@ export default function MarketingHeader() {
                 </Button>
               )
             ) : (
-              <Button variant="brand" size="default" asChild>
-                <Link href="/auth/register">Get Started</Link>
-              </Button>
+              <>
+                {/* Visible text link, matching the mobile menu's plain "Log in"
+                    link — previously a returning visitor had to guess that the
+                    unlabeled account-menu icon below opened a login option. */}
+                <Link
+                  href="/auth/login"
+                  className="text-brand-mocha hover:text-brand-brown font-medium text-sm transition-colors"
+                >
+                  Log in
+                </Link>
+                <Button variant="brand" size="default" asChild>
+                  <Link href="/auth/register">Get Started</Link>
+                </Button>
+              </>
             )}
             <AccountMenu theme="light" />
           </div>

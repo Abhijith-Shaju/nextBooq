@@ -21,14 +21,28 @@ describe('ContactForm', () => {
     expect(screen.getByLabelText(/message/i)).toHaveValue('');
   });
 
-  test('shows an inline error and does not submit when a field is left blank', async () => {
+  test('shows a per-field inline error and does not submit when a field is left blank', async () => {
     render(<ContactForm />);
 
     fireEvent.change(screen.getByLabelText(/name/i), { target: { value: 'Jane Doe' } });
     // Email and Message left blank.
     fireEvent.click(screen.getByRole('button', { name: /send message/i }));
 
-    expect(await screen.findByText(/fill in every field/i)).toBeInTheDocument();
+    expect(await screen.findByText(/email is required/i)).toBeInTheDocument();
+    expect(screen.getByText(/message is required/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/email/i)).toHaveAttribute('aria-invalid', 'true');
+    expect(axiosInstance.post).not.toHaveBeenCalled();
+  });
+
+  test('rejects a malformed email address without hitting the server', async () => {
+    render(<ContactForm />);
+
+    fireEvent.change(screen.getByLabelText(/name/i), { target: { value: 'Jane Doe' } });
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'not-an-email' } });
+    fireEvent.change(screen.getByLabelText(/message/i), { target: { value: 'Hello there.' } });
+    fireEvent.click(screen.getByRole('button', { name: /send message/i }));
+
+    expect(await screen.findByText(/enter a valid email address/i)).toBeInTheDocument();
     expect(axiosInstance.post).not.toHaveBeenCalled();
   });
 

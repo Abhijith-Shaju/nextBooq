@@ -11,12 +11,12 @@ const values = [
   {
     icon: Sparkles,
     title: 'Instant, reliable bookings',
-    description: 'Real-time table allocation means guests get an immediate answer, and owners never overbook a table twice.',
+    description: 'Real-time table allocation means you get instant confirmation on every booking, and you never double-book a table again.',
   },
   {
     icon: Heart,
-    title: 'Guest experience first',
-    description: 'A smooth reservation is the first impression of a great visit — we obsess over making that first moment effortless.',
+    title: 'Fewer no-shows, more revenue',
+    description: 'A missed reservation is lost revenue and an empty table — deposit-secured bookings mean guests who commit actually show up.',
   },
 ]
 
@@ -49,8 +49,8 @@ export default function AboutSection() {
           About nextBooq
         </h2>
         <p className="font-sans text-brand-mocha text-lg leading-relaxed max-w-[65ch] mb-10">
-          nextBooq is the all-in-one reservation platform for modern cafés and restaurants — built to simplify
-          bookings for owners and delight guests from the first tap to the last sip.
+          nextBooq is the all-in-one reservation platform for modern cafés and restaurants — built to fill
+          every table, cut down no-shows, and put you back in control of your floor.
         </p>
 
         <div className="text-brand-mocha/30 font-display text-5xl leading-none mb-1 select-none" aria-hidden="true">
@@ -86,7 +86,7 @@ export default function AboutSection() {
               Bring nextBooq to your café
             </h3>
             <p className="font-sans text-white/80 text-base sm:text-lg max-w-xl mx-auto mb-8">
-              Set up in minutes. Give your guests a booking experience as good as the coffee.
+              Set up in minutes and start turning every reservation into a table that actually fills.
             </p>
             <Button variant="brand" size="xl" asChild className="bg-white text-brand-red hover:bg-white/90 hover:text-brand-redDark shadow-none">
               <Link href="/auth/register" className="flex items-center gap-2">
