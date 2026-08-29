@@ -100,6 +100,7 @@ const validateProvisionInput = (input) => {
       name: requiredName(input.cafe.name, 'cafe.name'),
       slug: normalizeSlug(input.cafe.slug),
       timezone: validateTimezone(input.cafe.timezone),
+      address: validateAddress(input.cafe.address),
     },
     subscription: normalizeSubscription(input.subscription),
   };
@@ -175,6 +176,7 @@ const provisionCafe = async (input) => {
       name: data.cafe.name,
       slug: data.cafe.slug,
       timezone: data.cafe.timezone,
+      address: data.cafe.address,
       subscription_status: data.subscription.status,
     });
     await cafe.save({ session });

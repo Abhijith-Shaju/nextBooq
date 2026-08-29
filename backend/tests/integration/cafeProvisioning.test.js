@@ -23,10 +23,22 @@ const makeUser = async ({
 
 const bearer = (user) => jwt.sign({ id: user._id.toString() }, config.JWT_SECRET);
 
+const address = () => ({
+  line1: '12 Church Street',
+  city: 'Bengaluru',
+  state: 'Karnataka',
+  postal_code: '560001',
+});
+
 const payloadFor = (ownerUserId, overrides = {}) => ({
   owner_user_id: ownerUserId.toString(),
   organization: { mode: 'new', name: 'Provisioning Organization' },
-  cafe: { name: 'Provisioning Cafe', slug: 'provisioning-cafe', timezone: 'Asia/Kolkata' },
+  cafe: {
+    name: 'Provisioning Cafe',
+    slug: 'provisioning-cafe',
+    timezone: 'Asia/Kolkata',
+    address: address(),
+  },
   subscription: { status: 'active', term_months: 12, price_per_month: 7000, note: 'Paid by admin' },
   ...overrides,
 });
@@ -133,7 +145,7 @@ describe('platform-admin transactional cafe provisioning', () => {
       .set('Authorization', `Bearer ${bearer(admin)}`)
       .send(payloadFor(owner._id, {
         organization: { mode: 'existing', id: org._id.toString() },
-        cafe: { name: 'Second Owner Cafe', slug: 'second-owner-cafe', timezone: 'UTC' },
+        cafe: { name: 'Second Owner Cafe', slug: 'second-owner-cafe', timezone: 'UTC', address: address() },
         subscription: { status: 'trial', term_months: 1, price_per_month: 0 },
       }));
 
@@ -203,7 +215,7 @@ describe('platform-admin transactional cafe provisioning', () => {
       .post('/api/v1/platform-admin/cafes')
       .set('Authorization', `Bearer ${bearer(admin)}`)
       .send(payloadFor(owner._id, {
-        cafe: { name: 'Numeric Validation Cafe', slug: `numeric-${caseName}`, timezone: 'UTC' },
+        cafe: { name: 'Numeric Validation Cafe', slug: `numeric-${caseName}`, timezone: 'UTC', address: address() },
         subscription: {
           status: 'active',
           term_months: field === 'term_months' ? invalidValue : 12,
@@ -220,7 +232,7 @@ describe('platform-admin transactional cafe provisioning', () => {
     await Cafe.init();
     const admin = await makeUser({ name: 'Admin', email: 'concurrent-admin@example.com', phone: '+15550110014', is_platform_admin: true });
     const owner = await makeUser({ email: 'concurrent-owner@example.com', phone: '+15550110015' });
-    const payload = payloadFor(owner._id, { cafe: { name: 'Concurrent Cafe', slug: 'concurrent-cafe', timezone: 'UTC' } });
+    const payload = payloadFor(owner._id, { cafe: { name: 'Concurrent Cafe', slug: 'concurrent-cafe', timezone: 'UTC', address: address() } });
 
     const responses = await Promise.all([
       request(app).post('/api/v1/platform-admin/cafes').set('Authorization', `Bearer ${bearer(admin)}`).send(payload),
@@ -257,7 +269,7 @@ describe('platform-admin transactional cafe provisioning', () => {
 
     try {
       await expect(provisionCafe({
-        ...payloadFor(owner._id, { cafe: { name: 'Subscription Failure Cafe', slug: 'subscription-failure-cafe', timezone: 'UTC' } }),
+        ...payloadFor(owner._id, { cafe: { name: 'Subscription Failure Cafe', slug: 'subscription-failure-cafe', timezone: 'UTC', address: address() } }),
         adminUserId: admin._id,
       })).rejects.toThrow('forced subscription failure');
     } finally {
@@ -296,7 +308,7 @@ describe('platform-admin transactional cafe provisioning', () => {
       const res = await request(app)
         .post('/api/v1/platform-admin/cafes')
         .set('Authorization', `Bearer ${bearer(admin)}`)
-        .send(payloadFor(owner._id, { cafe: { name: 'Unavailable Topology Cafe', slug: 'unavailable-topology-cafe', timezone: 'UTC' } }));
+        .send(payloadFor(owner._id, { cafe: { name: 'Unavailable Topology Cafe', slug: 'unavailable-topology-cafe', timezone: 'UTC', address: address() } }));
 
       expect(res.status).toBe(503);
       expect(res.body.error.code).toBe('MongoTransactionTopologyError');

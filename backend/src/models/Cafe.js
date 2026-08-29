@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { addressSchema } = require('./address');
 
 const cafeSchema = new mongoose.Schema(
   {
@@ -68,6 +69,21 @@ const cafeSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: '',
+    },
+    // Captured during onboarding for verification, then editable by the cafe
+    // in its own settings and surfaced on the storefront. Optional at the
+    // schema level on purpose — see models/address.js.
+    address: {
+      type: addressSchema,
+      default: () => ({}),
+    },
+    // GeoJSON [longitude, latitude]. Deliberately unset for now: nothing
+    // geocodes an address yet. The 2dsphere index below skips documents
+    // missing this field, so it is inert until a "cafes near you" feature
+    // populates it — at which point $near works with no migration.
+    location: {
+      type: { type: String, enum: ['Point'] },
+      coordinates: { type: [Number] },
     },
     logo_url: {
       type: String,
@@ -145,6 +161,8 @@ const redactPaymentSecrets = (_doc, ret) => {
   }
   return ret;
 };
+
+cafeSchema.index({ location: '2dsphere' });
 
 cafeSchema.set('toJSON', { transform: redactPaymentSecrets });
 cafeSchema.set('toObject', { transform: redactPaymentSecrets });
