@@ -56,3 +56,46 @@ describe('CafeInfoCard', () => {
     expect(screen.getByText(/group capacity/i)).toBeInTheDocument();
   });
 });
+
+const address = {
+  line1: '12 Church Street',
+  line2: 'Ashok Nagar',
+  city: 'Bengaluru',
+  state: 'Karnataka',
+  postal_code: '560001',
+  country: 'India',
+};
+
+describe('CafeInfoCard address tile', () => {
+  test('does not show an address tile when the cafe has no address', () => {
+    mockCafe = baseCafe;
+    render(<CafeInfoCard />);
+    expect(screen.queryByText(/find us/i)).not.toBeInTheDocument();
+  });
+
+  test('does not show an address tile when line 1 is whitespace-only', () => {
+    mockCafe = { ...baseCafe, address: { ...address, line1: '   ' } };
+    render(<CafeInfoCard />);
+    expect(screen.queryByText(/find us/i)).not.toBeInTheDocument();
+  });
+
+  test('shows the address as plain text when there is no map link', () => {
+    mockCafe = { ...baseCafe, address };
+    render(<CafeInfoCard />);
+    expect(screen.getByText(/find us/i)).toBeInTheDocument();
+    expect(screen.getByText(/12 Church Street/)).toBeInTheDocument();
+    expect(screen.getByText(/560001/)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /12 Church Street/ })).not.toBeInTheDocument();
+  });
+
+  test('links the address to the map url with a safe rel when one is set', () => {
+    mockCafe = { ...baseCafe, address: { ...address, map_url: 'https://maps.google.com/?q=filter+kaapi' } };
+    render(<CafeInfoCard />);
+
+    const link = screen.getByRole('link', { name: /12 Church Street/ });
+    expect(link).toHaveAttribute('href', 'https://maps.google.com/?q=filter+kaapi');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
+    expect(link).toHaveAttribute('rel', expect.stringContaining('noreferrer'));
+  });
+});

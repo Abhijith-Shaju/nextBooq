@@ -9,6 +9,16 @@ export function CafeInfoCard() {
   const rules = cafe.reservation_rules || {};
   const contactPhone = cafe.contact_phone?.trim();
 
+  const address = cafe.address;
+  const hasAddress = Boolean(address?.line1?.trim());
+  const addressLine = hasAddress
+    ? [address?.line1, address?.line2, address?.landmark, address?.city, address?.state, address?.postal_code]
+        .map((part) => part?.trim())
+        .filter(Boolean)
+        .join(', ')
+    : '';
+  const mapUrl = address?.map_url?.trim();
+
   return (
     <section className="py-12 max-w-4xl mx-auto w-full px-4 space-y-6">
       <div className="text-center space-y-1">
@@ -21,7 +31,16 @@ export function CafeInfoCard() {
       </div>
 
       <div
-        className={`grid grid-cols-1 gap-4 ${contactPhone ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-3'}`}
+        className={`grid grid-cols-1 gap-4 ${
+          (() => {
+            const optionalTiles = (contactPhone ? 1 : 0) + (hasAddress ? 1 : 0);
+            return optionalTiles === 2
+              ? 'md:grid-cols-2 lg:grid-cols-5'
+              : optionalTiles === 1
+                ? 'md:grid-cols-2 lg:grid-cols-4'
+                : 'md:grid-cols-3';
+          })()
+        }`}
       >
         <div className="glass p-5 rounded-3xl border border-brand-brown/10 shadow-brand-sm space-y-2">
           <div className="w-9 h-9 bg-brand-red/10 text-brand-red rounded-xl flex items-center justify-center">
@@ -65,6 +84,29 @@ export function CafeInfoCard() {
                 Call {contactPhone}
               </a>{' '}
               directly.
+            </p>
+          </div>
+        )}
+
+        {hasAddress && (
+          <div className="glass p-5 rounded-3xl border border-brand-brown/10 shadow-brand-sm space-y-2">
+            <div className="w-9 h-9 bg-brand-red/10 text-brand-red rounded-xl flex items-center justify-center">
+              <MapPin className="w-5 h-5" />
+            </div>
+            <h4 className="font-bold font-display text-sm text-brand-brown">Find Us</h4>
+            <p className="text-xs text-brand-mocha leading-relaxed">
+              {mapUrl ? (
+                <a
+                  href={mapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-brand-brown underline decoration-brand-red/40 underline-offset-2"
+                >
+                  {addressLine}
+                </a>
+              ) : (
+                addressLine
+              )}
             </p>
           </div>
         )}
