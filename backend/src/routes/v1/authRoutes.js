@@ -30,7 +30,7 @@ router.post('/change-phone', authenticate, authRateLimiter, changePhone);
 router.post('/request-step-up-otp', authenticate, authRateLimiter, requestStepUpOtp);
 router.post('/customer-quick-auth', authRateLimiter, customerQuickAuth);
 router.get('/me', authenticate, getMe);
-router.patch('/account-type', authenticate, updateAccountType);
+router.patch('/account-type', authenticate, authRateLimiter, updateAccountType);
 router.post('/logout', logoutUser);
 router.get('/socket-token', authenticate, getSocketToken);
 
