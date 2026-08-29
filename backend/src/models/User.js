@@ -62,6 +62,16 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // Which surface this account said it was for, captured once after email
+    // verification. A UI hint only: it decides where the browser goes next
+    // and whether to re-prompt. It is NEVER an authorization signal — access
+    // stays derived from staff_memberships, getOwnedOrgId() and
+    // is_platform_admin.
+    account_type: {
+      type: String,
+      enum: ['customer', 'cafe_owner'],
+      default: null,
+    },
     // Single-use, hashed, time-limited password reset token. Never stores
     // the raw token — only its SHA-256 hash (see backend/src/utils/passwordReset.js).
     // Cleared on successful reset, or overwritten by a newer forgot-password

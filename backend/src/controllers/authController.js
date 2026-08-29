@@ -6,6 +6,7 @@ const { BadRequestError, UnauthorizedError } = require('../utils/errors');
 const { logAuditEvent } = require('../services/auditService');
 const { ACTIVE_STAFF_MEMBERSHIP_POPULATE, buildAuthUserPayload } = require('../utils/authUserResponse');
 const { getOwnedOrgId } = require('../services/orgOwnershipService');
+const { getLatestApplicationSummary } = require('../services/cafeApplicationService');
 const { generateResetToken, hashResetToken } = require('../utils/passwordReset');
 const { generateVerificationCode, hashVerificationCode } = require('../utils/emailVerification');
 const { generateStepUpOtp, hashStepUpOtp } = require('../utils/stepUpAuth');
@@ -182,7 +183,10 @@ const loginUser = async (req, res, next) => {
     const token = generateToken(user._id, user.token_version);
     setAuthCookie(res, token);
 
-    const ownerOrgId = await getOwnedOrgId(user);
+    const [ownerOrgId, cafeApplication] = await Promise.all([
+      getOwnedOrgId(user),
+      getLatestApplicationSummary(user._id),
+    ]);
 
     await logAuditEvent({
       cafeId: null,
@@ -196,7 +200,7 @@ const loginUser = async (req, res, next) => {
       status: 'success',
       data: {
         token,
-        user: buildAuthUserPayload(user, { ownerOrgId }),
+        user: buildAuthUserPayload(user, { ownerOrgId, cafeApplication }),
       },
     });
   } catch (error) {
@@ -212,11 +216,14 @@ const getMe = async (req, res, next) => {
       throw new UnauthorizedError('User not found');
     }
 
-    const ownerOrgId = await getOwnedOrgId(user);
+    const [ownerOrgId, cafeApplication] = await Promise.all([
+      getOwnedOrgId(user),
+      getLatestApplicationSummary(user._id),
+    ]);
 
     res.status(200).json({
       status: 'success',
-      data: buildAuthUserPayload(user, { ownerOrgId }),
+      data: buildAuthUserPayload(user, { ownerOrgId, cafeApplication }),
     });
   } catch (error) {
     next(error);
@@ -562,6 +569,37 @@ const changePhone = async (req, res, next) => {
   }
 };
 
+const ACCOUNT_TYPES = ['customer', 'cafe_owner'];
+
+// Records which surface the account is for so the control-plane onboarding
+// prompt is only ever shown once. Purely a navigation hint — see the comment
+// on User.account_type. Returns the payload the same way getMe does (data
+// directly, not nested under `user`) so the frontend can reuse one parser.
+const updateAccountType = async (req, res, next) => {
+  try {
+    const { account_type } = req.body;
+    if (!ACCOUNT_TYPES.includes(account_type)) {
+      throw new BadRequestError(`account_type must be one of ${ACCOUNT_TYPES.join(', ')}`);
+    }
+
+    const user = await User.findById(req.user._id).populate(ACTIVE_STAFF_MEMBERSHIP_POPULATE);
+    user.account_type = account_type;
+    await user.save();
+
+    const [ownerOrgId, cafeApplication] = await Promise.all([
+      getOwnedOrgId(user),
+      getLatestApplicationSummary(user._id),
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      data: buildAuthUserPayload(user, { ownerOrgId, cafeApplication }),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Sends a step-up code to the caller's own current (already-verified) email
 // — a re-authentication gate for a small set of high-value actions (changing
 // a verified account's email, updating a cafe's Razorpay settings) where a
@@ -732,5 +770,6 @@ module.exports = {
   changeEmail,
   changePhone,
   requestStepUpOtp,
+  updateAccountType,
 };
 

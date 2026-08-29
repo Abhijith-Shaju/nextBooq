@@ -53,4 +53,10 @@ cafeApplicationSchema.index(
 // The admin review queue, newest first.
 cafeApplicationSchema.index({ status: 1, created_at: -1 });
 
+// Serves getLatestApplicationSummary: the caller's most recent application
+// whatever its status. A compound key pattern rather than a plain
+// { applicant_user_id: 1 }, which would collide by name with the partial
+// unique index on the same field.
+cafeApplicationSchema.index({ applicant_user_id: 1, created_at: -1 });
+
 module.exports = mongoose.model('CafeApplication', cafeApplicationSchema);

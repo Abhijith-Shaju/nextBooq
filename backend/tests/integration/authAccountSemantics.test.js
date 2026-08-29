@@ -17,6 +17,8 @@ const registration = {
 };
 
 const expectedAuthUserKeys = [
+  'account_type',
+  'cafe_application',
   'created_at',
   'email',
   'id',
