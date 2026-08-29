@@ -9,6 +9,12 @@ const {
 const { BadRequestError } = require('../../utils/errors');
 const User = require('../../models/User');
 const { provisionCafe } = require('../../services/cafeProvisioningService');
+const {
+  listApplications,
+  getApplicationDetail,
+  approveApplication,
+  rejectApplication,
+} = require('../../services/cafeApplicationService');
 
 const VALID_TERM_MONTHS = [1, 6, 12, 18];
 const VALID_STATUSES = ['trial', 'active', 'past_due', 'inactive'];
@@ -179,6 +185,50 @@ const patchCafeSubscriptionStatus = async (req, res, next) => {
   }
 };
 
+const getCafeApplications = async (req, res, next) => {
+  try {
+    const applications = await listApplications({ status: req.query.status });
+    res.status(200).json({ status: 'success', data: applications });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getCafeApplication = async (req, res, next) => {
+  try {
+    const application = await getApplicationDetail(req.params.id);
+    res.status(200).json({ status: 'success', data: application });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const postApproveCafeApplication = async (req, res, next) => {
+  try {
+    const result = await approveApplication({
+      applicationId: req.params.id,
+      adminUserId: req.user._id,
+      subscription: req.body.subscription,
+    });
+    res.status(200).json({ status: 'success', data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const postRejectCafeApplication = async (req, res, next) => {
+  try {
+    const application = await rejectApplication({
+      applicationId: req.params.id,
+      adminUserId: req.user._id,
+      note: req.body.note,
+    });
+    res.status(200).json({ status: 'success', data: application });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getOwnerLookup,
   postProvisionCafe,
@@ -188,4 +238,8 @@ module.exports = {
   getCafeSubscriptions,
   postCafeSubscription,
   patchCafeSubscriptionStatus,
+  getCafeApplications,
+  getCafeApplication,
+  postApproveCafeApplication,
+  postRejectCafeApplication,
 };

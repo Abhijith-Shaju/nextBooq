@@ -1,5 +1,6 @@
 const CafeApplication = require('../models/CafeApplication');
 const Cafe = require('../models/Cafe');
+const User = require('../models/User');
 const { generateApplicationRef } = require('../utils/applicationRef');
 const { logAuditEvent } = require('./auditService');
 const {
@@ -9,7 +10,12 @@ const {
   validateAddress,
 } = require('../utils/cafeInput');
 const { BadRequestError, ForbiddenError, ConflictError, NotFoundError } = require('../utils/errors');
-const { sendCafeApplicationReviewEmail } = require('./emailService');
+const { provisionCafe } = require('./cafeProvisioningService');
+const {
+  sendCafeApplicationReviewEmail,
+  sendCafeApplicationApprovedEmail,
+  sendCafeApplicationRejectedEmail,
+} = require('./emailService');
 
 const REF_ATTEMPTS = 5;
 
@@ -134,10 +140,136 @@ const withdrawApplication = async (userId) => {
   return summarize(application);
 };
 
+const withApplicant = (application, applicant) => ({
+  ...summarize(application),
+  organization_name: application.organization_name,
+  timezone: application.timezone,
+  address: application.address?.toObject ? application.address.toObject() : application.address,
+  reviewed_at: application.reviewed_at,
+  applicant: applicant
+    ? { id: applicant._id.toString(), name: applicant.name, email: applicant.email, phone: applicant.phone }
+    : null,
+});
+
+const listApplications = async ({ status } = {}) => {
+  const filter = status ? { status } : {};
+  const applications = await CafeApplication.find(filter)
+    .sort({ created_at: -1 })
+    .populate('applicant_user_id', 'name email phone');
+  return applications.map((application) => withApplicant(application, application.applicant_user_id));
+};
+
+const getApplicationDetail = async (applicationId) => {
+  const application = await CafeApplication.findById(applicationId).populate(
+    'applicant_user_id',
+    'name email phone'
+  );
+  if (!application) throw new NotFoundError('Cafe application not found');
+  return withApplicant(application, application.applicant_user_id);
+};
+
+const loadPending = async (applicationId) => {
+  const application = await CafeApplication.findById(applicationId);
+  if (!application) throw new NotFoundError('Cafe application not found');
+  if (application.status !== 'pending') {
+    throw new ConflictError(`This application has already been ${application.status}`);
+  }
+  return application;
+};
+
+/**
+ * The only path from an application into live tenancy. provisionCafe runs
+ * first and is the sole writer of Organization/Cafe/Subscription/membership;
+ * the application is only marked approved once that transaction has
+ * committed, so a slug conflict leaves the application pending and nothing
+ * half-applied.
+ */
+const approveApplication = async ({ applicationId, adminUserId, subscription }) => {
+  const application = await loadPending(applicationId);
+  const applicant = await User.findById(application.applicant_user_id);
+  if (!applicant) throw new NotFoundError('Applicant user not found');
+
+  const provisioned = await provisionCafe({
+    owner_user_id: application.applicant_user_id.toString(),
+    adminUserId: adminUserId.toString(),
+    organization: { mode: 'new', name: application.organization_name },
+    cafe: {
+      name: application.cafe_name,
+      slug: application.cafe_slug,
+      timezone: application.timezone,
+      address: application.address.toObject(),
+    },
+    subscription,
+  });
+
+  application.status = 'approved';
+  application.reviewed_by_user_id = adminUserId;
+  application.reviewed_at = new Date();
+  application.provisioned_cafe_id = provisioned.cafe.id;
+  await application.save();
+
+  await logAuditEvent({
+    cafeId: provisioned.cafe.id,
+    entityType: 'CafeApplication',
+    entityId: application._id,
+    action: 'CAFE_APPLICATION_APPROVED',
+    performedByUserId: adminUserId,
+    afterState: { application_ref: application.application_ref, cafe_id: provisioned.cafe.id },
+  });
+
+  sendCafeApplicationApprovedEmail({
+    to: applicant.email,
+    applicationRef: application.application_ref,
+    cafeName: application.cafe_name,
+    cafeSlug: application.cafe_slug,
+  }).catch((err) => console.error('[cafeApplicationService] Failed to send approval email:', err));
+
+  return { application: summarize(application), provisioned };
+};
+
+const rejectApplication = async ({ applicationId, adminUserId, note }) => {
+  if (typeof note !== 'string' || !note.trim()) {
+    throw new BadRequestError('A rejection note is required so the applicant knows what to fix');
+  }
+
+  const application = await loadPending(applicationId);
+  const applicant = await User.findById(application.applicant_user_id);
+
+  application.status = 'rejected';
+  application.review_note = note.trim();
+  application.reviewed_by_user_id = adminUserId;
+  application.reviewed_at = new Date();
+  await application.save();
+
+  await logAuditEvent({
+    cafeId: null,
+    entityType: 'CafeApplication',
+    entityId: application._id,
+    action: 'CAFE_APPLICATION_REJECTED',
+    performedByUserId: adminUserId,
+    afterState: { application_ref: application.application_ref, review_note: application.review_note },
+  });
+
+  if (applicant) {
+    sendCafeApplicationRejectedEmail({
+      to: applicant.email,
+      applicationRef: application.application_ref,
+      cafeName: application.cafe_name,
+      note: application.review_note,
+    }).catch((err) => console.error('[cafeApplicationService] Failed to send rejection email:', err));
+  }
+
+  return summarize(application);
+};
+
 module.exports = {
   getLatestApplicationSummary,
   summarize,
   createApplication,
   withdrawApplication,
   validateApplicationInput,
+  listApplications,
+  getApplicationDetail,
+  approveApplication,
+  rejectApplication,
 };

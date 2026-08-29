@@ -11,6 +11,10 @@ const {
   patchCafeSubscriptionStatus,
   getOwnerLookup,
   postProvisionCafe,
+  getCafeApplications,
+  getCafeApplication,
+  postApproveCafeApplication,
+  postRejectCafeApplication,
 } = require('../../controllers/platformAdmin/platformAdminController');
 
 router.use(authenticate, requirePlatformAdmin);
@@ -23,5 +27,9 @@ router.post('/cafes', postProvisionCafe);
 router.get('/cafes/:cafeId/subscriptions', getCafeSubscriptions);
 router.post('/cafes/:cafeId/subscriptions', postCafeSubscription);
 router.patch('/cafes/:cafeId/subscriptions/status', patchCafeSubscriptionStatus);
+router.get('/cafe-applications', getCafeApplications);
+router.get('/cafe-applications/:id', getCafeApplication);
+router.post('/cafe-applications/:id/approve', postApproveCafeApplication);
+router.post('/cafe-applications/:id/reject', postRejectCafeApplication);
 
 module.exports = router;
