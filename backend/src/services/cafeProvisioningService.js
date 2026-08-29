@@ -12,50 +12,20 @@ const {
   ConflictError,
   UnprocessableEntityError,
 } = require('../utils/errors');
+const {
+  requiredName,
+  normalizeSlug,
+  validateTimezone,
+  validateAddress,
+} = require('../utils/cafeInput');
 
 const VALID_TERM_MONTHS = [1, 6, 12, 18];
-const RESERVED_SLUGS = new Set(['admin', 'api', 'auth', 'onboarding', 'pricing', '_next']);
-const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const asObjectId = (value, field) => {
   if (!mongoose.isValidObjectId(value)) {
     throw new BadRequestError(`${field} must be a valid ObjectId`);
   }
   return new mongoose.Types.ObjectId(value);
-};
-
-const requiredName = (value, field) => {
-  if (typeof value !== 'string' || !value.trim()) {
-    throw new BadRequestError(`${field} is required`);
-  }
-  return value.trim();
-};
-
-const normalizeSlug = (value) => {
-  if (typeof value !== 'string') {
-    throw new BadRequestError('cafe.slug is required');
-  }
-  const slug = value.trim().toLowerCase();
-  if (slug.length < 3 || slug.length > 63 || !SLUG_PATTERN.test(slug)) {
-    throw new BadRequestError('cafe.slug must be a 3-63 character kebab-case value');
-  }
-  if (RESERVED_SLUGS.has(slug)) {
-    throw new BadRequestError('cafe.slug is reserved');
-  }
-  return slug;
-};
-
-const validateTimezone = (value) => {
-  if (typeof value !== 'string' || !value.trim()) {
-    throw new BadRequestError('cafe.timezone is required');
-  }
-  const timezone = value.trim();
-  try {
-    Intl.DateTimeFormat('en-US', { timeZone: timezone });
-  } catch (_) {
-    throw new BadRequestError('cafe.timezone must be a valid IANA timezone');
-  }
-  return timezone;
 };
 
 const normalizeSubscription = (value) => {
