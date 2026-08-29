@@ -57,6 +57,10 @@ const envSchema = z
     // separate config value — override this if you want contact submissions
     // routed somewhere other than the sender identity.
     CONTACT_EMAIL: z.string().optional(),
+    // Recipient for operator notifications (currently: a cafe application
+    // needing review). Falls back to CONTACT_EMAIL and then FROM_EMAIL, so
+    // this works with no config change.
+    ADMIN_EMAIL: z.string().optional(),
     // Used to build absolute links (e.g. password reset) in emails, since the
     // backend has no other way to know the frontend's public origin.
     FRONTEND_URL: z.string().optional().default('http://localhost:3000'),

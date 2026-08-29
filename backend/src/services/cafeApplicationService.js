@@ -9,6 +9,7 @@ const {
   validateAddress,
 } = require('../utils/cafeInput');
 const { BadRequestError, ForbiddenError, ConflictError, NotFoundError } = require('../utils/errors');
+const { sendCafeApplicationReviewEmail } = require('./emailService');
 
 const REF_ATTEMPTS = 5;
 
@@ -95,7 +96,22 @@ const createApplication = async ({ user, body }) => {
     afterState: { application_ref: application.application_ref, cafe_slug: application.cafe_slug },
   });
 
-  return summarize(application);
+  const summary = summarize(application);
+  // Fire-and-forget — same rationale as registerUser: a Resend outage must
+  // never fail an application that was otherwise written successfully.
+  sendCafeApplicationReviewEmail({
+    application: {
+      ...summary,
+      organization_name: application.organization_name,
+      timezone: application.timezone,
+      address: application.address.toObject(),
+    },
+    applicant: { name: user.name, email: user.email, phone: user.phone },
+  }).catch((err) => {
+    console.error('[cafeApplicationService] Failed to send review email:', err);
+  });
+
+  return summary;
 };
 
 const withdrawApplication = async (userId) => {
