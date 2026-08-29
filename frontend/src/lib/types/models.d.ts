@@ -24,6 +24,17 @@ export interface CafeMenuCategory {
   items: CafeMenuItem[];
 }
 
+export interface CafeAddress {
+  line1: string;
+  line2?: string;
+  landmark?: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country?: string;
+  map_url?: string;
+}
+
 export interface Cafe {
   id: string;
   _id?: string;
@@ -37,6 +48,7 @@ export interface Cafe {
   hero_image_url?: string;
   hero_overlay?: 'subtle' | 'balanced' | 'vivid';
   contact_phone?: string;
+  address?: CafeAddress;
   menu?: CafeMenuCategory[];
   payments?: {
     razorpay_key_id: string;

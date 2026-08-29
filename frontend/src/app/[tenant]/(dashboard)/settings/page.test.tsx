@@ -1,9 +1,16 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import CafeSettingsPage from './page';
 import { useTenant } from '@/components/providers/tenant-provider';
 import { axiosInstance } from '@/hooks/api/axios-instance';
+
+// CafeSettingsPage renders PaymentsEditor, which calls useMutation
+// (useRequestStepUpOtp) — it needs a QueryClientProvider ancestor even though
+// none of these tests touch payments directly.
+const renderPage = (ui: React.ReactElement = <CafeSettingsPage />, queryClient = new QueryClient()) =>
+  render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
 
 const refresh = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -51,7 +58,7 @@ describe('CafeSettingsPage', () => {
   });
 
   test('refreshes server data after a successful save (fixes stale values on revisit)', async () => {
-    render(<CafeSettingsPage />);
+    renderPage();
 
     fireEvent.click(screen.getByRole('button', { name: /save cafe rules/i }));
 
@@ -60,14 +67,19 @@ describe('CafeSettingsPage', () => {
   });
 
   test('re-syncs displayed values when the underlying cafe data changes without an unmount', () => {
-    const { rerender } = render(<CafeSettingsPage />);
+    const queryClient = new QueryClient();
+    const { rerender } = renderPage(<CafeSettingsPage />, queryClient);
 
     expect(screen.getByLabelText(/default turn time/i)).toHaveValue(90);
 
     vi.mocked(useTenant).mockReturnValue({
       cafe: makeCafe({ default_turn_time_minutes: 120, max_party_size: 20 }),
     } as any);
-    rerender(<CafeSettingsPage />);
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <CafeSettingsPage />
+      </QueryClientProvider>
+    );
 
     expect(screen.getByLabelText(/default turn time/i)).toHaveValue(120);
     expect(screen.getByLabelText(/maximum party size/i)).toHaveValue(20);
@@ -82,14 +94,14 @@ describe('CafeSettingsPage — reservation fee', () => {
 
   test('shows the cafe\'s current reservation fee', () => {
     vi.mocked(useTenant).mockReturnValue({ cafe: makeCafe({ reservation_fee: 150 }) } as any);
-    render(<CafeSettingsPage />);
+    renderPage();
 
     expect(screen.getByLabelText(/reservation fee/i)).toHaveValue(150);
   });
 
   test('submits the edited reservation fee alongside the other rules', async () => {
     vi.mocked(useTenant).mockReturnValue({ cafe: makeCafe() } as any);
-    render(<CafeSettingsPage />);
+    renderPage();
 
     fireEvent.change(screen.getByLabelText(/reservation fee/i), { target: { value: '249.5' } });
     fireEvent.click(screen.getByRole('button', { name: /save cafe rules/i }));
@@ -113,7 +125,7 @@ describe('CafeSettingsPage — operating hours', () => {
 
   test('defaults every day to 09:00-22:00 open when the cafe has never configured hours', () => {
     vi.mocked(useTenant).mockReturnValue({ cafe: makeCafe() } as any);
-    render(<CafeSettingsPage />);
+    renderPage();
 
     expect(screen.getByLabelText(/monday opening time/i)).toHaveValue('09:00');
     expect(screen.getByLabelText(/monday closing time/i)).toHaveValue('22:00');
@@ -131,7 +143,7 @@ describe('CafeSettingsPage — operating hours', () => {
         ],
       },
     } as any);
-    render(<CafeSettingsPage />);
+    renderPage();
 
     expect(screen.getByLabelText(/sunday closed/i)).toBeChecked();
     expect(screen.getByLabelText(/friday opening time/i)).toHaveValue('10:00');
@@ -140,7 +152,7 @@ describe('CafeSettingsPage — operating hours', () => {
 
   test('saving includes operating_hours in the request body', async () => {
     vi.mocked(useTenant).mockReturnValue({ cafe: makeCafe() } as any);
-    render(<CafeSettingsPage />);
+    renderPage();
 
     fireEvent.click(screen.getByRole('button', { name: /save cafe rules/i }));
 
@@ -158,7 +170,7 @@ describe('CafeSettingsPage — operating hours', () => {
 
   test('blocks saving and shows an error when a closing time is not after opening time', async () => {
     vi.mocked(useTenant).mockReturnValue({ cafe: makeCafe() } as any);
-    render(<CafeSettingsPage />);
+    renderPage();
 
     fireEvent.change(screen.getByLabelText(/monday opening time/i), { target: { value: '20:00' } });
     fireEvent.change(screen.getByLabelText(/monday closing time/i), { target: { value: '09:00' } });
@@ -183,7 +195,7 @@ describe('CafeSettingsPage — storefront', () => {
         contact_phone: '+91 98765 43210',
       },
     } as any);
-    render(<CafeSettingsPage />);
+    renderPage();
 
     expect(screen.getByLabelText(/description/i)).toHaveValue('Great coffee.');
     expect(screen.getByLabelText(/hero photo url/i)).toHaveValue('https://example.com/hero.jpg');
@@ -200,7 +212,7 @@ describe('CafeSettingsPage — storefront', () => {
         menu: [{ category: 'Coffee', items: [{ name: 'Espresso', price: 120 }] }],
       },
     } as any);
-    render(<CafeSettingsPage />);
+    renderPage();
 
     fireEvent.click(screen.getByRole('button', { name: /save cafe rules/i }));
 
@@ -227,7 +239,7 @@ describe('CafeSettingsPage — storefront', () => {
         ],
       },
     } as any);
-    render(<CafeSettingsPage />);
+    renderPage();
 
     fireEvent.click(screen.getByRole('button', { name: /save cafe rules/i }));
 
@@ -245,9 +257,45 @@ describe('CafeSettingsPage — storefront', () => {
     expect(screen.getAllByLabelText(/category \d+ name/i)).toHaveLength(2);
   });
 
+  test('saving includes the address when line 1 is filled in', async () => {
+    vi.mocked(useTenant).mockReturnValue({ cafe: makeCafe() } as any);
+    renderPage();
+
+    fireEvent.change(screen.getByLabelText(/address line 1/i), { target: { value: '12 Church Street' } });
+    fireEvent.change(screen.getByLabelText(/^city$/i), { target: { value: 'Bengaluru' } });
+    fireEvent.change(screen.getByLabelText(/^state$/i), { target: { value: 'Karnataka' } });
+    fireEvent.change(screen.getByLabelText(/pin code/i), { target: { value: '560001' } });
+    fireEvent.click(screen.getByRole('button', { name: /save cafe rules/i }));
+
+    await waitFor(() =>
+      expect(axiosInstance.put).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          address: expect.objectContaining({
+            line1: '12 Church Street',
+            city: 'Bengaluru',
+            state: 'Karnataka',
+            postal_code: '560001',
+          }),
+        })
+      )
+    );
+  });
+
+  test('saving omits address entirely when line 1 is blank', async () => {
+    vi.mocked(useTenant).mockReturnValue({ cafe: makeCafe() } as any);
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: /save cafe rules/i }));
+
+    await waitFor(() => expect(axiosInstance.put).toHaveBeenCalled());
+    const [, body] = vi.mocked(axiosInstance.put).mock.calls[0];
+    expect(body).not.toHaveProperty('address');
+  });
+
   test('editing the description field updates what would be submitted on save', async () => {
     vi.mocked(useTenant).mockReturnValue({ cafe: makeCafe() } as any);
-    render(<CafeSettingsPage />);
+    renderPage();
 
     fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Updated description' } });
     fireEvent.click(screen.getByRole('button', { name: /save cafe rules/i }));
@@ -276,7 +324,7 @@ describe('CafeSettingsPage — branding', () => {
         brand_accent: '#E4A11B',
       },
     } as any);
-    render(<CafeSettingsPage />);
+    renderPage();
 
     expect(screen.getByLabelText(/logo url/i)).toHaveValue('https://example.com/logo.png');
     expect(screen.getByLabelText(/primary brand colour hex/i)).toHaveValue('#1B7F5A');
@@ -292,7 +340,7 @@ describe('CafeSettingsPage — branding', () => {
         brand_accent: '#E4A11B',
       },
     } as any);
-    render(<CafeSettingsPage />);
+    renderPage();
 
     fireEvent.click(screen.getByRole('button', { name: /save cafe rules/i }));
 
@@ -310,7 +358,7 @@ describe('CafeSettingsPage — branding', () => {
 
   test('a cafe with no branding set submits empty values, meaning "use the default palette"', async () => {
     vi.mocked(useTenant).mockReturnValue({ cafe: makeCafe() } as any);
-    render(<CafeSettingsPage />);
+    renderPage();
 
     fireEvent.click(screen.getByRole('button', { name: /save cafe rules/i }));
 

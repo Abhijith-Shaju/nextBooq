@@ -6,6 +6,7 @@ const { encrypt } = require('../../utils/encryption');
 const { hashStepUpOtp } = require('../../utils/stepUpAuth');
 const { createRazorpayClient } = require('../../config/razorpay');
 const { logAuditEvent } = require('../../services/auditService');
+const { isValidHttpsUrl, validateAddress } = require('../../utils/cafeInput');
 const config = require('../../config/env');
 
 const POSITIVE_INT_RULES = ['default_turn_time_minutes', 'max_party_size', 'hold_duration_minutes'];
@@ -25,19 +26,6 @@ const MAX_CONTACT_PHONE_LENGTH = 30;
 // form, which is valid-looking but produces no colour when used unwrapped.
 const HEX_COLOR_PATTERN = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 const HERO_OVERLAY_VALUES = ['subtle', 'balanced', 'vivid'];
-
-const isValidHttpsUrl = (value) => {
-  if (!value.startsWith('https://')) {
-    return false;
-  }
-  try {
-    // eslint-disable-next-line no-new
-    new URL(value);
-    return true;
-  } catch {
-    return false;
-  }
-};
 
 const validateRazorpayCredentials = async (razorpayKeyId, razorpayKeySecret) => {
   const client = createRazorpayClient({ key_id: razorpayKeyId, key_secret: razorpayKeySecret });
@@ -134,6 +122,7 @@ const updateCafe = async (req, res, next) => {
       brand_primary,
       brand_accent,
       menu,
+      address,
     } = req.body;
 
     const cafe = await Cafe.findById(cafeId);
@@ -209,6 +198,13 @@ const updateCafe = async (req, res, next) => {
         throw new BadRequestError(`contact_phone must be ${MAX_CONTACT_PHONE_LENGTH} characters or fewer`);
       }
       cafe.contact_phone = contact_phone.trim();
+    }
+
+    // Same shape the onboarding application captured — validated by the one
+    // shared validator so settings and provisioning can't diverge. Omitting
+    // the key leaves the stored address untouched.
+    if (address !== undefined) {
+      cafe.address = validateAddress(address);
     }
 
     if (logo_url !== undefined) {

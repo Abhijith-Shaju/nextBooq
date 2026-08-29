@@ -10,7 +10,7 @@ import {
   validateOperatingHoursForSubmit,
   OperatingHourEntry,
 } from '@/lib/dashboard/operating-hours';
-import { Save, Settings as SettingsIcon, Clock, Users, ShieldAlert, Hourglass, Loader2, CalendarClock, IndianRupee } from 'lucide-react';
+import { Save, Settings as SettingsIcon, Clock, Users, ShieldAlert, Hourglass, Loader2, CalendarClock, IndianRupee, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { StorefrontEditor } from '@/components/dashboard/storefront-editor';
 import { PaymentsEditor } from '@/components/dashboard/payments-editor';
@@ -42,6 +42,13 @@ export default function CafeSettingsPage() {
   const [heroImageUrl, setHeroImageUrl] = useState(cafe.hero_image_url || '');
   const [heroOverlay, setHeroOverlay] = useState(cafe.hero_overlay || 'balanced');
   const [contactPhone, setContactPhone] = useState(cafe.contact_phone || '');
+  const [addressLine1, setAddressLine1] = useState(cafe.address?.line1 || '');
+  const [addressLine2, setAddressLine2] = useState(cafe.address?.line2 || '');
+  const [addressLandmark, setAddressLandmark] = useState(cafe.address?.landmark || '');
+  const [addressCity, setAddressCity] = useState(cafe.address?.city || '');
+  const [addressState, setAddressState] = useState(cafe.address?.state || '');
+  const [addressPostalCode, setAddressPostalCode] = useState(cafe.address?.postal_code || '');
+  const [addressMapUrl, setAddressMapUrl] = useState(cafe.address?.map_url || '');
   const [logoUrl, setLogoUrl] = useState(cafe.logo_url || '');
   const [brandPrimary, setBrandPrimary] = useState(cafe.brand_primary || '');
   const [brandAccent, setBrandAccent] = useState(cafe.brand_accent || '');
@@ -67,6 +74,13 @@ export default function CafeSettingsPage() {
     setHeroImageUrl(cafe.hero_image_url || '');
     setHeroOverlay(cafe.hero_overlay || 'balanced');
     setContactPhone(cafe.contact_phone || '');
+    setAddressLine1(cafe.address?.line1 || '');
+    setAddressLine2(cafe.address?.line2 || '');
+    setAddressLandmark(cafe.address?.landmark || '');
+    setAddressCity(cafe.address?.city || '');
+    setAddressState(cafe.address?.state || '');
+    setAddressPostalCode(cafe.address?.postal_code || '');
+    setAddressMapUrl(cafe.address?.map_url || '');
     setLogoUrl(cafe.logo_url || '');
     setBrandPrimary(cafe.brand_primary || '');
     setBrandAccent(cafe.brand_accent || '');
@@ -83,6 +97,13 @@ export default function CafeSettingsPage() {
     cafe.hero_image_url,
     cafe.hero_overlay,
     cafe.contact_phone,
+    cafe.address?.line1,
+    cafe.address?.line2,
+    cafe.address?.landmark,
+    cafe.address?.city,
+    cafe.address?.state,
+    cafe.address?.postal_code,
+    cafe.address?.map_url,
     cafe.logo_url,
     cafe.brand_primary,
     cafe.brand_accent,
@@ -124,6 +145,19 @@ export default function CafeSettingsPage() {
         hero_image_url: heroImageUrl,
         hero_overlay: heroOverlay,
         contact_phone: contactPhone,
+        ...(addressLine1.trim()
+          ? {
+              address: {
+                line1: addressLine1.trim(),
+                line2: addressLine2.trim(),
+                landmark: addressLandmark.trim(),
+                city: addressCity.trim(),
+                state: addressState.trim(),
+                postal_code: addressPostalCode.trim(),
+                map_url: addressMapUrl.trim(),
+              },
+            }
+          : {}),
         logo_url: logoUrl,
         brand_primary: brandPrimary,
         brand_accent: brandAccent,
@@ -302,6 +336,114 @@ export default function CafeSettingsPage() {
                   </label>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="pt-6 border-t border-brand-brown/10 space-y-4">
+            <h2 className="text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
+              <MapPin className="w-4 h-4 text-brand-red" /> Address
+            </h2>
+            <p className="text-[11px] text-brand-mochaMid -mt-3">
+              Where guests will find you. Fill in line 1 to save an address.
+            </p>
+
+            <div>
+              <label htmlFor="address-line1" className="block text-sm font-semibold text-brand-brown mb-1.5">
+                Address Line 1
+              </label>
+              <input
+                id="address-line1"
+                type="text"
+                value={addressLine1}
+                onChange={(e) => setAddressLine1(e.target.value)}
+                placeholder="12 Church Street"
+                className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="address-line2" className="block text-sm font-semibold text-brand-brown mb-1.5">
+                Address Line 2 (optional)
+              </label>
+              <input
+                id="address-line2"
+                type="text"
+                value={addressLine2}
+                onChange={(e) => setAddressLine2(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="address-landmark" className="block text-sm font-semibold text-brand-brown mb-1.5">
+                Landmark (optional)
+              </label>
+              <input
+                id="address-landmark"
+                type="text"
+                value={addressLandmark}
+                onChange={(e) => setAddressLandmark(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="address-city" className="block text-sm font-semibold text-brand-brown mb-1.5">
+                  City
+                </label>
+                <input
+                  id="address-city"
+                  type="text"
+                  value={addressCity}
+                  onChange={(e) => setAddressCity(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="address-state" className="block text-sm font-semibold text-brand-brown mb-1.5">
+                  State
+                </label>
+                <input
+                  id="address-state"
+                  type="text"
+                  value={addressState}
+                  onChange={(e) => setAddressState(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="address-postal-code" className="block text-sm font-semibold text-brand-brown mb-1.5">
+                  PIN Code
+                </label>
+                <input
+                  id="address-postal-code"
+                  type="text"
+                  value={addressPostalCode}
+                  onChange={(e) => setAddressPostalCode(e.target.value)}
+                  placeholder="560001"
+                  className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm font-mono"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="address-map-url" className="block text-sm font-semibold text-brand-brown mb-1.5">
+                  Map link (optional)
+                </label>
+                <input
+                  id="address-map-url"
+                  type="text"
+                  value={addressMapUrl}
+                  onChange={(e) => setAddressMapUrl(e.target.value)}
+                  placeholder="https://maps.google.com/..."
+                  className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm"
+                />
+                <p className="text-[11px] text-brand-mochaMid mt-1">
+                  Shown on your storefront so guests can find you.
+                </p>
+              </div>
             </div>
           </div>
 
