@@ -60,4 +60,19 @@ const contactFormRateLimiter = createRateLimiter({
   message: 'Too many contact form submissions. Please try again later.',
 });
 
-module.exports = { authRateLimiter, availabilityRateLimiter, bookingCreationRateLimiter, contactFormRateLimiter };
+// Its own bucket rather than sharing contactFormRateLimiter's: submitting an
+// application emails the operator, so someone hammering one form must not be
+// able to exhaust the other's quota.
+const cafeApplicationRateLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  message: 'Too many cafe applications from this IP, please try again later.',
+});
+
+module.exports = {
+  authRateLimiter,
+  availabilityRateLimiter,
+  bookingCreationRateLimiter,
+  contactFormRateLimiter,
+  cafeApplicationRateLimiter,
+};
