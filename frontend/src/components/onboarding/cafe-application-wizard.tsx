@@ -5,13 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Coffee, ArrowRight, Loader2 } from 'lucide-react';
 import { useSubmitCafeApplication } from '@/hooks/onboarding/use-submit-cafe-application';
 import type { CafeApplicationPayload } from '@/lib/types/cafe-application';
+import { apiMessage } from '@/lib/api-message';
 
 const INDIAN_PIN_PATTERN = /^[1-9][0-9]{5}$/;
-
-function apiMessage(error: unknown): string {
-  const candidate = error as { response?: { data?: { error?: { message?: string }; message?: string } }; message?: string };
-  return candidate.response?.data?.error?.message || candidate.response?.data?.message || candidate.message || 'Unable to submit your application.';
-}
 
 const inputClass =
   'w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white/80 focus:bg-white focus:ring-2 focus:ring-brand-red focus:outline-none transition-all text-sm';
@@ -281,7 +277,7 @@ export function CafeApplicationWizard() {
                   </div>
                 </dl>
                 {submitApplication.isError && (
-                  <p className="text-sm text-brand-red">{apiMessage(submitApplication.error)}</p>
+                  <p className="text-sm text-brand-red">{apiMessage(submitApplication.error, 'Unable to submit your application.')}</p>
                 )}
               </div>
             )}

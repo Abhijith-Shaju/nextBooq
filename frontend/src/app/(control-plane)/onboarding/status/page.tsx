@@ -7,11 +7,7 @@ import { Coffee, Loader2, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useMyCafeApplication } from '@/hooks/onboarding/use-my-cafe-application';
 import { useWithdrawCafeApplication } from '@/hooks/onboarding/use-withdraw-cafe-application';
-
-function apiMessage(error: unknown): string {
-  const candidate = error as { response?: { data?: { error?: { message?: string }; message?: string } }; message?: string };
-  return candidate.response?.data?.error?.message || candidate.response?.data?.message || candidate.message || 'Unable to withdraw your application.';
-}
+import { apiMessage } from '@/lib/api-message';
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
@@ -117,7 +113,7 @@ function OnboardingStatusGuard() {
         We&apos;re reviewing your application. We&apos;ll email you at {user?.email} once it&apos;s
         approved — usually within a couple of working days.
       </p>
-      {withdraw.isError && <p className="text-sm text-brand-red">{apiMessage(withdraw.error)}</p>}
+      {withdraw.isError && <p className="text-sm text-brand-red">{apiMessage(withdraw.error, 'Unable to withdraw your application.')}</p>}
       <button
         type="button"
         onClick={() => withdraw.mutate()}

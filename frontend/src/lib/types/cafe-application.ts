@@ -27,6 +27,6 @@ export interface CafeApplicationDetail extends CafeApplicationSummary {
   organization_name: string;
   timezone: string;
   address: CafeAddress;
-  reviewed_at: string | null;
+  reviewed_at?: string | null;
   applicant: { id: string; name: string; email: string; phone: string } | null;
 }

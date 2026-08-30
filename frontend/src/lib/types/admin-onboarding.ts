@@ -1,4 +1,4 @@
-import type { SubscriptionStatus, SubscriptionTermMonths } from './models';
+import type { CafeAddress, SubscriptionStatus, SubscriptionTermMonths } from './models';
 
 export interface OwnedOrganization {
   id: string;
@@ -16,16 +16,22 @@ export interface OwnerLookupResult {
   owned_organizations: OwnedOrganization[];
 }
 
+// Shared by direct admin provisioning (ProvisionCafePayload) and application
+// approval (useApproveCafeApplication) — both hand the admin's chosen
+// subscription terms to the same backend contract, so this is declared once
+// rather than inlined twice.
+export interface ProvisionSubscription {
+  status: Extract<SubscriptionStatus, 'active' | 'trial'>;
+  term_months: SubscriptionTermMonths;
+  price_per_month: number;
+  note?: string;
+}
+
 export interface ProvisionCafePayload {
   owner_user_id: string;
   organization: { mode: 'new'; name: string } | { mode: 'existing'; id: string };
-  cafe: { name: string; slug: string; timezone: string };
-  subscription: {
-    status: Extract<SubscriptionStatus, 'active' | 'trial'>;
-    term_months: SubscriptionTermMonths;
-    price_per_month: number;
-    note?: string;
-  };
+  cafe: { name: string; slug: string; timezone: string; address: CafeAddress };
+  subscription: ProvisionSubscription;
 }
 
 export interface ProvisionedCafe {

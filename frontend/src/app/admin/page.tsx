@@ -95,7 +95,10 @@ export default function AdminOverviewPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div><h2 className="text-2xl font-bold">Platform overview</h2><p className="text-sm text-slate-600">Organizations, cafes, and subscriptions.</p></div>
-        <Link href="/admin/onboard-cafe" className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Onboard Cafe</Link>
+        <div className="flex gap-3">
+          <Link href="/admin/onboard-cafe" className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Onboard Cafe</Link>
+          <Link href="/admin/cafe-applications" className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800">Cafe Applications</Link>
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {STAT_LABELS.map(({ key, label }) => (

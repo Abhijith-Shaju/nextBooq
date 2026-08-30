@@ -55,6 +55,12 @@ const goToSubscription = async () => {
   await user.type(screen.getByLabelText('Cafe slug'), 'garden-cafe');
   await user.click(screen.getByRole('button', { name: 'Continue' }));
 
+  await user.type(screen.getByLabelText('Address line 1'), '12 Church Street');
+  await user.type(screen.getByLabelText('City'), 'Bengaluru');
+  await user.type(screen.getByLabelText('State'), 'Karnataka');
+  await user.type(screen.getByLabelText('PIN code'), '560001');
+  await user.click(screen.getByRole('button', { name: 'Continue' }));
+
   return user;
 };
 
@@ -70,7 +76,7 @@ describe('CafeOnboardingForm', () => {
     provisionState = { isPending: false, isError: false, error: null, mutate: vi.fn() };
   });
 
-  test('keeps cafe provisioning behind five sequential steps', async () => {
+  test('keeps cafe provisioning behind six sequential steps', async () => {
     const user = userEvent.setup();
     render(<CafeOnboardingForm />);
 
@@ -106,7 +112,7 @@ describe('CafeOnboardingForm', () => {
 
     await goToReview();
 
-    expect(screen.getByRole('heading', { name: '5. Review' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '6. Review' })).toBeInTheDocument();
     expect(screen.getByText('Cafe slug already exists')).toBeInTheDocument();
   });
 
@@ -147,5 +153,32 @@ describe('CafeOnboardingForm', () => {
     await user.click(screen.getByRole('button', { name: 'Onboard Another' }));
     expect(screen.getByRole('heading', { name: '1. Find owner' })).toBeInTheDocument();
     expect(screen.getByLabelText('Owner email')).toHaveValue('');
+  });
+
+  test('submits the address collected in the new step 4 alongside the rest of the payload', async () => {
+    const mutate = vi.fn();
+    provisionState = { isPending: false, isError: false, error: null, mutate };
+    render(<CafeOnboardingForm />);
+
+    const user = await goToReview();
+    expect(screen.getByRole('heading', { name: '6. Review' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Confirm and onboard cafe' }));
+
+    expect(mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cafe: expect.objectContaining({
+          name: 'Garden Cafe',
+          slug: 'garden-cafe',
+          address: expect.objectContaining({
+            line1: '12 Church Street',
+            city: 'Bengaluru',
+            state: 'Karnataka',
+            postal_code: '560001',
+          }),
+        }),
+      }),
+      expect.anything()
+    );
   });
 });
