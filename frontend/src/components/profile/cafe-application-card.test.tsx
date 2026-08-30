@@ -61,6 +61,19 @@ describe('CafeApplicationCard', () => {
     expect(withdrawMutate).toHaveBeenCalled();
   });
 
+  test('pending state shows the server error message when withdrawal fails', () => {
+    vi.mocked(useWithdrawCafeApplication).mockReturnValue({
+      mutate: withdrawMutate,
+      isPending: false,
+      isError: true,
+      error: { response: { data: { error: { message: 'No pending cafe application to withdraw' } } } },
+    } as any);
+
+    render(<CafeApplicationCard user={guest} application={pendingApplication} />);
+
+    expect(screen.getByText('No pending cafe application to withdraw')).toBeInTheDocument();
+  });
+
   test('rejected state shows the review note and a re-apply link', () => {
     render(<CafeApplicationCard user={guest} application={rejectedApplication} />);
 

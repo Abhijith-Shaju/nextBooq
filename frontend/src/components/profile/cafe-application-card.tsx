@@ -8,6 +8,11 @@ import { CafeApplicationSummary } from '@/lib/types/cafe-application';
 import { getCafeApplicationCardState } from '@/lib/profile/user-workspace';
 import { useWithdrawCafeApplication } from '@/hooks/onboarding/use-withdraw-cafe-application';
 
+function apiMessage(error: unknown): string {
+  const candidate = error as { response?: { data?: { error?: { message?: string }; message?: string } }; message?: string };
+  return candidate.response?.data?.error?.message || candidate.response?.data?.message || candidate.message || 'Unable to withdraw your application.';
+}
+
 interface CafeApplicationCardProps {
   user: AuthUser | null | undefined;
   application: CafeApplicationSummary | null | undefined;
@@ -63,6 +68,7 @@ export function CafeApplicationCard({ user, application }: CafeApplicationCardPr
             <p className="mt-2 text-xs text-brand-mocha">
               Submitted {format(new Date(application.created_at), 'MMMM d, yyyy')}
             </p>
+            {withdraw.isError && <p className="mt-2 text-sm text-brand-red">{apiMessage(withdraw.error)}</p>}
             <button
               type="button"
               onClick={() => withdraw.mutate()}
