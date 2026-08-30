@@ -42,15 +42,22 @@ function OnboardingStatusGuard() {
 
   // Only redirect once the query has actually settled — bouncing a
   // legitimate applicant to /onboarding/cafe while the request is still in
-  // flight would flash them out of their own status page.
+  // flight would flash them out of their own status page. A withdrawn
+  // application is terminal (the backend keeps the record with
+  // status: 'withdrawn' rather than deleting it — withdrawApplication only
+  // matches status: 'pending', so a second Withdraw click here would 404),
+  // so it gets the same "start a fresh application" treatment as no
+  // application at all.
+  const hasActiveApplication = !!application && application.status !== 'withdrawn';
+
   useEffect(() => {
     if (isLoading) return;
-    if (!application) {
+    if (!hasActiveApplication) {
       router.replace('/onboarding/cafe');
     }
-  }, [isLoading, application, router]);
+  }, [isLoading, hasActiveApplication, router]);
 
-  if (isLoading || !application) {
+  if (isLoading || !hasActiveApplication) {
     return (
       <Shell>
         <Loader2 className="w-6 h-6 animate-spin text-brand-mocha mx-auto" />
