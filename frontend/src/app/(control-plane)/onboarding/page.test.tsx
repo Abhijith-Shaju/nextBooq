@@ -6,10 +6,11 @@ import OnboardingPage from './page';
 
 const push = vi.fn();
 const mutate = vi.fn();
+let searchParamsMock = new URLSearchParams('');
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push, replace: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(''),
+  useSearchParams: () => searchParamsMock,
 }));
 
 vi.mock('@/components/providers/auth-provider', () => ({
@@ -21,7 +22,11 @@ vi.mock('@/hooks/auth/use-update-account-type', () => ({
 }));
 
 describe('OnboardingPage', () => {
-  beforeEach(() => { push.mockClear(); mutate.mockClear(); });
+  beforeEach(() => {
+    push.mockClear();
+    mutate.mockClear();
+    searchParamsMock = new URLSearchParams('');
+  });
 
   test('offers both roles', () => {
     render(<OnboardingPage />);
@@ -45,5 +50,31 @@ describe('OnboardingPage', () => {
       { account_type: 'cafe_owner' },
       expect.anything()
     );
+  });
+
+  // Open-redirect regression coverage: a leading "/\" is not caught by a
+  // naive "starts with a single slash" check, but browsers' URL parser
+  // treats a backslash right after a leading slash the same as a second
+  // slash for http/https — i.e. "/\evil.com" resolves to host evil.com.
+  test('never navigates to a backslash-prefixed callbackUrl (open-redirect bypass)', async () => {
+    searchParamsMock = new URLSearchParams({ callbackUrl: '/\\evil.com' });
+    mutate.mockImplementation((_payload, { onSuccess }) => onSuccess());
+
+    render(<OnboardingPage />);
+    await userEvent.click(screen.getByRole('button', { name: /booking a table/i }));
+
+    expect(push).toHaveBeenCalledWith('/');
+    expect(push).not.toHaveBeenCalledWith(expect.stringContaining('evil.com'));
+  });
+
+  test('never navigates to a protocol-relative callbackUrl (open-redirect bypass)', async () => {
+    searchParamsMock = new URLSearchParams({ callbackUrl: '//evil.com' });
+    mutate.mockImplementation((_payload, { onSuccess }) => onSuccess());
+
+    render(<OnboardingPage />);
+    await userEvent.click(screen.getByRole('button', { name: /booking a table/i }));
+
+    expect(push).toHaveBeenCalledWith('/');
+    expect(push).not.toHaveBeenCalledWith(expect.stringContaining('evil.com'));
   });
 });

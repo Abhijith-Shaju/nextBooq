@@ -5,25 +5,25 @@ import { Coffee, Loader2, User as UserIcon, Store } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useUpdateAccountType } from '@/hooks/auth/use-update-account-type';
-
-// Only accept a same-origin relative path with a single leading slash — the
-// same shape post-auth-destination's normalizeSafePath enforces elsewhere.
-// An open redirect here would let an attacker bounce a fresh signup off to
-// an arbitrary external site right after they choose their role.
-const SAFE_PATH_PATTERN = /^\/(?!\/)/;
+import { normalizeSafePath } from '@/lib/auth/post-auth-destination';
 
 function OnboardingChoice() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const updateAccountType = useUpdateAccountType();
 
+  // Reuse the same same-origin/no-backslash/no-control-character validation
+  // post-auth-destination.ts already enforces elsewhere, rather than a
+  // second, weaker variant — an open redirect here would let an attacker
+  // bounce a fresh signup off to an arbitrary external site right after they
+  // choose their role.
   const rawCallbackUrl = searchParams.get('callbackUrl');
-  const callbackUrl = rawCallbackUrl && SAFE_PATH_PATTERN.test(rawCallbackUrl) ? rawCallbackUrl : '/';
+  const callbackUrl = normalizeSafePath(rawCallbackUrl) ?? '/';
 
   const chooseCustomer = () => {
     updateAccountType.mutate(
       { account_type: 'customer' },
-      { onSuccess: () => router.push(callbackUrl || '/') }
+      { onSuccess: () => router.push(callbackUrl) }
     );
   };
 

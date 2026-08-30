@@ -24,7 +24,14 @@ function validMembershipSlugs(user: AuthUser): string[] {
     .filter((slug): slug is string => slug !== null);
 }
 
-function normalizeSafePath(rawCallbackUrl?: string | null): string | null {
+// Exported so other same-origin post-auth redirect targets (e.g. the
+// onboarding role-choice page) can reuse this exact validation instead of
+// growing their own, weaker variant. In particular: a leading "/\" is not
+// caught by a naive "starts with a single slash" check, but browsers'
+// WHATWG URL parser treats a backslash right after a leading slash the same
+// as a second slash for http/https — i.e. "/\evil.com" is an open redirect
+// to host evil.com. The backslash/control-character check below closes that.
+export function normalizeSafePath(rawCallbackUrl?: string | null): string | null {
   if (!rawCallbackUrl || rawCallbackUrl.length > 2048) return null;
   if (!rawCallbackUrl.startsWith('/') || rawCallbackUrl.startsWith('//')) return null;
   if (/[\\\u0000-\u001F\u007F]/.test(rawCallbackUrl)) return null;
