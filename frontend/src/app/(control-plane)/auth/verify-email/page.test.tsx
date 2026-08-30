@@ -12,9 +12,10 @@ const renderWithClient = (ui: React.ReactElement) => {
 
 const replaceMock = vi.fn();
 const pushMock = vi.fn();
+let searchParamsMock = new URLSearchParams();
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: replaceMock, push: pushMock }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => searchParamsMock,
 }));
 
 vi.mock('sonner', () => ({
@@ -56,6 +57,7 @@ describe('VerifyEmailPage', () => {
     requestStepUpOtpMutateMock.mockReset();
     vi.mocked(toast.success).mockReset();
     vi.mocked(toast.error).mockReset();
+    searchParamsMock = new URLSearchParams();
   });
 
   test('redirects to login when there is no authenticated user', async () => {
@@ -205,5 +207,49 @@ describe('VerifyEmailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
     expect(screen.getByPlaceholderText('6-digit code')).toBeInTheDocument();
+  });
+
+  test('a control-plane registration lands on the onboarding role choice', async () => {
+    searchParamsMock = new URLSearchParams('callbackUrl=%2F&source=register');
+    useAuthMock.mockReturnValue({
+      user: { id: 'u1', email: 'user@example.com', is_email_verified: false },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    verifyMutateMock.mockImplementation((_payload, { onSuccess }) => onSuccess());
+
+    renderWithClient(<VerifyEmailPage />);
+
+    fireEvent.change(screen.getByPlaceholderText('6-digit code'), { target: { value: '123456' } });
+    fireEvent.click(screen.getByRole('button', { name: /verify email/i }));
+
+    await waitFor(
+      () => expect(pushMock).toHaveBeenCalledWith('/onboarding?callbackUrl=%2F'),
+      { timeout: 2000 }
+    );
+  });
+
+  test('a storefront verification never lands on the onboarding role choice', async () => {
+    // The storefront quick-auth reaches this page with a callbackUrl but no
+    // `source` — only the control-plane register page sets source=register.
+    searchParamsMock = new URLSearchParams('callbackUrl=%2Fdemo-cafe');
+    useAuthMock.mockReturnValue({
+      user: { id: 'u1', email: 'user@example.com', is_email_verified: false },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    verifyMutateMock.mockImplementation((_payload, { onSuccess }) => onSuccess());
+
+    renderWithClient(<VerifyEmailPage />);
+
+    fireEvent.change(screen.getByPlaceholderText('6-digit code'), { target: { value: '123456' } });
+    fireEvent.click(screen.getByRole('button', { name: /verify email/i }));
+
+    await waitFor(
+      () => expect(pushMock).toHaveBeenCalledWith('/demo-cafe'),
+      { timeout: 2000 }
+    );
+    expect(replaceMock).not.toHaveBeenCalledWith(expect.stringMatching(/^\/onboarding/));
+    expect(pushMock).not.toHaveBeenCalledWith(expect.stringMatching(/^\/onboarding/));
   });
 });

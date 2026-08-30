@@ -12,12 +12,14 @@ const DASHBOARD_ROUTE_PATTERN = /^\/[^/]+\/(dashboard|reservations|settings|tabl
 const ADMIN_ROUTE_PATTERN = /^\/admin(\/|$)/;
 const ORG_ROUTE_PATTERN = /^\/org(\/|$)/;
 const PROFILE_ROUTE_PATTERN = /^\/profile(\/|$)/;
+const ONBOARDING_ROUTE_PATTERN = /^\/onboarding(\/|$)/;
 
 const isProtectedRoute = (pathname: string): boolean =>
   DASHBOARD_ROUTE_PATTERN.test(pathname) ||
   ADMIN_ROUTE_PATTERN.test(pathname) ||
   ORG_ROUTE_PATTERN.test(pathname) ||
-  PROFILE_ROUTE_PATTERN.test(pathname);
+  PROFILE_ROUTE_PATTERN.test(pathname) ||
+  ONBOARDING_ROUTE_PATTERN.test(pathname);
 
 // The single source of truth for "is this a protected staff-dashboard route" —
 // reused by the axios 401 interceptor so its redirect allowlist can't drift

@@ -9,6 +9,8 @@ const customer = {
   is_platform_admin: false,
   owner_org_id: null,
   is_email_verified: true,
+  account_type: null,
+  cafe_application: null,
 };
 
 const staffUser = {

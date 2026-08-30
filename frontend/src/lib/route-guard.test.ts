@@ -17,11 +17,15 @@ describe('resolveRedirect', () => {
     expect(resolveRedirect('/mycafe', null)).toBeNull();
   });
 
-  test('leaves the retired onboarding route unprotected so its server redirect can run', () => {
-    expect(resolveRedirect('/onboarding', null)).toBeNull();
+  test('protects the onboarding routes', () => {
+    expect(resolveRedirect('/onboarding', null)).toEqual({
+      redirectTo: '/auth/login',
+      callbackUrl: '/onboarding',
+    });
+    expect(resolveRedirect('/onboarding/cafe', null)).not.toBeNull();
   });
 
-  test('leaves /onboarding unprotected when a session cookie is present', () => {
+  test('lets an authenticated user through to onboarding', () => {
     expect(resolveRedirect('/onboarding', validSessionCookie())).toBeNull();
   });
 

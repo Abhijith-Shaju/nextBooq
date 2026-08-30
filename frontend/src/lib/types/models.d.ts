@@ -217,5 +217,9 @@ export interface User {
   owner_org_id: string | null;
   is_email_verified: boolean;
   pending_email?: string | null;
+  // UI hint only — never used for authorization. See lib/route-guard.ts and
+  // lib/auth/post-auth-destination.ts for the actual access-control checks.
+  account_type: 'customer' | 'cafe_owner' | null;
+  cafe_application: import('./cafe-application').CafeApplicationSummary | null;
 }
 

@@ -49,7 +49,14 @@ function VerifyEmailContent() {
 
     // Short delay so the user sees the success state before navigating.
     setTimeout(() => {
-      router.push(callbackUrl);
+      if (source === 'register') {
+        // Only the control-plane register page sets source=register. The
+        // storefront quick-auth never does, so its guests never see the
+        // customer/cafe-owner prompt.
+        router.push(`/onboarding?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+      } else {
+        router.push(callbackUrl);
+      }
     }, 1500);
   };
 
