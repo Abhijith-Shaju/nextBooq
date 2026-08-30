@@ -1,5 +1,6 @@
 import { AuthUser } from '@/lib/types/auth';
 import { StaffMembership, StaffMembershipCafe } from '@/lib/types/models';
+import type { CafeApplicationSummary } from '@/lib/types/cafe-application';
 
 export type ProfileRole = 'owner' | 'manager' | 'guest';
 
@@ -36,4 +37,23 @@ export function getManagerCafes(user: AuthUser | null | undefined): StaffMembers
 
 export function getOwnedCafesFromMemberships(user: AuthUser | null | undefined): StaffMembershipCafe[] {
   return cafesForRole(user, 'owner');
+}
+
+export type CafeApplicationCardState = 'hidden' | 'apply' | 'pending' | 'rejected';
+
+// Someone who already owns an org or holds any cafe membership has nothing to
+// apply for, so the card disappears for them regardless of application state.
+export function getCafeApplicationCardState(
+  user: AuthUser | null | undefined,
+  application: CafeApplicationSummary | null | undefined
+): CafeApplicationCardState {
+  if (!user) return 'hidden';
+  if (user.owner_org_id) return 'hidden';
+  if (user.staff_memberships.length > 0) return 'hidden';
+
+  if (!application) return 'apply';
+  if (application.status === 'pending') return 'pending';
+  if (application.status === 'rejected') return 'rejected';
+  if (application.status === 'approved') return 'hidden';
+  return 'apply';
 }

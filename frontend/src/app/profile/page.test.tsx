@@ -53,6 +53,16 @@ vi.mock('@/hooks/auth/use-request-step-up-otp', () => ({
   useRequestStepUpOtp: () => ({ mutate: requestStepUpOtpMutateMock, isPending: false }),
 }));
 
+const useMyCafeApplicationMock = vi.fn();
+vi.mock('@/hooks/onboarding/use-my-cafe-application', () => ({
+  useMyCafeApplication: (...args: unknown[]) => useMyCafeApplicationMock(...args),
+}));
+
+const withdrawCafeApplicationMutateMock = vi.fn();
+vi.mock('@/hooks/onboarding/use-withdraw-cafe-application', () => ({
+  useWithdrawCafeApplication: () => ({ mutate: withdrawCafeApplicationMutateMock, isPending: false }),
+}));
+
 const guestUser = {
   id: 'u1',
   name: 'Priya Sharma',
@@ -72,10 +82,12 @@ describe('ProfilePage', () => {
     changeEmailMutateMock.mockReset();
     changePhoneMutateMock.mockReset();
     requestStepUpOtpMutateMock.mockReset();
+    withdrawCafeApplicationMutateMock.mockReset();
     useBookingStore.getState().resetBooking();
     useOrganizationMock.mockReturnValue({ data: null, isLoading: false });
     useOrgCafesMock.mockReturnValue({ data: [], isLoading: false });
     useCustomerReservationsMock.mockReturnValue({ data: [], isLoading: false });
+    useMyCafeApplicationMock.mockReturnValue({ data: null, isLoading: false });
   });
 
   test('shows the verified badge and no resend button when the email is verified', () => {

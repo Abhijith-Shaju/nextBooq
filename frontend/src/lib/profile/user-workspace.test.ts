@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'vitest';
 import { AuthUser } from '@/lib/types/auth';
-import { getProfileRole, getManagerCafes, getOwnedCafesFromMemberships } from './user-workspace';
+import {
+  getProfileRole,
+  getManagerCafes,
+  getOwnedCafesFromMemberships,
+  getCafeApplicationCardState,
+} from './user-workspace';
 
 function makeUser(overrides: Partial<AuthUser>): AuthUser {
   return {
@@ -79,5 +84,46 @@ describe('getManagerCafes / getOwnedCafesFromMemberships', () => {
   test('returns an empty array for a null user', () => {
     expect(getManagerCafes(null)).toEqual([]);
     expect(getOwnedCafesFromMemberships(null)).toEqual([]);
+  });
+});
+
+const guest = { staff_memberships: [], owner_org_id: null } as any;
+const owner = { staff_memberships: [], owner_org_id: 'org_1' } as any;
+const manager = {
+  staff_memberships: [{ role: 'manager', cafe_id: { _id: 'c1', slug: 'c', name: 'C' } }],
+  owner_org_id: null,
+} as any;
+
+describe('getCafeApplicationCardState', () => {
+  test('offers the apply card to a guest who has never applied', () => {
+    expect(getCafeApplicationCardState(guest, null)).toBe('apply');
+  });
+
+  test('hides the card from an org owner', () => {
+    expect(getCafeApplicationCardState(owner, null)).toBe('hidden');
+  });
+
+  test('hides the card from existing cafe staff', () => {
+    expect(getCafeApplicationCardState(manager, null)).toBe('hidden');
+  });
+
+  test('shows pending status while an application is under review', () => {
+    expect(getCafeApplicationCardState(guest, { status: 'pending' } as any)).toBe('pending');
+  });
+
+  test('shows the rejection so the applicant can re-apply', () => {
+    expect(getCafeApplicationCardState(guest, { status: 'rejected' } as any)).toBe('rejected');
+  });
+
+  test('offers the apply card again after a withdrawal', () => {
+    expect(getCafeApplicationCardState(guest, { status: 'withdrawn' } as any)).toBe('apply');
+  });
+
+  test('hides the card once an application is approved', () => {
+    expect(getCafeApplicationCardState(guest, { status: 'approved' } as any)).toBe('hidden');
+  });
+
+  test('hides the card from an owner even with a stale pending application', () => {
+    expect(getCafeApplicationCardState(owner, { status: 'pending' } as any)).toBe('hidden');
   });
 });

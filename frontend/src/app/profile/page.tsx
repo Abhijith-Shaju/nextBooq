@@ -21,6 +21,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { useOrganization } from '@/hooks/org/use-organization';
 import { useOrgCafes } from '@/hooks/org/use-org-cafes';
 import { useCustomerReservations } from '@/hooks/customer/use-customer-reservations';
+import { useMyCafeApplication } from '@/hooks/onboarding/use-my-cafe-application';
 import { useResendVerificationEmail } from '@/hooks/auth/use-resend-verification-email';
 import { useChangeEmail } from '@/hooks/auth/use-change-email';
 import { useChangePhone } from '@/hooks/auth/use-change-phone';
@@ -30,6 +31,7 @@ import { useBookingStore } from '@/store/use-booking-store';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getManagerCafes, getProfileRole, PROFILE_ROLE_LABELS } from '@/lib/profile/user-workspace';
+import { CafeApplicationCard } from '@/components/profile/cafe-application-card';
 import { Reservation } from '@/lib/types/models';
 import { toast } from 'sonner';
 
@@ -61,6 +63,7 @@ export default function ProfilePage() {
   const { data: organization, isLoading: isOrgLoading } = useOrganization(isOwner);
   const { data: ownedCafes = [], isLoading: isCafesLoading } = useOrgCafes(isOwner);
   const { data: reservations = [], isLoading: isReservationsLoading } = useCustomerReservations(!!user);
+  const { data: cafeApplication } = useMyCafeApplication(!!user);
   const resendVerification = useResendVerificationEmail();
   const changeEmail = useChangeEmail();
   const changePhone = useChangePhone();
@@ -275,6 +278,8 @@ export default function ProfilePage() {
           </div>
         </div>
       </section>
+
+      <CafeApplicationCard user={user} application={cafeApplication} />
 
       {/* Organization (owner only) */}
       {isOwner && (
