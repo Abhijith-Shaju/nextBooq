@@ -47,11 +47,10 @@ function TenantDashboardGuard({ children }: { children: React.ReactNode }) {
     let socket: ReturnType<typeof io> | undefined;
     let cancelled = false;
 
-    // Socket.IO connects directly to the backend's own origin (not proxied
-    // through this app like the REST API), so the httpOnly session cookie
-    // isn't sent with the handshake. Fetch a short-lived token over the
-    // proxied, cookie-authenticated REST API instead and hand it to the
-    // socket handshake only — it's never persisted to storage.
+    // Socket.IO connects to the backend's own origin. The httpOnly session
+    // cookie isn't sent with a WebSocket handshake, so fetch a short-lived
+    // token over the cookie-authenticated REST API instead and hand it to
+    // the handshake only — it's never persisted to storage.
     const connect = async () => {
       try {
         const { data } = await axiosInstance.get<{ data: { token: string } }>(

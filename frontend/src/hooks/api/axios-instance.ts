@@ -13,13 +13,15 @@ declare module 'axios' {
   }
 }
 
-// Requests hit this app's own origin (relative baseURL) and are proxied to
-// the backend by next.config.ts's rewrite. The session lives in an httpOnly
-// cookie set by the backend on login, so the browser attaches it
-// automatically via withCredentials — there is no token for this client to
-// read or attach itself. See src/lib/session.ts.
+// Requests go straight to the backend's own origin (api.nextbooq.in), not
+// through this app. That origin shares a registrable domain with the app, so
+// the session cookie — scoped to .nextbooq.in by the backend's COOKIE_DOMAIN
+// — is still same-site: the browser attaches it via withCredentials, and
+// SameSite=Lax still blocks genuinely cross-site senders. Going direct is
+// what lets the backend see the real client IP for rate limiting, instead of
+// Vercel's. See src/lib/session.ts.
 export const axiosInstance = axios.create({
-  baseURL: '',
+  baseURL: process.env.NEXT_PUBLIC_API_URL ?? '',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
