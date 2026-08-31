@@ -9,10 +9,11 @@ const authenticate = async (req, res, next) => {
     let token;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.split(' ')[1];
-    } else if (req.cookies?.accessToken) {
+    } else if (req.cookies?.nb_session) {
       // Browser clients no longer send an Authorization header — the session
       // lives in an httpOnly cookie set on login (see authController.js).
-      token = req.cookies.accessToken;
+      // Scoped to COOKIE_DOMAIN so both the app and API origins receive it.
+      token = req.cookies.nb_session;
     }
 
     if (!token) {

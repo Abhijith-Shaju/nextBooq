@@ -20,3 +20,12 @@
 // already sets it to 'test', and route files' `NODE_ENV === 'test' ? noop :
 // limiter` rate-limiter swaps depend on that.
 process.env.RESEND_API_KEY = '';
+
+// COOKIE_DOMAIN is absent from backend/.env today, but nothing enforces
+// that — a developer who later adds it locally would make the "cookie is
+// host-only when COOKIE_DOMAIN is unset" test (cookieAuth.test.js) fail for
+// an unrelated reason. Same dotenv quirk as RESEND_API_KEY above: dotenv
+// only assigns a variable that isn't already present in process.env, so
+// setting it to '' here (rather than deleting it) makes dotenv leave it
+// alone, and config.COOKIE_DOMAIN evaluates falsy exactly like "unset".
+process.env.COOKIE_DOMAIN = '';

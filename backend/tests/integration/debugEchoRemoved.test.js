@@ -11,7 +11,7 @@ describe('Integration Test: /debug-echo is removed', () => {
   test('no longer exists and does not echo request headers back', async () => {
     const res = await request(app)
       .get('/debug-echo')
-      .set('Cookie', 'accessToken=super-secret-session-token');
+      .set('Cookie', 'nb_session=super-secret-session-token');
 
     expect(res.status).toBe(404);
     expect(JSON.stringify(res.body)).not.toMatch(/super-secret-session-token/);

@@ -53,23 +53,30 @@ const assertPasswordStrength = (password) => {
 // and next.config.ts, which proxies frontend API calls through the Next.js
 // origin so this cookie is visible to both the app and its route middleware).
 // The token is still also returned in the JSON body for non-browser/API clients.
+//
+// Both helpers must stay attribute-identical. A clearCookie whose domain,
+// path, sameSite or secure flags differ from the cookie that was set does
+// not match it, so the browser keeps the original and logout silently
+// fails.
+const SESSION_COOKIE_NAME = 'nb_session';
+
+const sessionCookieOptions = () => ({
+  httpOnly: true,
+  secure: config.NODE_ENV === 'production',
+  sameSite: 'lax',
+  domain: config.COOKIE_DOMAIN || undefined,
+  path: '/',
+});
+
 const setAuthCookie = (res, token) => {
-  res.cookie('accessToken', token, {
-    httpOnly: true,
-    secure: config.NODE_ENV === 'production',
-    sameSite: 'lax',
+  res.cookie(SESSION_COOKIE_NAME, token, {
+    ...sessionCookieOptions(),
     maxAge: SESSION_COOKIE_MAX_AGE_MS,
-    path: '/',
   });
 };
 
 const clearAuthCookie = (res) => {
-  res.clearCookie('accessToken', {
-    httpOnly: true,
-    secure: config.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-  });
+  res.clearCookie(SESSION_COOKIE_NAME, sessionCookieOptions());
 };
 
 const registerUser = async (req, res, next) => {

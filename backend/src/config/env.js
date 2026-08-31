@@ -38,6 +38,14 @@ const envSchema = z
     // same as the RAZORPAY_* secrets below.
     ENCRYPTION_KEY: z.string().optional().default(INSECURE_DEFAULTS.ENCRYPTION_KEY),
     CORS_ALLOWED_ORIGINS: z.string().optional().default('http://localhost:3000'),
+    // Scope for the session cookie. Set to ".nextbooq.in" in production so
+    // the cookie is sent to both the app (www) and the API (api) — the
+    // Next.js middleware reads it on the app's origin to protect routes,
+    // while the API needs it to authenticate. Left unset in development,
+    // where a domain-scoped cookie would never be stored by a browser on
+    // localhost. Deliberately has no production assertion below: unset is a
+    // valid production configuration (host-only cookie).
+    COOKIE_DOMAIN: z.string().optional(),
     // Passed straight to Express's `trust proxy` setting. Controls how many
     // hops of X-Forwarded-For to trust when deriving req.ip (used by rate
     // limiting and audit logs) — must match the real number of reverse
