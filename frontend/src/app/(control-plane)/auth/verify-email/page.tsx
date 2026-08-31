@@ -12,6 +12,7 @@ import { useRequestStepUpOtp } from '@/hooks/auth/use-request-step-up-otp';
 import { ChangeCredentialForm } from '@/components/auth/change-credential-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { normalizeSafePath } from '@/lib/auth/post-auth-destination';
 
 function VerifyEmailContent() {
   const { user } = useAuth();
@@ -22,8 +23,7 @@ function VerifyEmailContent() {
   const rawCallbackUrl = searchParams.get('callbackUrl');
   const source = searchParams.get('source'); // 'register' | null
   // Sanitise: only allow same-origin relative paths.
-  const callbackUrl =
-    rawCallbackUrl && rawCallbackUrl.startsWith('/') ? rawCallbackUrl : '/';
+  const callbackUrl = normalizeSafePath(rawCallbackUrl) ?? '/';
 
   const [code, setCode] = useState('');
   const [succeeded, setSucceeded] = useState(false);
@@ -226,8 +226,7 @@ function VerifyEmailGuard() {
   const searchParams = useSearchParams();
 
   const rawCallbackUrl = searchParams.get('callbackUrl');
-  const callbackUrl =
-    rawCallbackUrl && rawCallbackUrl.startsWith('/') ? rawCallbackUrl : '/';
+  const callbackUrl = normalizeSafePath(rawCallbackUrl) ?? '/';
   const verificationQuery = searchParams.toString();
   const verificationPath = `/auth/verify-email${verificationQuery ? `?${verificationQuery}` : ''}`;
 

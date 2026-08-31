@@ -130,6 +130,46 @@ describe('Integration Test: cafe address settings', () => {
     expect(persisted.address.line1).toBe('12 Church Street');
   });
 
+  test('clears the stored address when every field is blank/whitespace', async () => {
+    const saved = await putSettings({ address: VALID_ADDRESS });
+    expect(saved.status).toBe(200);
+
+    const res = await putSettings({
+      address: { line1: '  ', line2: '', landmark: '', city: '', state: '  ', postal_code: '', map_url: '' },
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.address).toMatchObject({
+      line1: '',
+      city: '',
+      state: '',
+      postal_code: '',
+      map_url: '',
+    });
+
+    const persisted = await Cafe.findById(cafe._id);
+    expect(persisted.address.line1).toBe('');
+    expect(persisted.address.city).toBe('');
+    expect(persisted.address.state).toBe('');
+    expect(persisted.address.postal_code).toBe('');
+    expect(persisted.address.map_url).toBe('');
+  });
+
+  test('rejects a partial address (city filled, line1 blank) instead of treating it as a clear', async () => {
+    const saved = await putSettings({ address: VALID_ADDRESS });
+    expect(saved.status).toBe(200);
+
+    const res = await putSettings({
+      address: { ...VALID_ADDRESS, line1: '' },
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/line1 is required/);
+
+    const persisted = await Cafe.findById(cafe._id);
+    expect(persisted.address.line1).toBe('12 Church Street');
+  });
+
   // Task 2's regression guard, exercised at the HTTP layer: address must
   // stay optional at the Mongoose schema level, so a cafe that has never
   // set one can still successfully cafe.save() through an entirely

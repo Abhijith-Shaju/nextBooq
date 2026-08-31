@@ -145,19 +145,20 @@ export default function CafeSettingsPage() {
         hero_image_url: heroImageUrl,
         hero_overlay: heroOverlay,
         contact_phone: contactPhone,
-        ...(addressLine1.trim()
-          ? {
-              address: {
-                line1: addressLine1.trim(),
-                line2: addressLine2.trim(),
-                landmark: addressLandmark.trim(),
-                city: addressCity.trim(),
-                state: addressState.trim(),
-                postal_code: addressPostalCode.trim(),
-                map_url: addressMapUrl.trim(),
-              },
-            }
-          : {}),
+        // Always send the address key, even when every field is blank —
+        // that's how a cafe clears a previously-saved address. The backend
+        // treats an all-blank address as "clear it" and a partial address as
+        // invalid; omitting the key here would make blanking line 1 silently
+        // no-op and leave the stale address live on the storefront.
+        address: {
+          line1: addressLine1.trim(),
+          line2: addressLine2.trim(),
+          landmark: addressLandmark.trim(),
+          city: addressCity.trim(),
+          state: addressState.trim(),
+          postal_code: addressPostalCode.trim(),
+          map_url: addressMapUrl.trim(),
+        },
         logo_url: logoUrl,
         brand_primary: brandPrimary,
         brand_accent: brandAccent,

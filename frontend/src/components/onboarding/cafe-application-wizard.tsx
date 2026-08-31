@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Coffee, ArrowRight, Loader2 } from 'lucide-react';
 import { useSubmitCafeApplication } from '@/hooks/onboarding/use-submit-cafe-application';
+import { useMyCafeApplication } from '@/hooks/onboarding/use-my-cafe-application';
 import type { CafeApplicationPayload } from '@/lib/types/cafe-application';
 import { apiMessage } from '@/lib/api-message';
 
@@ -13,25 +14,121 @@ const inputClass =
   'w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white/80 focus:bg-white focus:ring-2 focus:ring-brand-red focus:outline-none transition-all text-sm';
 const labelClass = 'block text-sm font-semibold text-brand-brown mb-1.5';
 
+// A single sitting's worth of typing — sessionStorage (not localStorage) so
+// it clears itself when the tab/browser closes rather than lingering on a
+// shared machine, and survives a mid-form refresh, which plain useState does
+// not.
+const DRAFT_STORAGE_KEY = 'nextbooq:onboarding:cafe-application-draft';
+
+interface CafeApplicationDraft {
+  step?: 1 | 2 | 3 | 4;
+  organizationName?: string;
+  cafeName?: string;
+  slug?: string;
+  timezone?: string;
+  line1?: string;
+  line2?: string;
+  landmark?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  mapUrl?: string;
+}
+
+// Wrapped in try/catch: private browsing, blocked site data, or a disabled
+// storage API must degrade to "no draft" rather than break the form.
+function readDraft(): CafeApplicationDraft {
+  try {
+    const raw = window.sessionStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeDraft(draft: CafeApplicationDraft): void {
+  try {
+    window.sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+  } catch {
+    // Storage unavailable or full — the in-memory form state still works,
+    // it just won't survive a refresh this time.
+  }
+}
+
+function clearDraft(): void {
+  try {
+    window.sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+  } catch {
+    // Nothing to do — see readDraft/writeDraft.
+  }
+}
+
 export function CafeApplicationWizard() {
   const router = useRouter();
   const submitApplication = useSubmitCafeApplication();
+  const { data: existingApplication, isLoading: isApplicationLoading } = useMyCafeApplication();
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  // A pending or approved application already occupies this account — reapplying
+  // would either duplicate a submission still under review or attempt to
+  // re-provision an already-live cafe (the backend's loadPending rejects that
+  // with a 409 anyway, but surfacing it after a 4-step form is a dead end,
+  // not a guard). Rejected and withdrawn are terminal-but-reapplicable
+  // states — see getCafeApplicationCardState, which maps both to "apply".
+  const blockedByExistingApplication =
+    !!existingApplication &&
+    (existingApplication.status === 'pending' || existingApplication.status === 'approved');
 
-  const [organizationName, setOrganizationName] = useState('');
+  useEffect(() => {
+    if (isApplicationLoading) return;
+    if (blockedByExistingApplication) {
+      router.replace('/onboarding/status');
+    }
+  }, [isApplicationLoading, blockedByExistingApplication, router]);
 
-  const [cafeName, setCafeName] = useState('');
-  const [slug, setSlug] = useState('');
-  const [timezone, setTimezone] = useState('Asia/Kolkata');
+  // Read once, at construction, not on every render — the draft only ever
+  // needs to seed initial state.
+  const initialDraftRef = useRef<CafeApplicationDraft | null>(null);
+  if (initialDraftRef.current === null) {
+    initialDraftRef.current = readDraft();
+  }
+  const initialDraft = initialDraftRef.current;
 
-  const [line1, setLine1] = useState('');
-  const [line2, setLine2] = useState('');
-  const [landmark, setLandmark] = useState('');
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('');
-  const [postalCode, setPostalCode] = useState('');
-  const [mapUrl, setMapUrl] = useState('');
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(initialDraft.step ?? 1);
+
+  const [organizationName, setOrganizationName] = useState(initialDraft.organizationName ?? '');
+
+  const [cafeName, setCafeName] = useState(initialDraft.cafeName ?? '');
+  const [slug, setSlug] = useState(initialDraft.slug ?? '');
+  const [timezone, setTimezone] = useState(initialDraft.timezone ?? 'Asia/Kolkata');
+
+  const [line1, setLine1] = useState(initialDraft.line1 ?? '');
+  const [line2, setLine2] = useState(initialDraft.line2 ?? '');
+  const [landmark, setLandmark] = useState(initialDraft.landmark ?? '');
+  const [city, setCity] = useState(initialDraft.city ?? '');
+  const [state, setState] = useState(initialDraft.state ?? '');
+  const [postalCode, setPostalCode] = useState(initialDraft.postalCode ?? '');
+  const [mapUrl, setMapUrl] = useState(initialDraft.mapUrl ?? '');
+
+  // Persist on every change so a refresh mid-step never loses what was
+  // already typed.
+  useEffect(() => {
+    writeDraft({
+      step,
+      organizationName,
+      cafeName,
+      slug,
+      timezone,
+      line1,
+      line2,
+      landmark,
+      city,
+      state,
+      postalCode,
+      mapUrl,
+    });
+  }, [step, organizationName, cafeName, slug, timezone, line1, line2, landmark, city, state, postalCode, mapUrl]);
 
   const pinError =
     postalCode && !INDIAN_PIN_PATTERN.test(postalCode)
@@ -75,9 +172,23 @@ export function CafeApplicationWizard() {
       },
     };
     submitApplication.mutate(payload, {
-      onSuccess: () => router.push('/onboarding/status'),
+      onSuccess: () => {
+        clearDraft();
+        router.push('/onboarding/status');
+      },
     });
   };
+
+  // Don't flash the empty form for a legitimate first-time applicant while
+  // the precondition check is still in flight, and don't render it at all
+  // for someone the effect above is about to redirect away.
+  if (isApplicationLoading || blockedByExistingApplication) {
+    return (
+      <div className="min-h-screen bg-brand-cream flex items-center justify-center px-4 pb-12 pt-24 md:pt-28">
+        <Loader2 className="w-6 h-6 animate-spin text-brand-mocha" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-brand-cream flex items-center justify-center px-4 pb-12 pt-24 md:pt-28">

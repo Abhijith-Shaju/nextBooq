@@ -38,6 +38,20 @@ export function CafeApplicationReview({ application }: CafeApplicationReviewProp
   const [rejectError, setRejectError] = useState('');
 
   const address = application.address;
+  const isPending = application.status === 'pending';
+
+  const STATUS_LABELS: Record<CafeApplicationDetail['status'], string> = {
+    pending: 'Pending review',
+    approved: 'Approved',
+    rejected: 'Rejected',
+    withdrawn: 'Withdrawn',
+  };
+  const STATUS_CLASSES: Record<CafeApplicationDetail['status'], string> = {
+    pending: 'bg-amber-100 text-amber-800',
+    approved: 'bg-emerald-100 text-emerald-800',
+    rejected: 'bg-red-100 text-red-800',
+    withdrawn: 'bg-slate-100 text-slate-600',
+  };
 
   const onSubscriptionStatusChange = (value: 'active' | 'trial') => {
     setSubscriptionStatus(value);
@@ -82,7 +96,14 @@ export function CafeApplicationReview({ application }: CafeApplicationReviewProp
   return (
     <section className="max-w-2xl space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <div>
-        <p className="font-mono text-sm text-slate-500">{application.application_ref}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-mono text-sm text-slate-500">{application.application_ref}</p>
+          <span
+            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_CLASSES[application.status]}`}
+          >
+            {STATUS_LABELS[application.status]}
+          </span>
+        </div>
         <h2 className="mt-1 text-xl font-bold text-slate-900">{application.cafe_name}</h2>
         <p className="text-sm text-slate-600">
           Applied {format(new Date(application.created_at), 'MMM d, yyyy')}
@@ -134,93 +155,126 @@ export function CafeApplicationReview({ application }: CafeApplicationReviewProp
         </div>
       </dl>
 
-      <section className="space-y-3 border-t border-slate-100 pt-5">
-        <h3 className="font-semibold">Subscription</h3>
-        <div className="flex gap-5 text-sm">
-          <label>
+      {isPending ? (
+        <>
+          <section className="space-y-3 border-t border-slate-100 pt-5">
+            <h3 className="font-semibold">Subscription</h3>
+            <div className="flex gap-5 text-sm">
+              <label>
+                <input
+                  type="radio"
+                  checked={subscriptionStatus === 'active'}
+                  onChange={() => onSubscriptionStatusChange('active')}
+                />{' '}
+                Active
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  checked={subscriptionStatus === 'trial'}
+                  onChange={() => onSubscriptionStatusChange('trial')}
+                />{' '}
+                One-month trial at ₹0
+              </label>
+            </div>
+            {subscriptionStatus === 'active' && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <select
+                  aria-label="Term months"
+                  value={termMonths}
+                  onChange={(event) => onTermChange(Number(event.target.value) as SubscriptionTermMonths)}
+                  className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                >
+                  {TERM_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  aria-label="Price per month"
+                  type="number"
+                  min={0}
+                  value={pricePerMonth}
+                  onChange={(event) => setPricePerMonth(Number(event.target.value))}
+                  className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                />
+              </div>
+            )}
             <input
-              type="radio"
-              checked={subscriptionStatus === 'active'}
-              onChange={() => onSubscriptionStatusChange('active')}
-            />{' '}
-            Active
-          </label>
-          <label>
-            <input
-              type="radio"
-              checked={subscriptionStatus === 'trial'}
-              onChange={() => onSubscriptionStatusChange('trial')}
-            />{' '}
-            One-month trial at ₹0
-          </label>
-        </div>
-        {subscriptionStatus === 'active' && (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <select
-              aria-label="Term months"
-              value={termMonths}
-              onChange={(event) => onTermChange(Number(event.target.value) as SubscriptionTermMonths)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-            >
-              {TERM_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <input
-              aria-label="Price per month"
-              type="number"
-              min={0}
-              value={pricePerMonth}
-              onChange={(event) => setPricePerMonth(Number(event.target.value))}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+              aria-label="Subscription note"
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="Optional admin note"
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
             />
-          </div>
-        )}
-        <input
-          aria-label="Subscription note"
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-          placeholder="Optional admin note"
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-        />
-        {approve.isError && <p className="text-sm text-red-700">{apiMessage(approve.error, 'Unable to approve this application.')}</p>}
-        <button
-          type="button"
-          onClick={onApprove}
-          disabled={approve.isPending}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {approve.isPending ? 'Approving…' : 'Approve & Provision'}
-        </button>
-      </section>
+            {approve.isError && <p className="text-sm text-red-700">{apiMessage(approve.error, 'Unable to approve this application.')}</p>}
+            <button
+              type="button"
+              onClick={onApprove}
+              disabled={approve.isPending}
+              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {approve.isPending ? 'Approving…' : 'Approve & Provision'}
+            </button>
+          </section>
 
-      <section className="space-y-3 border-t border-slate-100 pt-5">
-        <h3 className="font-semibold">Reject</h3>
-        <div>
-          <label htmlFor="rejection-note" className="mb-1 block text-sm font-medium text-slate-700">
-            Rejection note
-          </label>
-          <textarea
-            id="rejection-note"
-            value={rejectNote}
-            onChange={(event) => setRejectNote(event.target.value)}
-            placeholder="Tell the applicant what to fix"
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-        </div>
-        {rejectError && <p className="text-sm text-red-700">{rejectError}</p>}
-        {reject.isError && <p className="text-sm text-red-700">{apiMessage(reject.error, 'Unable to reject this application.')}</p>}
-        <button
-          type="button"
-          onClick={onReject}
-          disabled={reject.isPending}
-          className="rounded-md border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {reject.isPending ? 'Rejecting…' : 'Reject'}
-        </button>
-      </section>
+          <section className="space-y-3 border-t border-slate-100 pt-5">
+            <h3 className="font-semibold">Reject</h3>
+            <div>
+              <label htmlFor="rejection-note" className="mb-1 block text-sm font-medium text-slate-700">
+                Rejection note
+              </label>
+              <textarea
+                id="rejection-note"
+                value={rejectNote}
+                onChange={(event) => setRejectNote(event.target.value)}
+                placeholder="Tell the applicant what to fix"
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            {rejectError && <p className="text-sm text-red-700">{rejectError}</p>}
+            {reject.isError && <p className="text-sm text-red-700">{apiMessage(reject.error, 'Unable to reject this application.')}</p>}
+            <button
+              type="button"
+              onClick={onReject}
+              disabled={reject.isPending}
+              className="rounded-md border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {reject.isPending ? 'Rejecting…' : 'Reject'}
+            </button>
+          </section>
+        </>
+      ) : application.status === 'approved' ? (
+        // The review email's link never expires, so a reviewer can land here
+        // long after approval — offering Approve/Reject again would be a lie
+        // (loadPending already 409s server-side) and is the wrong thing to
+        // show a human. Send them to the cafe that already exists instead.
+        <section className="space-y-3 border-t border-slate-100 pt-5">
+          <p className="text-sm text-slate-600">
+            This application was already approved and provisioned.
+          </p>
+          <a
+            href={`/${application.cafe_slug}/dashboard`}
+            className="inline-block rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+          >
+            View the cafe&apos;s dashboard
+          </a>
+        </section>
+      ) : (
+        <section className="space-y-3 border-t border-slate-100 pt-5">
+          <p className="text-sm text-slate-600">
+            This application was {STATUS_LABELS[application.status].toLowerCase()} and can no longer be
+            reviewed.
+          </p>
+          {application.review_note && (
+            <p className="text-sm text-slate-600">
+              <span className="font-medium text-slate-700">Note: </span>
+              {application.review_note}
+            </p>
+          )}
+        </section>
+      )}
     </section>
   );
 }

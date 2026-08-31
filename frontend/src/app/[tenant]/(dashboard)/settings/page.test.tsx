@@ -282,7 +282,12 @@ describe('CafeSettingsPage — storefront', () => {
     );
   });
 
-  test('saving omits address entirely when line 1 is blank', async () => {
+  test('saving with every address field blank still sends an address key (so a cleared address is actually cleared)', async () => {
+    // Previously this omitted the `address` key entirely when line 1 was
+    // blank, which meant blanking out an address and saving silently kept
+    // the old address live on the storefront. The address section is always
+    // rendered, so the key must always be sent — the backend is what decides
+    // whether "all blank" means "clear it".
     vi.mocked(useTenant).mockReturnValue({ cafe: makeCafe() } as any);
     renderPage();
 
@@ -290,7 +295,44 @@ describe('CafeSettingsPage — storefront', () => {
 
     await waitFor(() => expect(axiosInstance.put).toHaveBeenCalled());
     const [, body] = vi.mocked(axiosInstance.put).mock.calls[0];
-    expect(body).not.toHaveProperty('address');
+    expect(body).toHaveProperty('address');
+    expect((body as { address: Record<string, string> }).address).toMatchObject({
+      line1: '',
+      city: '',
+      state: '',
+      postal_code: '',
+    });
+  });
+
+  test('blanking out a previously-saved address still sends an address key with every field empty', async () => {
+    vi.mocked(useTenant).mockReturnValue({
+      cafe: {
+        ...makeCafe(),
+        address: {
+          line1: '12 Church Street',
+          city: 'Bengaluru',
+          state: 'Karnataka',
+          postal_code: '560001',
+          map_url: '',
+        },
+      },
+    } as any);
+    renderPage();
+
+    fireEvent.change(screen.getByLabelText(/address line 1/i), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText(/^city$/i), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText(/^state$/i), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText(/pin code/i), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: /save cafe rules/i }));
+
+    await waitFor(() =>
+      expect(axiosInstance.put).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          address: expect.objectContaining({ line1: '', city: '', state: '', postal_code: '' }),
+        })
+      )
+    );
   });
 
   test('editing the description field updates what would be submitted on save', async () => {

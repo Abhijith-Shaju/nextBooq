@@ -71,4 +71,37 @@ describe('CafeApplicationReview', () => {
       expect.anything()
     );
   });
+
+  test('a pending application shows a "Pending review" status and the full approve/reject actions', () => {
+    render(<CafeApplicationReview application={application} />);
+
+    expect(screen.getByText(/pending review/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /approve/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reject/i })).toBeInTheDocument();
+  });
+
+  test('an approved application shows its status, hides approve/reject, and links to the live cafe instead', () => {
+    render(<CafeApplicationReview application={{ ...application, status: 'approved' }} />);
+
+    expect(screen.getByText(/^approved$/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /approve & provision/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^reject$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /dashboard/i })).toHaveAttribute(
+      'href',
+      '/filter-kaapi/dashboard'
+    );
+  });
+
+  test('a rejected application shows its status and hides both action sections', () => {
+    render(
+      <CafeApplicationReview
+        application={{ ...application, status: 'rejected', review_note: 'Duplicate registration.' }}
+      />
+    );
+
+    expect(screen.getByText(/^rejected$/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /approve & provision/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^reject$/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/duplicate registration/i)).toBeInTheDocument();
+  });
 });

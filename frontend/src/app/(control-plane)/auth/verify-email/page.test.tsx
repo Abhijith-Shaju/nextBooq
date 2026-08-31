@@ -252,4 +252,59 @@ describe('VerifyEmailPage', () => {
     expect(replaceMock).not.toHaveBeenCalledWith(expect.stringMatching(/^\/onboarding/));
     expect(pushMock).not.toHaveBeenCalledWith(expect.stringMatching(/^\/onboarding/));
   });
+
+  test('a backslash-disguised open-redirect callbackUrl falls back to "/" instead of navigating off-site', async () => {
+    // "/\evil.com" is parsed by browsers' WHATWG URL parser as a second
+    // leading slash, i.e. an absolute URL to host evil.com.
+    searchParamsMock = new URLSearchParams();
+    searchParamsMock.set('callbackUrl', '/\\evil.com');
+    useAuthMock.mockReturnValue({
+      user: { id: 'u1', email: 'user@example.com', is_email_verified: false },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    verifyMutateMock.mockImplementation((_payload, { onSuccess }) => onSuccess());
+
+    renderWithClient(<VerifyEmailPage />);
+
+    fireEvent.change(screen.getByPlaceholderText('6-digit code'), { target: { value: '123456' } });
+    fireEvent.click(screen.getByRole('button', { name: /verify email/i }));
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/'), { timeout: 2000 });
+    expect(pushMock).not.toHaveBeenCalledWith(expect.stringContaining('evil.com'));
+  });
+
+  test('a protocol-relative open-redirect callbackUrl ("//evil.com") falls back to "/"', async () => {
+    searchParamsMock = new URLSearchParams();
+    searchParamsMock.set('callbackUrl', '//evil.com');
+    useAuthMock.mockReturnValue({
+      user: { id: 'u1', email: 'user@example.com', is_email_verified: false },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    verifyMutateMock.mockImplementation((_payload, { onSuccess }) => onSuccess());
+
+    renderWithClient(<VerifyEmailPage />);
+
+    fireEvent.change(screen.getByPlaceholderText('6-digit code'), { target: { value: '123456' } });
+    fireEvent.click(screen.getByRole('button', { name: /verify email/i }));
+
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/'), { timeout: 2000 });
+    expect(pushMock).not.toHaveBeenCalledWith(expect.stringContaining('evil.com'));
+  });
+
+  test('an already-verified user with a backslash-disguised callbackUrl is replaced to "/" not the off-site host', async () => {
+    searchParamsMock = new URLSearchParams();
+    searchParamsMock.set('callbackUrl', '/\\evil.com');
+    useAuthMock.mockReturnValue({
+      user: { id: 'u1', email: 'user@example.com', is_email_verified: true },
+      isAuthenticated: true,
+      isLoading: false,
+    });
+
+    renderWithClient(<VerifyEmailPage />);
+
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/'));
+    expect(replaceMock).not.toHaveBeenCalledWith(expect.stringContaining('evil.com'));
+  });
 });

@@ -27,6 +27,23 @@ const MAX_CONTACT_PHONE_LENGTH = 30;
 const HEX_COLOR_PATTERN = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 const HERO_OVERLAY_VALUES = ['subtle', 'balanced', 'vivid'];
 
+// The same fields validateAddress inspects, minus `country` — country
+// defaults to 'India' whether or not it was supplied, so its presence alone
+// must never count as "this address has content" (an object with only a
+// country would otherwise dodge the all-blank check and get rejected by
+// validateAddress's line1-is-required check instead of being treated as a
+// clear).
+const ADDRESS_CONTENT_FIELDS = ['line1', 'line2', 'landmark', 'city', 'state', 'postal_code', 'map_url'];
+
+const isAddressAllBlank = (value) =>
+  !!value &&
+  typeof value === 'object' &&
+  !Array.isArray(value) &&
+  ADDRESS_CONTENT_FIELDS.every((field) => {
+    const fieldValue = value[field];
+    return fieldValue === undefined || fieldValue === null || (typeof fieldValue === 'string' && fieldValue.trim() === '');
+  });
+
 const validateRazorpayCredentials = async (razorpayKeyId, razorpayKeySecret) => {
   const client = createRazorpayClient({ key_id: razorpayKeyId, key_secret: razorpayKeySecret });
   try {
@@ -202,9 +219,16 @@ const updateCafe = async (req, res, next) => {
 
     // Same shape the onboarding application captured — validated by the one
     // shared validator so settings and provisioning can't diverge. Omitting
-    // the key leaves the stored address untouched.
+    // the key leaves the stored address untouched. Sending the key with every
+    // field blank is how a cafe clears a previously-saved address (the
+    // settings UI always sends this key once the address section has been
+    // rendered, whether or not anything is filled in) — that must bypass
+    // validateAddress, whose line1/city/state-required checks exist for a
+    // *populated* address, not to prevent clearing one. A partial address
+    // (say city filled, line1 blank) still goes through validateAddress and
+    // is rejected exactly as before.
     if (address !== undefined) {
-      cafe.address = validateAddress(address);
+      cafe.address = isAddressAllBlank(address) ? {} : validateAddress(address);
     }
 
     if (logo_url !== undefined) {
