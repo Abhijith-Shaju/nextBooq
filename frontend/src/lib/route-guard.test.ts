@@ -10,7 +10,7 @@ function makeFakeJwt(payload: Record<string, unknown>): string {
 }
 
 const validSessionCookie = () =>
-  `accessToken=${makeFakeJwt({ exp: Math.floor(Date.now() / 1000) + 3600 })}`;
+  `nb_session=${makeFakeJwt({ exp: Math.floor(Date.now() / 1000) + 3600 })}`;
 
 describe('resolveRedirect', () => {
   test('returns null for an unprotected route with no session', () => {

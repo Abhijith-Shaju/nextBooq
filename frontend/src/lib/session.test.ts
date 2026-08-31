@@ -15,12 +15,19 @@ describe('session', () => {
     expect(hasSessionCookie(null)).toBe(false);
   });
 
-  test('hasSessionCookie is true when accessToken has a value', () => {
-    expect(hasSessionCookie('other=1; accessToken=jwt-abc123; theme=dark')).toBe(true);
+  test('hasSessionCookie is true when nb_session has a value', () => {
+    expect(hasSessionCookie('other=1; nb_session=jwt-abc123; theme=dark')).toBe(true);
   });
 
-  test('hasSessionCookie is false when accessToken is present but empty', () => {
-    expect(hasSessionCookie('accessToken=; theme=dark')).toBe(false);
+  test('hasSessionCookie is false when nb_session is present but empty', () => {
+    expect(hasSessionCookie('nb_session=; theme=dark')).toBe(false);
+  });
+
+  test('hasSessionCookie ignores a legacy accessToken cookie', () => {
+    // The rename is a clean cut: a stale accessToken left in a browser from
+    // before the change must not read as a live session, or the middleware
+    // would wave the user through to a route whose API calls all 401.
+    expect(hasSessionCookie('accessToken=jwt-abc123')).toBe(false);
   });
 
   test('applyAuthResult writes the user into the ["me"] query cache', () => {
@@ -54,19 +61,18 @@ describe('session', () => {
     expect(() => applyAuthResult(queryClient, { token: 'jwt-abc123' })).not.toThrow();
   });
 
-  test('hasValidSessionCookie is false when the accessToken value is not JWT-shaped', () => {
-    expect(hasValidSessionCookie('accessToken=not-a-real-jwt')).toBe(false);
+  test('hasValidSessionCookie is true for an unexpired nb_session', () => {
+    const token = makeFakeJwt({ exp: Math.floor(Date.now() / 1000) + 3600 });
+    expect(hasValidSessionCookie(`nb_session=${token}`)).toBe(true);
   });
 
-  test('hasValidSessionCookie is false when the token is expired', () => {
-    const expiredToken = makeFakeJwt({ exp: Math.floor(Date.now() / 1000) - 3600 });
-
-    expect(hasValidSessionCookie(`accessToken=${expiredToken}`)).toBe(false);
+  test('hasValidSessionCookie is false for an expired nb_session', () => {
+    const token = makeFakeJwt({ exp: Math.floor(Date.now() / 1000) - 3600 });
+    expect(hasValidSessionCookie(`nb_session=${token}`)).toBe(false);
   });
 
-  test('hasValidSessionCookie is true when the token has a future exp', () => {
-    const validToken = makeFakeJwt({ exp: Math.floor(Date.now() / 1000) + 3600 });
-
-    expect(hasValidSessionCookie(`accessToken=${validToken}`)).toBe(true);
+  test('hasValidSessionCookie ignores a legacy accessToken cookie', () => {
+    const token = makeFakeJwt({ exp: Math.floor(Date.now() / 1000) + 3600 });
+    expect(hasValidSessionCookie(`accessToken=${token}`)).toBe(false);
   });
 });

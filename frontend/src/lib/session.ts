@@ -10,7 +10,7 @@ import type { AuthUser } from './types/auth';
 // is present, and decodes its payload (without verifying the signature —
 // only the backend can authoritatively verify a token) to short-circuit
 // obviously-expired sessions for redirect purposes.
-const SESSION_COOKIE_NAME = 'accessToken';
+const SESSION_COOKIE_NAME = 'nb_session';
 const SESSION_COOKIE_PATTERN = new RegExp(`(?:^|;\\s*)${SESSION_COOKIE_NAME}=([^;]*)`);
 
 export function hasSessionCookie(cookieHeader: string | null): boolean {
