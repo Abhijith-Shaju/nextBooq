@@ -39,6 +39,17 @@ describe('axiosInstance', () => {
   });
 
   test('falls back to a relative baseURL when NEXT_PUBLIC_API_URL is unset', async () => {
+    // undefined (not '') so the variable is actually deleted from
+    // process.env, genuinely exercising the `?? ''` fallback rather than
+    // just passing an empty string straight through.
+    vi.stubEnv('NEXT_PUBLIC_API_URL', undefined);
+
+    const instance = await loadInstance();
+
+    expect(instance.defaults.baseURL).toBe('');
+  });
+
+  test('treats an explicitly empty string as a valid relative baseURL', async () => {
     vi.stubEnv('NEXT_PUBLIC_API_URL', '');
 
     const instance = await loadInstance();
