@@ -75,4 +75,8 @@ describe('session', () => {
     const token = makeFakeJwt({ exp: Math.floor(Date.now() / 1000) + 3600 });
     expect(hasValidSessionCookie(`accessToken=${token}`)).toBe(false);
   });
+
+  test('hasValidSessionCookie is false when the value is not JWT-shaped', () => {
+    expect(hasValidSessionCookie('nb_session=not-a-real-jwt')).toBe(false);
+  });
 });

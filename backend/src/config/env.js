@@ -128,4 +128,24 @@ const parseEnv = () => {
 
 const config = parseEnv();
 
+// Not a schema validation failure (superRefine above deliberately allows
+// COOKIE_DOMAIN unset in production — a same-host topology, where the
+// frontend and API share an origin, is a legitimate deployment shape and
+// unset there is correct). This warns about the *other* production
+// topology: frontend and API on split hosts (e.g. www.nextbooq.in /
+// api.nextbooq.in) with COOKIE_DOMAIN left unset. In that shape auth
+// *looks* fine — the API still accepts its own host-only cookie — but the
+// Next.js middleware on the app's origin never receives it, so every
+// protected route silently bounces to login. That reads as a login bug,
+// not a config bug, so it's worth flagging at boot even though it can't be
+// distinguished from the legitimate same-host case by config alone.
+if (config.NODE_ENV === 'production' && !config.COOKIE_DOMAIN) {
+  console.warn(
+    '⚠️  COOKIE_DOMAIN is unset in production. This is correct if the frontend and API ' +
+      'share a host, but if they are on split hosts (e.g. www.example.com / api.example.com), ' +
+      'the session cookie will be host-only and the frontend\'s middleware will never see it — ' +
+      'every protected route will bounce to login even though the API itself accepts requests.'
+  );
+}
+
 module.exports = { ...config, envSchema };

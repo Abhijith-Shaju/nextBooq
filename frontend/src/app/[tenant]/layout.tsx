@@ -27,7 +27,12 @@ export default async function TenantLayout({
 
   const result = await resolveTenantCafe({
     tenant,
-    apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+    // No localhost fallback: matches axios-instance.ts, which reads
+    // NEXT_PUBLIC_API_URL with no default of its own (`?? ''`). An unset
+    // value should fail the same way everywhere rather than working here
+    // (via a stale fallback) while the browser's API calls silently 404
+    // against the Next.js origin — see docs/LOCAL_DEVELOPMENT.md.
+    apiUrl: process.env.NEXT_PUBLIC_API_URL ?? '',
     nodeEnv: process.env.NODE_ENV,
   });
 

@@ -49,9 +49,12 @@ const assertPasswordStrength = (password) => {
 };
 
 // Browser clients authenticate via this httpOnly cookie exclusively — the
-// frontend never reads or stores the raw token (see frontend/src/lib/session.ts
-// and next.config.ts, which proxies frontend API calls through the Next.js
-// origin so this cookie is visible to both the app and its route middleware).
+// frontend never reads or stores the raw token (see
+// frontend/src/lib/session.ts). It's scoped to COOKIE_DOMAIN
+// (".nextbooq.in" in production, see config/env.js), so both the app's
+// origin (www) and the API's own origin (api) receive it — that's what
+// makes it visible to the Next.js route middleware as well as the API,
+// without the two needing to be same-origin.
 // The token is still also returned in the JSON body for non-browser/API clients.
 //
 // Both helpers must stay attribute-identical. A clearCookie whose domain,
@@ -777,6 +780,10 @@ module.exports = {
   changeEmail,
   changePhone,
   requestStepUpOtp,
+  // Exported for backend/tests/unit/cookieDomain.test.js only — lets that
+  // test assert on the exact cookie attributes res.cookie() is called with
+  // (in particular Domain=) without spinning up the full app/DB.
+  setAuthCookie,
   updateAccountType,
 };
 

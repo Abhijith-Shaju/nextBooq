@@ -43,14 +43,20 @@ function TenantDashboardGuard({ children }: { children: React.ReactNode }) {
 
   // WebSocket Connection Lifecycle
   useEffect(() => {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    // No localhost fallback: matches axios-instance.ts, which reads
+    // NEXT_PUBLIC_API_URL with no default of its own. An unset value
+    // should fail the same way everywhere rather than silently connecting
+    // this socket to a local backend while REST calls 404 elsewhere in the
+    // app — see docs/LOCAL_DEVELOPMENT.md.
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
     let socket: ReturnType<typeof io> | undefined;
     let cancelled = false;
 
-    // Socket.IO connects to the backend's own origin. The httpOnly session
-    // cookie isn't sent with a WebSocket handshake, so fetch a short-lived
-    // token over the cookie-authenticated REST API instead and hand it to
-    // the handshake only — it's never persisted to storage.
+    // Socket.IO connects to the backend's own origin. socketService
+    // authenticates a connection from socket.handshake.auth, not from the
+    // request's cookies, so a token has to be handed to the handshake
+    // explicitly — fetch a short-lived one over the cookie-authenticated
+    // REST API and pass it in; it's never persisted to storage.
     const connect = async () => {
       try {
         const { data } = await axiosInstance.get<{ data: { token: string } }>(

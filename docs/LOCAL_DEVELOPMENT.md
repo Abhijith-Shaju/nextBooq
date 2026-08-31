@@ -1,5 +1,26 @@
 # Local development
 
+## Frontend API origin
+
+The frontend no longer proxies browser API calls through a Next.js rewrite —
+`axios-instance.ts` and the server-rendered tenant layouts all send requests
+straight to the backend's own origin, read from `NEXT_PUBLIC_API_URL`.
+
+Set it in `frontend/.env.local` (see `frontend/.env.example`):
+
+```dotenv
+NEXT_PUBLIC_API_URL=http://localhost:5000
+```
+
+Leaving it unset does not fail loudly: server-rendered tenant pages still
+work, but every browser-side API call resolves against the Next.js app's own
+origin (`http://localhost:3000/api/...`) and gets Next's HTML 404 page back
+instead of a JSON response — the app half-loads, then fails in a way that
+looks like an auth bug rather than a missing config value.
+`NEXT_PUBLIC_API_URL` is a build-time value inlined into the client bundle,
+so changing it later requires restarting `npm run dev` (or a rebuild), not
+just re-saving the file.
+
 ## MongoDB transaction support
 
 Cafe provisioning will use MongoDB multi-document transactions. Run the local

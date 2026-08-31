@@ -106,7 +106,7 @@ The backend is the authority: it resolves the cafe from the request, looks up th
 ### Login routing as currently implemented
 
 1. Staff login posts email/password to `/api/v1/auth/login`.
-2. The backend validates bcrypt password, writes the `accessToken` HTTP-only cookie (JWT; seven-day expiry), audits the login, and returns user details plus populated staff memberships.
+2. The backend validates bcrypt password, writes the `nb_session` HTTP-only cookie (JWT; seven-day expiry), audits the login, and returns user details plus populated staff memberships.
 3. If the login URL has `callbackUrl`, the frontend redirects there first.
 4. Otherwise, if the returned user has a first staff membership whose cafe has a slug, the frontend redirects to `/{slug}/dashboard`.
 5. Otherwise it redirects to `/onboarding`.
@@ -255,12 +255,12 @@ All API endpoints are mounted below `/api/v1` unless noted.
 - **Zustand booking store** owns the in-progress booking: tenant cafe, party size, date, selected time, hold expiry, and Razorpay/reservation response. Checkout and success rely on this store, so a direct refresh before the data is rehydrated can lose context.
 - **Zustand dashboard store** owns local dashboard UI state such as selected date and active drawer/selection state.
 - Both stores reset on logout and when the tenant changes to avoid shared-browser leakage.
-- Axios uses a relative `/api` base path; Next.js rewrites those requests to the backend, keeping the browser's HTTP-only session cookie same-origin for middleware and API calls.
+- Axios targets the backend's own origin directly (`NEXT_PUBLIC_API_URL`, e.g. `api.nextbooq.in`) — there is no Next.js rewrite/proxy. The session cookie is scoped to `COOKIE_DOMAIN` (`.nextbooq.in` in production), so it's still sent to both the app's origin and the API's origin (same-site, not same-origin), keeping it visible to both the Next.js middleware and the API.
 - A global Axios interceptor clears cached session data on `401`; it redirects to staff login only for staff dashboard/admin paths, shows permission errors for `403`, and handles optimistic concurrency conflicts (`409`).
 
 ## Security and operational rules
 
-- JWTs are never put in browser storage. Browser sessions use `accessToken`, an HTTP-only, `SameSite=Lax` cookie; non-browser clients may use a Bearer token.
+- JWTs are never put in browser storage. Browser sessions use `nb_session`, an HTTP-only, `SameSite=Lax` cookie scoped to `COOKIE_DOMAIN`; non-browser clients may use a Bearer token.
 - Production requires a 32+ character JWT secret and non-default Razorpay credentials/secrets.
 - CORS accepts only configured `CORS_ALLOWED_ORIGINS`; Express proxy trust is configured through `TRUST_PROXY`.
 - Razorpay webhooks verify HMAC over the exact original request bytes and use timing-safe comparison.
