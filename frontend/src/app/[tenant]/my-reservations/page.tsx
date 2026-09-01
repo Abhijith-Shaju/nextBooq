@@ -107,7 +107,7 @@ export default function MyReservationsPage() {
             </div>
             <div>
               <p className="text-base font-bold text-brand-brown">No reservations found</p>
-              <p className="text-xs text-brand-mocha mt-0.5">You haven't held any tables at {cafe.name} yet.</p>
+              <p className="text-xs text-brand-mocha mt-0.5">You haven&apos;t held any tables at {cafe.name} yet.</p>
             </div>
             <Link
               href={`/${cafe.slug}`}

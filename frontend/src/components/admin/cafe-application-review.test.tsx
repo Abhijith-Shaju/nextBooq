@@ -7,6 +7,9 @@ import { CafeApplicationReview } from './cafe-application-review';
 const approve = vi.fn();
 const reject = vi.fn();
 
+const push = vi.fn();
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
+
 vi.mock('@/hooks/admin/use-review-cafe-application', () => ({
   useApproveCafeApplication: () => ({ mutate: approve, isPending: false }),
   useRejectCafeApplication: () => ({ mutate: reject, isPending: false }),

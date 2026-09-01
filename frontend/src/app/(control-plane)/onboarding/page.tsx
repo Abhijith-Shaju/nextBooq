@@ -46,7 +46,7 @@ function OnboardingChoice() {
           <UserIcon className="w-5 h-5 text-brand-brown" />
         </div>
         <div>
-          <p className="font-display font-semibold text-brand-brown">I'm booking a table</p>
+          <p className="font-display font-semibold text-brand-brown">I&apos;m booking a table</p>
           <p className="font-sans text-sm text-brand-mocha">Find a cafe and reserve a seat.</p>
         </div>
       </button>

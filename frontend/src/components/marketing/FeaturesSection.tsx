@@ -47,7 +47,7 @@ export default function FeaturesSection() {
             id="features-heading"
             className="font-display text-3xl sm:text-4xl font-bold text-brand-brown mb-4"
           >
-            Everything your café's floor actually needs
+            Everything your café&apos;s floor actually needs
           </h2>
           <p className="font-sans text-brand-mocha text-lg leading-relaxed max-w-2xl mx-auto">
             No spreadsheets, no phone tag, no guessing which table is free.

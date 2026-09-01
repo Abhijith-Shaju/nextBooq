@@ -9,7 +9,7 @@ export default function NotFound() {
           Restaurant not found
         </h2>
         <p className="text-muted-foreground max-w-sm">
-          We couldn't find the restaurant you're looking for. Please check the
+          We couldn&apos;t find the restaurant you&apos;re looking for. Please check the
           link and try again.
         </p>
         <Link

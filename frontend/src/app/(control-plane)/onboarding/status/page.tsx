@@ -65,7 +65,7 @@ function OnboardingStatusGuard() {
     return (
       <Shell>
         <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
-        <h1 className="font-display text-3xl font-bold text-brand-brown">You're approved!</h1>
+        <h1 className="font-display text-3xl font-bold text-brand-brown">You&apos;re approved!</h1>
         <p className="font-sans text-brand-mocha text-sm">
           {application.cafe_name} is ready to go on nextBooq.
         </p>

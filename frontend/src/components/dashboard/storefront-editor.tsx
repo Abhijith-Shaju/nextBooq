@@ -99,7 +99,7 @@ export function StorefrontEditor({
         <Info className="w-4 h-4 text-brand-red" /> Storefront
       </h2>
       <p className="text-[11px] text-brand-mochaMid -mt-4">
-        Shown on your cafe's public page. Leave blank to keep the default look.
+        Shown on your cafe&apos;s public page. Leave blank to keep the default look.
       </p>
 
       <div>

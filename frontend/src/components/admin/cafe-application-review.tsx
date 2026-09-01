@@ -14,18 +14,7 @@ interface CafeApplicationReviewProps {
 }
 
 export function CafeApplicationReview({ application }: CafeApplicationReviewProps) {
-  // useRouter() throws "invariant expected app router to be mounted" when
-  // there's no AppRouterContext.Provider above it — which is exactly this
-  // component's own unit tests, rendered standalone with no Next.js router
-  // in the tree. The hook itself (a plain useContext call) still runs on
-  // every render, so hook order stays stable; only the throw afterwards is
-  // caught. Inside a real Next.js route this always resolves to a router.
-  let router: ReturnType<typeof useRouter> | null = null;
-  try {
-    router = useRouter();
-  } catch {
-    router = null;
-  }
+  const router = useRouter();
   const approve = useApproveCafeApplication();
   const reject = useRejectCafeApplication();
 
@@ -76,7 +65,7 @@ export function CafeApplicationReview({ application }: CafeApplicationReviewProp
             : { status: 'active', term_months: termMonths, price_per_month: Number(pricePerMonth), note: note.trim() || undefined },
       },
       {
-        onSuccess: (result) => router?.push(`/${result.provisioned.cafe.slug}/dashboard`),
+        onSuccess: (result) => router.push(`/${result.provisioned.cafe.slug}/dashboard`),
       }
     );
   };
