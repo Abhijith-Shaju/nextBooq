@@ -9,6 +9,7 @@ const User = require('../../src/models/User');
 const Table = require('../../src/models/Table');
 const Reservation = require('../../src/models/Reservation');
 const { setupTestDB } = require('../setup');
+const { nextWeekday } = require('../helpers/dates');
 const { encrypt } = require('../../src/utils/encryption');
 
 // Explicitly mock Razorpay SDK calls for E2E tests
@@ -89,7 +90,7 @@ describe('End-to-End E2E Test: Full Reservation Lifecycle Flow', () => {
   });
 
   test('executes complete end-to-end flow from search -> hold -> payment -> check-in -> seated -> completed', async () => {
-    const date = '2026-08-30';
+    const date = nextWeekday('monday');
     const time = '19:00';
 
     // Step 1: Customer queries available slots

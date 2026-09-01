@@ -8,6 +8,12 @@ const User = require('../../src/models/User');
 const Table = require('../../src/models/Table');
 const Reservation = require('../../src/models/Reservation');
 const { setupTestDB } = require('../setup');
+const { nextWeekday } = require('../helpers/dates');
+
+// Resolved once: the blocking reservation and the availability query must
+// land on the same day, which two separate calls could not guarantee if the
+// suite happened to run across midnight UTC.
+const MONDAY = nextWeekday('monday');
 
 setupTestDB();
 
@@ -55,7 +61,7 @@ describe('Integration Test: available-slots batches its DB queries across all ca
     const res = await request(app)
       .get(`/api/v1/cafes/${cafe._id}/available-slots`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .query({ date: '2026-08-31', partySize: 2, durationMinutes: 30 }); // a Monday
+      .query({ date: MONDAY, partySize: 2, durationMinutes: 30 });
 
     expect(res.status).toBe(200);
     expect(res.body.data.length).toBeGreaterThan(10);
@@ -84,15 +90,15 @@ describe('Integration Test: available-slots batches its DB queries across all ca
       table_ids: [(await Table.findOne({ cafe_id: cafe._id }))._id],
       status: 'CONFIRMED',
       party_size: 2,
-      start_time: new Date('2026-08-31T12:00:00.000Z'),
-      end_time: new Date('2026-08-31T12:30:00.000Z'),
+      start_time: new Date(`${MONDAY}T12:00:00.000Z`),
+      end_time: new Date(`${MONDAY}T12:30:00.000Z`),
       reservation_timezone: 'UTC',
     });
 
     const res = await request(app)
       .get(`/api/v1/cafes/${cafe._id}/available-slots`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .query({ date: '2026-08-31', partySize: 2, durationMinutes: 30 });
+      .query({ date: MONDAY, partySize: 2, durationMinutes: 30 });
 
     expect(res.status).toBe(200);
     const bySlot = Object.fromEntries(res.body.data.map((s) => [s.time, s.available]));

@@ -7,6 +7,7 @@ const Organization = require('../../src/models/Organization');
 const User = require('../../src/models/User');
 const Table = require('../../src/models/Table');
 const { setupTestDB } = require('../setup');
+const { nextWeekday } = require('../helpers/dates');
 
 setupTestDB();
 
@@ -46,7 +47,7 @@ describe('Integration Test: available-slots reflects cafe operating hours', () =
     const res = await request(app)
       .get(`/api/v1/cafes/${cafe._id}/available-slots`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .query({ date: '2026-08-31', partySize: 2, durationMinutes: 60 }); // a Monday
+      .query({ date: nextWeekday('monday'), partySize: 2, durationMinutes: 60 });
 
     expect(res.status).toBe(200);
     const times = res.body.data.map((s) => s.time);
@@ -62,7 +63,7 @@ describe('Integration Test: available-slots reflects cafe operating hours', () =
     const res = await request(app)
       .get(`/api/v1/cafes/${cafe._id}/available-slots`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .query({ date: '2026-09-01', partySize: 2, durationMinutes: 60 }); // a Tuesday
+      .query({ date: nextWeekday('tuesday'), partySize: 2, durationMinutes: 60 });
 
     expect(res.status).toBe(200);
     const times = res.body.data.map((s) => s.time);
@@ -77,7 +78,7 @@ describe('Integration Test: available-slots reflects cafe operating hours', () =
     const res = await request(app)
       .get(`/api/v1/cafes/${cafe._id}/available-slots`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .query({ date: '2026-09-06', partySize: 2 }); // a Sunday
+      .query({ date: nextWeekday('sunday'), partySize: 2 });
 
     expect(res.status).toBe(200);
     expect(res.body.data).toEqual([]);
@@ -87,7 +88,7 @@ describe('Integration Test: available-slots reflects cafe operating hours', () =
     const res = await request(app)
       .get(`/api/v1/cafes/${cafe._id}/available-slots`)
       .set('Authorization', `Bearer ${customerToken}`)
-      .query({ date: '2026-08-31', time: '22:45', partySize: 2, durationMinutes: 30 });
+      .query({ date: nextWeekday('monday'), time: '22:45', partySize: 2, durationMinutes: 30 });
 
     expect(res.status).toBe(200);
     expect(res.body.data.available).toBe(true);
