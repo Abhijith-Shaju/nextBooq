@@ -15,15 +15,16 @@ vi.mock('@/components/providers/auth-provider', () => ({
   useAuth: () => mockAuth,
 }));
 
+let mockCafe: any = {
+  id: 'cafe_1',
+  slug: 'demo-cafe',
+  name: 'Demo Cafe',
+  timezone: 'Asia/Kolkata',
+  reservation_rules: { hold_duration_minutes: 10 },
+};
+
 vi.mock('@/components/providers/tenant-provider', () => ({
-  useTenant: () => ({
-    cafe: {
-      id: 'cafe_1',
-      slug: 'demo-cafe',
-      name: 'Demo Cafe',
-      reservation_rules: { hold_duration_minutes: 10 },
-    },
-  }),
+  useTenant: () => ({ cafe: mockCafe }),
 }));
 
 vi.mock('@/store/use-booking-store', () => ({
@@ -101,6 +102,33 @@ describe('AuthOverlay', () => {
       expect.objectContaining({ party_size: 2 }),
       expect.any(Object)
     );
+  });
+
+  test("resolves the slot time in the cafe's timezone, not the browser's", () => {
+    mockAuth = {
+      isAuthenticated: true,
+      user: { name: 'Existing User', email: 'existing@example.com', is_email_verified: true },
+    };
+    mockCafe = { ...mockCafe, timezone: 'Asia/Kolkata' };
+
+    render(<AuthOverlay open onOpenChange={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /proceed to payment/i }));
+
+    const [payload] = bookTableMutate.mock.calls[0];
+
+    // The invariant that matters, and the one the old
+    // `new Date(`${dateStr}T${time}:00`)` broke: whatever instant we send,
+    // it must read back as the 19:00 slot the diner actually tapped when
+    // rendered in the cafe's own timezone. Asserted this way rather than
+    // against a fixed ISO string so the test does not depend on the
+    // timezone the test runner happens to sit in.
+    const asCafeSeesIt = new Date(payload.start_time).toLocaleString('en-GB', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    expect(asCafeSeesIt).toBe('19:00');
   });
 
   test('blocks holding a table for an unverified authenticated user', () => {

@@ -11,6 +11,7 @@ import { useCustomerQuickAuth } from '@/hooks/auth/use-customer-quick-auth';
 import { useBookingStore } from '@/store/use-booking-store';
 import { useTenant } from '@/components/providers/tenant-provider';
 import { format } from 'date-fns';
+import { cafeLocalToUTC } from '@/lib/timezone';
 import { Loader2, ArrowRight, Calendar, User, Mail, Phone, Lock, CheckCircle2, Shield, MailWarning } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -58,8 +59,10 @@ export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChang
       }
     }
 
+    // The slot label is the cafe's wall-clock time, so it has to be resolved
+    // in the cafe's timezone rather than the browser's — see cafeLocalToUTC.
     const dateStr = format(date, 'yyyy-MM-dd');
-    const isoDateTime = new Date(`${dateStr}T${time}:00`).toISOString();
+    const isoDateTime = cafeLocalToUTC(dateStr, time, cafe?.timezone).toISOString();
 
     // Block if email is not verified — the backend will reject anyway, but
     // we surface a clear message before wasting a round-trip.

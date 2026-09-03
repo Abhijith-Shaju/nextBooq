@@ -1,13 +1,29 @@
-import { formatInTimeZone, toDate, format } from 'date-fns-tz';
+import { formatInTimeZone, toDate, format, fromZonedTime } from 'date-fns-tz';
 import { addDays, addHours, isBefore, startOfDay, parseISO } from 'date-fns';
 
 export function toLocalTime(date: Date, timeZone: string): Date {
   return toDate(date, { timeZone });
 }
 
-export function toUTCString(date: Date, timeZone: string): string {
-  // Simplistic conversion for the sake of example, properly you'd convert local to UTC
-  return date.toISOString();
+/**
+ * Resolves a cafe-local calendar date + wall-clock time into the UTC instant
+ * the API expects.
+ *
+ * Slot times come off the availability API as the cafe's own wall clock
+ * ("19:00" means 7pm where the cafe is), so they must be interpreted in the
+ * cafe's timezone — never the browser's. `new Date('2026-09-05T19:00:00')`
+ * parses as *browser* local time, which silently produces the right instant
+ * only while the diner happens to sit in the cafe's timezone and books a
+ * different slot entirely otherwise (a UTC device booking a Kolkata cafe's
+ * 19:00 lands on 00:30 the next day). This mirrors the backend's own
+ * localTimeToUTC in utils/operatingHours.js.
+ *
+ * `timeZone` falls back to the browser's zone only when the tenant payload
+ * carries none; the API always sends one for a real cafe.
+ */
+export function cafeLocalToUTC(dateKey: string, time: string, timeZone?: string): Date {
+  const zone = timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return fromZonedTime(`${dateKey}T${time}:00`, zone);
 }
 
 export function formatInTimezone(date: Date | string, timeZone: string, formatStr: string = 'PPpp'): string {
