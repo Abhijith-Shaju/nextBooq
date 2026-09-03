@@ -4,8 +4,10 @@ const {
   availabilityRateLimiter,
   bookingCreationRateLimiter,
   bookingCreationIpRateLimiter,
+  paymentsSettingsRateLimiter,
 } = require('../../src/middleware/rateLimiter');
 const publicRoutes = require('../../src/routes/v1/publicRoutes');
+const protectedRoutes = require('../../src/routes/v1/protectedRoutes');
 const { setupTestDB } = require('../setup');
 
 setupTestDB();
@@ -102,6 +104,28 @@ describe('Unit Test: availability/booking rate limiters', () => {
     expect((await request(app).get('/probe').set('x-test-user', 'diner-c')).status).toBe(429);
   });
 
+  test('paymentsSettingsRateLimiter bounds step-up OTP guesses, counting failures', async () => {
+    const app = buildUserScopedApp(paymentsSettingsRateLimiter);
+
+    // Every attempt here is a wrong OTP, so all ten are 4xx. Unlike the
+    // booking limiter these MUST still count -- bounding failed guesses is
+    // the entire purpose, since a wrong step-up code neither consumes the
+    // code nor records an attempt anywhere else.
+    for (let i = 0; i < 10; i++) {
+      const res = await request(app)
+        .get('/probe')
+        .set('x-test-user', 'owner-a')
+        .set('x-test-fail', '1');
+      expect(res.status).toBe(400);
+    }
+
+    const blocked = await request(app).get('/probe').set('x-test-user', 'owner-a');
+    expect(blocked.status).toBe(429);
+
+    // A different owner is unaffected.
+    expect((await request(app).get('/probe').set('x-test-user', 'owner-b')).status).toBe(200);
+  });
+
   test('bookingCreationIpRateLimiter bounds unauthenticated floods more loosely', async () => {
     const app = buildTestApp(bookingCreationIpRateLimiter);
 
@@ -139,6 +163,18 @@ describe('Integration Test: rate limiters are wired into the real availability/b
       expect(availabilityHandlerNames).not.toContain('noop');
       expect(bookingHandlerNames).not.toContain('noop');
     }
+  });
+
+  test('protectedRoutes attaches a limiter to the payment-credentials route', () => {
+    // This was the one write route in the app with no limiter at all, and it
+    // is the route that consumes the step-up OTP guarding payout redirection.
+    const paymentsRoute = protectedRoutes.stack.find(
+      (layer) => layer.route?.path === '/cafes/:cafeId/payments' && layer.route?.methods?.put
+    );
+    expect(paymentsRoute).toBeDefined();
+
+    const names = paymentsRoute.route.stack.map((l) => l.name);
+    expect(names).toContain(process.env.NODE_ENV === 'test' ? 'noop' : 'rateLimit');
   });
 
   test('the per-user booking limiter is positioned after authenticate', () => {

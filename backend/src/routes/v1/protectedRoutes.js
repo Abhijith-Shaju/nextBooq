@@ -1,9 +1,19 @@
 const express = require('express');
 const router = express.Router();
+const config = require('../../config/env');
 const { authenticate } = require('../../middleware/auth');
 const { extractTenant } = require('../../middleware/tenantAuth');
 const { requirePermission } = require('../../middleware/rbac');
 const { enforceSubscriptionForWrite } = require('../../middleware/validateSubscription');
+const { paymentsSettingsRateLimiter } = require('../../middleware/rateLimiter');
+
+// Same NODE_ENV=test noop swap used in publicRoutes.js and
+// cafeApplicationRoutes.js: the payments suites legitimately save
+// credentials several times per run, and the limiter itself is verified
+// directly in publicRouteRateLimiting.test.js.
+const noop = (req, res, next) => next();
+const paymentsSettingsLimiterMiddleware =
+  config.NODE_ENV === 'test' ? noop : paymentsSettingsRateLimiter;
 
 const {
   getDailyManifest,
@@ -34,6 +44,7 @@ router.put(
 // (who holds edit_settings by default) cannot redirect the cafe's payouts.
 router.put(
   '/cafes/:cafeId/payments',
+  paymentsSettingsLimiterMiddleware,
   extractTenant,
   enforceSubscriptionForWrite,
   requirePermission('manage_billing'),

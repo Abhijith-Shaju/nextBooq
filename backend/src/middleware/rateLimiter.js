@@ -98,6 +98,23 @@ const contactFormRateLimiter = createRateLimiter({
   message: 'Too many contact form submissions. Please try again later.',
 });
 
+// Saving payment credentials consumes a 6-digit step-up OTP, and that OTP is
+// the only thing standing between a stolen owner session and redirecting a
+// cafe's Razorpay payouts. The code space is 10^6 over a 10-minute window and
+// a wrong guess neither consumes the code nor records an attempt, so without
+// a limiter here the guessing is bounded only by request throughput. This was
+// the one write route in the app with no limiter attached at all.
+//
+// Deliberately does NOT skip failed requests: failed attempts are exactly
+// what needs bounding. Keyed per user because the route is already
+// authenticated, so an attacker rotating IPs gains nothing.
+const paymentsSettingsRateLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  keyGenerator: userOrIpKey,
+  message: 'Too many payment settings attempts. Please try again later.',
+});
+
 // Its own bucket rather than sharing contactFormRateLimiter's: submitting an
 // application emails the operator, so someone hammering one form must not be
 // able to exhaust the other's quota.
@@ -112,6 +129,7 @@ module.exports = {
   availabilityRateLimiter,
   bookingCreationRateLimiter,
   bookingCreationIpRateLimiter,
+  paymentsSettingsRateLimiter,
   contactFormRateLimiter,
   cafeApplicationRateLimiter,
 };
