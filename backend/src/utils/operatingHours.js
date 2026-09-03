@@ -44,7 +44,20 @@ const getLocalTimeDetails = (dateObj, timeZone = 'UTC') => {
       dateKey: `${year}-${month}-${day}`,
     };
   } catch (error) {
-    // Fallback to UTC if timezone string is invalid
+    // Fallback to UTC if the timezone string is invalid.
+    //
+    // An invalid *date* reaches here too, because Intl.formatToParts throws
+    // RangeError on one — and then dateObj.toISOString() below threw the same
+    // RangeError a second time, out of the catch block itself, where nothing
+    // was left to handle it. That surfaced as an unhandled 500 on the public
+    // availability endpoint for any unparseable `date` query parameter.
+    // Callers are expected to validate their input (availabilityController
+    // now does), but this handler must not be the thing that converts bad
+    // input into a server error.
+    if (Number.isNaN(dateObj.getTime())) {
+      throw new UnprocessableEntityError('Invalid date supplied for timezone resolution');
+    }
+
     const dayOfWeek = DAYS[dateObj.getUTCDay()];
     const hours = String(dateObj.getUTCHours()).padStart(2, '0');
     const minutes = String(dateObj.getUTCMinutes()).padStart(2, '0');
