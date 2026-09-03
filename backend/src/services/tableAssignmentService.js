@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const config = require('../config/env');
 const Reservation = require('../models/Reservation');
 const Table = require('../models/Table');
 const { BadRequestError, NotFoundError, ConflictError, UnprocessableEntityError } = require('../utils/errors');
@@ -33,10 +34,28 @@ const tableUnavailableError = (message) => {
   return error;
 };
 
+// Detects the error shape MongoDB throws when a standalone (non-replica-set)
+// instance is asked to start a transaction, so local development against a
+// standalone mongod can still assign tables. This is only a heuristic --
+// it matches on an error string, not on verified topology -- so it must
+// never be trusted in production, where config/database.js's connectDB()
+// has already asserted transaction support at boot.
+//
+// The guard matters because a *transient* production error can match this
+// shape: a replica set election or stepdown surfaces messages containing
+// "replica set". Reading that as "this deployment has no replica set" and
+// silently re-running the assignment without a session abandons the
+// write-conflict serialization that makes two hosts assigning the same
+// table collide -- so two parties could be sent to one table during exactly
+// the window when the cluster is already unhealthy.
+//
+// bookingService.looksLikeStandaloneMongoError is the same heuristic with
+// the same guard; keep the two in step.
 const isStandaloneMongoError = (error) =>
-  error.code === 20 ||
-  error.codeName === 'IllegalOperation' ||
-  (error.message && error.message.includes('replica set'));
+  config.NODE_ENV !== 'production' &&
+  (error.code === 20 ||
+    error.codeName === 'IllegalOperation' ||
+    (error.message && error.message.includes('replica set')));
 
 /**
  * The span of time the table must be free for.
