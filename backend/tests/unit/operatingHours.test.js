@@ -97,3 +97,66 @@ describe('Operating Hours Validation Utility', () => {
     });
   });
 });
+
+// The conversion the API now owns on behalf of every client. Asserted as
+// absolute instants so these hold regardless of the timezone the test runner
+// sits in -- which is the whole point: the frontend used to do this in the
+// browser's zone, so it was only ever correct by coincidence.
+describe('localTimeToUTC resolves a cafe-local wall clock to an instant', () => {
+  const { localTimeToUTC, isValidDateKey, isValidTimeOfDay } = require('../../src/utils/operatingHours');
+
+  test('resolves 19:00 in IST (+05:30)', () => {
+    expect(localTimeToUTC('2026-09-05', '19:00', 'Asia/Kolkata').toISOString())
+      .toBe('2026-09-05T13:30:00.000Z');
+  });
+
+  test('the same wall clock resolves differently per cafe timezone', () => {
+    expect(localTimeToUTC('2026-09-05', '19:00', 'UTC').toISOString())
+      .toBe('2026-09-05T19:00:00.000Z');
+    expect(localTimeToUTC('2026-09-05', '19:00', 'America/New_York').toISOString())
+      .toBe('2026-09-05T23:00:00.000Z');
+    expect(localTimeToUTC('2026-09-05', '19:00', 'Asia/Dubai').toISOString())
+      .toBe('2026-09-05T15:00:00.000Z');
+  });
+
+  test('handles a DST boundary (London BST vs GMT)', () => {
+    expect(localTimeToUTC('2026-09-05', '19:00', 'Europe/London').toISOString())
+      .toBe('2026-09-05T18:00:00.000Z');
+    expect(localTimeToUTC('2026-12-05', '19:00', 'Europe/London').toISOString())
+      .toBe('2026-12-05T19:00:00.000Z');
+  });
+
+  test('a midnight-adjacent slot resolves to the previous UTC day', () => {
+    expect(localTimeToUTC('2026-09-05', '00:30', 'Asia/Kolkata').toISOString())
+      .toBe('2026-09-04T19:00:00.000Z');
+  });
+
+  describe('input guards shared by availability and booking', () => {
+    test.each([
+      ['2026-09-05', true],
+      ['2026-02-30', false],  // rolls forward to 2 March if not caught
+      ['2026-9-5', false],    // plausible client formatting, still rejected
+      ['2026-13-45', false],
+      ['not-a-date', false],
+      ['', false],
+      [null, false],
+      [{ $ne: null }, false],
+    ])('isValidDateKey(%p) === %p', (input, expected) => {
+      expect(isValidDateKey(input)).toBe(expected);
+    });
+
+    test.each([
+      ['19:00', true],
+      ['00:00', true],
+      ['23:59', true],
+      ['24:00', false],
+      ['19:60', false],
+      ['9:00', false],
+      ['19:00:00', false],
+      ['', false],
+      [null, false],
+    ])('isValidTimeOfDay(%p) === %p', (input, expected) => {
+      expect(isValidTimeOfDay(input)).toBe(expected);
+    });
+  });
+});

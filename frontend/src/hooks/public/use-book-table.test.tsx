@@ -42,7 +42,7 @@ describe('useBookTable', () => {
 
     const { result } = renderHook(() => useBookTable('cafe_1', 'demo-cafe'), { wrapper });
 
-    result.current.mutate({ start_time: '2026-08-20T19:00:00Z', party_size: 2 });
+    result.current.mutate({ date: '2026-08-20', time: '19:00', party_size: 2 });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 

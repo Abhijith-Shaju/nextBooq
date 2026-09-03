@@ -2,11 +2,16 @@ const { createHoldReservation } = require('../../services/bookingService');
 const { createOrderForReservation, verifyCheckoutPayment } = require('../../services/paymentService');
 const CafeCustomer = require('../../models/CafeCustomer');
 const { BadRequestError } = require('../../utils/errors');
+const {
+  localTimeToUTC,
+  isValidDateKey,
+  isValidTimeOfDay,
+} = require('../../utils/operatingHours');
 const config = require('../../config/env');
 
 const createReservation = async (req, res, next) => {
   try {
-    const { start_time, duration_minutes, party_size } = req.body;
+    const { date, time, start_time, duration_minutes, party_size } = req.body;
     const cafeId = req.tenantId;
     const userId = req.user._id;
 
@@ -14,8 +19,18 @@ const createReservation = async (req, res, next) => {
       throw new BadRequestError('Please verify your email address before making a reservation.');
     }
 
-    if (!start_time || !party_size) {
-      throw new BadRequestError('start_time (ISO Date string) and party_size are required');
+    // Either shape identifies the slot: the cafe-local `date` + `time` this
+    // endpoint now prefers, or the deprecated pre-converted `start_time`.
+    // Presence of either date or time selects the cafe-local branch, so a
+    // request sending only one of the pair gets a precise complaint about the
+    // missing half rather than silently falling through to start_time.
+    const usesCafeLocalInput = date !== undefined || time !== undefined;
+
+    if (!usesCafeLocalInput && !start_time) {
+      throw new BadRequestError('date (YYYY-MM-DD) and time (HH:mm) are required');
+    }
+    if (!party_size) {
+      throw new BadRequestError('party_size is required');
     }
 
     const party = Number(party_size);
@@ -28,7 +43,36 @@ const createReservation = async (req, res, next) => {
       throw new BadRequestError(`party_size exceeds the maximum of ${maxPartySize} for this cafe`);
     }
 
-    const startTime = new Date(start_time);
+    // Slot labels are the cafe's own wall clock, so the cafe's timezone is
+    // what resolves them to an instant — and the server owns that timezone,
+    // not the client. Clients used to send a pre-converted `start_time`,
+    // which made every client responsible for a conversion it had no
+    // authority to perform: the web app resolved the slot in the *browser's*
+    // timezone, so a diner on any other zone booked a different slot than the
+    // one they tapped (and paid a deposit for it). Taking date + time here —
+    // the same shape the availability search already speaks — means no client
+    // can get it wrong, because no client does the conversion any more.
+    let startTime;
+    if (usesCafeLocalInput) {
+      if (!isValidDateKey(date)) {
+        throw new BadRequestError('date must be a real calendar date in YYYY-MM-DD format');
+      }
+      if (!isValidTimeOfDay(time)) {
+        throw new BadRequestError('time must be a wall-clock time in HH:mm format');
+      }
+      startTime = localTimeToUTC(date, time, req.cafe.timezone);
+    } else {
+      // Deprecated: pre-converted UTC instant. Retained so a client deployed
+      // before this change keeps working across the rollout window (the
+      // frontend and API deploy independently). Remove once no client sends
+      // it — until then this branch is the one remaining way to get the
+      // conversion wrong.
+      if (typeof start_time !== 'string') {
+        throw new BadRequestError('start_time must be an ISO date string');
+      }
+      startTime = new Date(start_time);
+    }
+
     if (isNaN(startTime.getTime())) {
       throw new BadRequestError('Invalid start_time ISO date string');
     }

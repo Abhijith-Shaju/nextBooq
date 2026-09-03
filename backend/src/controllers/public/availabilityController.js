@@ -5,6 +5,7 @@ const {
   localTimeToUTC,
   generateSlotTimes,
   dayOfWeekForDateKey,
+  isValidDateKey,
 } = require('../../utils/operatingHours');
 const { BadRequestError } = require('../../utils/errors');
 
@@ -16,20 +17,6 @@ const { BadRequestError } = require('../../utils/errors');
 const MIN_DURATION_MINUTES = 15;
 const MAX_DURATION_MINUTES = 720; // 12 hours — generous upper bound for any single reservation
 
-// `date` is interpolated straight into `${dateKey}T${time}:00` by
-// operatingHours' localTimeToUTC, so anything that isn't a real calendar date
-// produces an Invalid Date and, before this guard, an unhandled RangeError
-// (HTTP 500) on an unauthenticated endpoint. Worth validating shape *and*
-// value: "2026-02-30" parses without complaint and silently rolls forward to
-// 2 March, quietly answering for a different day than the caller asked about.
-// Note this also rejects "2026-9-5" — a plausible thing for a client to send,
-// so this is a robustness fix as much as a hostile-input one.
-const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
-const isRealCalendarDate = (dateKey) => {
-  const parsed = new Date(`${dateKey}T00:00:00Z`);
-  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === dateKey;
-};
 
 const getAvailableSlots = async (req, res, next) => {
   try {
@@ -40,7 +27,7 @@ const getAvailableSlots = async (req, res, next) => {
       throw new BadRequestError('date (YYYY-MM-DD) and partySize are required');
     }
 
-    if (typeof date !== 'string' || !DATE_KEY_PATTERN.test(date) || !isRealCalendarDate(date)) {
+    if (!isValidDateKey(date)) {
       throw new BadRequestError('date must be a real calendar date in YYYY-MM-DD format');
     }
 

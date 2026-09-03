@@ -29,7 +29,10 @@ vi.mock('@/components/providers/tenant-provider', () => ({
 
 vi.mock('@/store/use-booking-store', () => ({
   useBookingStore: () => ({
-    date: new Date('2026-09-01T00:00:00.000Z'),
+    // Local midnight, matching what react-day-picker actually hands the store.
+    // A UTC-midnight Date here would format to the previous day on any
+    // negative-offset runner and make this test timezone-dependent.
+    date: new Date(2026, 8, 1),
     time: '19:00',
     partySize: 2,
   }),
@@ -104,31 +107,25 @@ describe('AuthOverlay', () => {
     );
   });
 
-  test("resolves the slot time in the cafe's timezone, not the browser's", () => {
+  test('sends the cafe-local date and time, doing no conversion of its own', () => {
     mockAuth = {
       isAuthenticated: true,
       user: { name: 'Existing User', email: 'existing@example.com', is_email_verified: true },
     };
-    mockCafe = { ...mockCafe, timezone: 'Asia/Kolkata' };
 
     render(<AuthOverlay open onOpenChange={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: /proceed to payment/i }));
 
     const [payload] = bookTableMutate.mock.calls[0];
 
-    // The invariant that matters, and the one the old
-    // `new Date(`${dateStr}T${time}:00`)` broke: whatever instant we send,
-    // it must read back as the 19:00 slot the diner actually tapped when
-    // rendered in the cafe's own timezone. Asserted this way rather than
-    // against a fixed ISO string so the test does not depend on the
-    // timezone the test runner happens to sit in.
-    const asCafeSeesIt = new Date(payload.start_time).toLocaleString('en-GB', {
-      timeZone: 'Asia/Kolkata',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
-    expect(asCafeSeesIt).toBe('19:00');
+    // The slot label goes to the server verbatim. Resolving it to an instant
+    // is the server's job, because the server -- not this client -- owns the
+    // cafe's timezone. A pre-converted start_time here is the bug this
+    // replaced, so assert it is gone as well as asserting the new shape.
+    expect(payload).toEqual(
+      expect.objectContaining({ date: '2026-09-01', time: '19:00', party_size: 2 })
+    );
+    expect(payload).not.toHaveProperty('start_time');
   });
 
   test('blocks holding a table for an unverified authenticated user', () => {

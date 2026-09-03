@@ -74,6 +74,30 @@ const timeStringToMinutes = (timeString) => {
   return hours * 60 + minutes;
 };
 
+// Cafe-local date/time inputs are interpolated straight into
+// `${dateKey}T${timeString}:00` by localTimeToUTC, so anything that isn't a
+// real calendar date or a real wall-clock time produces an Invalid Date and,
+// downstream, a 500 rather than a 400. Both public entry points that accept
+// cafe-local input (availability search and reservation creation) validate
+// through these, so the two cannot drift apart.
+const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_OF_DAY_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+// Shape alone is not enough: "2026-02-30" matches the pattern, parses without
+// complaint, and silently rolls forward to 2 March — answering for a
+// different day than the caller asked about. The round-trip comparison
+// rejects any date the calendar does not actually have.
+const isValidDateKey = (value) =>
+  typeof value === 'string' &&
+  DATE_KEY_PATTERN.test(value) &&
+  (() => {
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+  })();
+
+const isValidTimeOfDay = (value) =>
+  typeof value === 'string' && TIME_OF_DAY_PATTERN.test(value);
+
 /**
  * Resolves the day-of-week name for a plain "YYYY-MM-DD" calendar date.
  * The date string has no inherent timezone, so this is timezone-independent.
@@ -223,4 +247,6 @@ module.exports = {
   generateSlotTimes,
   timeStringToMinutes,
   dayOfWeekForDateKey,
+  isValidDateKey,
+  isValidTimeOfDay,
 };

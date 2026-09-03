@@ -7,7 +7,13 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 export interface BookTablePayload {
-  start_time: string; // ISO 8601 UTC String
+  // Cafe-local wall clock, matching the shape the availability search already
+  // speaks. The server resolves these to a UTC instant using the cafe's own
+  // timezone -- deliberately NOT a pre-converted ISO string, because the
+  // client does not own the cafe's timezone and converting here silently
+  // resolved slots in the browser's zone instead.
+  date: string; // YYYY-MM-DD, as shown in the cafe's local calendar
+  time: string; // HH:mm, the slot label the diner tapped
   party_size: number;
   duration_minutes?: number;
 }
