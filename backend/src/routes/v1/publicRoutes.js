@@ -4,7 +4,12 @@ const config = require('../../config/env');
 const { extractTenant } = require('../../middleware/tenantAuth');
 const { enforceSubscriptionForWrite } = require('../../middleware/validateSubscription');
 const { authenticate } = require('../../middleware/auth');
-const { availabilityRateLimiter, bookingCreationRateLimiter, contactFormRateLimiter } = require('../../middleware/rateLimiter');
+const {
+  availabilityRateLimiter,
+  bookingCreationRateLimiter,
+  bookingCreationIpRateLimiter,
+  contactFormRateLimiter,
+} = require('../../middleware/rateLimiter');
 const { getAvailableSlots } = require('../../controllers/public/availabilityController');
 const { createReservation, verifyPayment } = require('../../controllers/public/bookingController');
 const { getCustomerReservations } = require('../../controllers/public/customerController');
@@ -19,6 +24,7 @@ const { submitContactForm } = require('../../controllers/public/contactControlle
 const noop = (req, res, next) => next();
 const availabilityLimiterMiddleware = config.NODE_ENV === 'test' ? noop : availabilityRateLimiter;
 const bookingCreationLimiterMiddleware = config.NODE_ENV === 'test' ? noop : bookingCreationRateLimiter;
+const bookingCreationIpLimiterMiddleware = config.NODE_ENV === 'test' ? noop : bookingCreationIpRateLimiter;
 const contactFormLimiterMiddleware = config.NODE_ENV === 'test' ? noop : contactFormRateLimiter;
 
 // Cafe profile lookup by slug
@@ -34,12 +40,18 @@ router.get('/customer/reservations', authenticate, getCustomerReservations);
 router.get('/cafes/:cafeId/available-slots', availabilityLimiterMiddleware, extractTenant, getAvailableSlots);
 
 // Create reservation (Customer authenticated)
+//
+// bookingCreationLimiterMiddleware is keyed per user, so it must run *after*
+// authenticate has populated req.user — otherwise every request falls back to
+// the IP key and shared/CGNAT addresses share one bucket (see rateLimiter.js).
+// The IP limiter stays in front as the outer bound on unauthenticated floods.
 router.post(
   '/cafes/:cafeId/reservations',
-  bookingCreationLimiterMiddleware,
+  bookingCreationIpLimiterMiddleware,
   extractTenant,
   enforceSubscriptionForWrite,
   authenticate,
+  bookingCreationLimiterMiddleware,
   createReservation
 );
 

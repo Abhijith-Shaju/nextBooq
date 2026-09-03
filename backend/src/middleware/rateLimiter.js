@@ -1,12 +1,26 @@
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = require('express-rate-limit');
 const { logAuditEvent } = require('../services/auditService');
 
-const createRateLimiter = ({ windowMs, max, message }) =>
+// Buckets a limiter per authenticated user rather than per IP, falling back
+// to the IP when the request isn't authenticated yet. Needed wherever the
+// per-IP default would punish unrelated people: carrier-grade NAT is the
+// norm on Indian mobile networks, so a single public IP can front a large
+// number of subscribers, and production audit logs confirm real diners
+// arriving on those addresses. ipKeyGenerator (rather than a bare req.ip)
+// keeps the fallback IPv6-correct and satisfies the library's own key
+// validation.
+const userOrIpKey = (req) =>
+  req.user?._id ? `user:${req.user._id}` : ipKeyGenerator(req.ip);
+
+const createRateLimiter = ({ windowMs, max, message, keyGenerator, skipFailedRequests }) =>
   rateLimit({
     windowMs,
     max,
     standardHeaders: true,
     legacyHeaders: false,
+    ...(keyGenerator && { keyGenerator }),
+    ...(skipFailedRequests && { skipFailedRequests }),
     handler: async (req, res, next, options) => {
       if (req.rateLimit.used === req.rateLimit.limit + 1) {
         await logAuditEvent({
@@ -42,12 +56,36 @@ const availabilityRateLimiter = createRateLimiter({
   message: 'Too many availability requests. Please try again shortly.',
 });
 
-// Bounds how many table HOLDs a single client can create per hour — without
+// Bounds how many table HOLDs a single customer can create per hour — without
 // this, a client could repeatedly create HOLD reservations to squat on table
 // inventory (each HOLD blocks that slot for other customers until it expires).
+//
+// Keyed per user, not per IP: the bucket is global rather than per-cafe, so
+// on a shared/CGNAT address two diners booking at two *different* cafes were
+// previously competing for the same 10 holds an hour — a limit that gets
+// tighter as the platform adds cafes rather than as any one cafe gets busy.
+// This limiter therefore has to sit after `authenticate` in the route stack;
+// bookingCreationIpRateLimiter below stays in front of it as the outer bound.
+//
+// skipFailedRequests so only holds that were actually created count. Squatting
+// on inventory is the thing being bounded, and a rejected request creates no
+// hold — previously a diner who mistyped a party size or picked a past date
+// burned quota they never used, and could be locked out before booking once.
 const bookingCreationRateLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000,
   max: 10,
+  keyGenerator: userOrIpKey,
+  skipFailedRequests: true,
+  message: 'Too many booking attempts. Please try again later.',
+});
+
+// Outer, deliberately generous per-IP bound that runs before tenant lookup
+// and authentication, preserving the cheap-flood protection the per-user
+// limiter above can no longer provide from its later position in the stack.
+// Sized so it is not reachable by legitimate use, including a shared address.
+const bookingCreationIpRateLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 120,
   message: 'Too many booking attempts. Please try again later.',
 });
 
@@ -73,6 +111,7 @@ module.exports = {
   authRateLimiter,
   availabilityRateLimiter,
   bookingCreationRateLimiter,
+  bookingCreationIpRateLimiter,
   contactFormRateLimiter,
   cafeApplicationRateLimiter,
 };
