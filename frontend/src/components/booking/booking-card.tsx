@@ -8,7 +8,7 @@ import { TimeSlotPicker } from './time-slot-picker';
 import { AuthOverlay } from './auth-overlay';
 import { Card, CardContent } from '@/components/ui/card';
 import { format } from 'date-fns';
-import { Calendar, Users, Clock, ArrowRight, ShieldCheck, Sparkles, UtensilsCrossed, Heart, Compass } from 'lucide-react';
+import { Calendar, Users, Clock, ArrowRight, ShieldCheck, Sparkles, UtensilsCrossed, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 import { useTenant } from '@/components/providers/tenant-provider';
@@ -17,7 +17,6 @@ export function BookingCard() {
   const { cafe } = useTenant();
   const { partySize, date, time, setCafe } = useBookingStore();
   const [showAuthOverlay, setShowAuthOverlay] = useState(false);
-  const [seatingPreference, setSeatingPreference] = useState('Indoor Main Dining');
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -35,13 +34,6 @@ export function BookingCard() {
       </div>
     );
   }
-
-  const seatingOptions = [
-    { id: 'Indoor Main Dining', label: 'Indoor Dining' },
-    { id: 'Outdoor Patio', label: 'Outdoor Patio' },
-    { id: 'Window Seat', label: 'Window Seat' },
-    { id: 'Quiet Corner', label: 'Quiet Corner' },
-  ];
 
   const handleTimeSelect = () => {
     setShowAuthOverlay(true);
@@ -87,37 +79,10 @@ export function BookingCard() {
           {/* Card Content Grid */}
           <CardContent className="p-6 md:p-8 space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-              {/* Left Column: Party Size, Date & Seating Preference */}
+              {/* Left Column: Party Size & Date */}
               <div className="space-y-6">
                 <PartySizeSelect />
                 <DatePicker />
-
-                {/* Seating Preference Selector */}
-                <div className="space-y-2 pt-2">
-                  <label className="text-xs font-bold text-brand-brown flex items-center gap-1.5">
-                    <Compass className="w-3.5 h-3.5 text-brand-red" />
-                    Seating Preference
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {seatingOptions.map((opt) => {
-                      const isSelected = seatingPreference === opt.id;
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => setSeatingPreference(opt.id)}
-                          className={`py-2 px-2.5 rounded-xl text-xs font-semibold text-center transition-all border ${
-                            isSelected
-                              ? 'bg-brand-brown text-white border-brand-brown shadow-sm'
-                              : 'bg-white text-brand-brown border-brand-brown/15 hover:bg-brand-tan/40'
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
               </div>
 
               {/* Right Column: Time Slot Selector */}
@@ -145,7 +110,7 @@ export function BookingCard() {
                 <div>
                   <p className="font-bold text-brand-brown">Guaranteed Instant Table Hold</p>
                   <p className="text-[11px] text-brand-mocha" suppressHydrationWarning>
-                    {partySize} Guests • {seatingPreference} {isMounted && date ? `• ${format(date, 'MMM d')}` : ''} {time ? `@ ${time}` : ''}
+                    {partySize} Guests {isMounted && date ? `• ${format(date, 'MMM d')}` : ''} {time ? `@ ${time}` : ''}
                   </p>
                 </div>
               </div>
