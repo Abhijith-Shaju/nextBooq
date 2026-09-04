@@ -153,7 +153,11 @@ export function CheckoutCard() {
         amount: Math.round(depositAmount * 100), // in paise
         currency: 'INR',
         name: cafe.name,
-        description: 'Table Hold Security Deposit',
+        // Shown in the Razorpay payment sheet and on the guest's receipt.
+        // Must not say "deposit": a cafe can now set the fee to be neither
+        // adjusted against the bill nor refundable, and "security deposit"
+        // implies both.
+        description: 'Table reservation fee',
         order_id: reservation.razorpay_order_id,
         handler: async function (response) {
           await handleRazorpaySuccess(response);

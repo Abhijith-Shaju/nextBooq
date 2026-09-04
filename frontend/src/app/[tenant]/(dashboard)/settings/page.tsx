@@ -287,7 +287,7 @@ export default function CafeSettingsPage() {
                 onChange={(e) => setHoldDuration(parseInt(e.target.value) || 10)}
                 className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm font-mono tabular-nums"
               />
-              <p className="text-[11px] text-brand-mochaMid mt-1">Time allowed for customer to complete deposit payment.</p>
+              <p className="text-[11px] text-brand-mochaMid mt-1">Time allowed for customer to complete payment.</p>
             </div>
 
             <div>

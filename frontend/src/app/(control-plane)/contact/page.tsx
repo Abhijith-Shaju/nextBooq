@@ -87,7 +87,7 @@ export default function ContactPage() {
             Contact us
           </h1>
           <p className="mt-2 text-brand-mocha max-w-[60ch]">
-            Questions about a booking, a deposit, or bringing nextBooq to your café — this is the
+            Questions about a booking, a reservation fee, or bringing nextBooq to your café — this is the
             fastest way to reach a person.
           </p>
         </header>

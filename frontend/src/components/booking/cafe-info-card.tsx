@@ -53,7 +53,7 @@ export function CafeInfoCard() {
           </div>
           <h4 className="font-bold font-display text-sm text-brand-brown">Hold Protection</h4>
           <p className="text-xs text-brand-mocha leading-relaxed">
-            Table held for <strong className="text-brand-brown">{rules.hold_duration_minutes || 10} minutes</strong> while completing deposit payment.
+            Table held for <strong className="text-brand-brown">{rules.hold_duration_minutes || 10} minutes</strong> while you complete payment.
           </p>
         </div>
 

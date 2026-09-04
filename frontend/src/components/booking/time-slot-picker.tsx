@@ -114,7 +114,7 @@ export function TimeSlotPicker({ onSelect }: { onSelect: () => void }) {
         </div>
       </div>
       <p className="mt-3 text-center text-xs text-brand-mochaMid">
-        Tap a time to hold it &mdash; you&rsquo;ll have {holdDurationMinutes} minutes to confirm with a deposit.
+        Tap a time to hold it &mdash; you&rsquo;ll have {holdDurationMinutes} minutes to confirm with the reservation fee.
       </p>
     </div>
   );

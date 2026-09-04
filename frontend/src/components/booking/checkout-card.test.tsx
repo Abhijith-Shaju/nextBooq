@@ -286,6 +286,21 @@ describe('CheckoutCard reservation fee terms', () => {
     expect(screen.getByText(/non-refundable once paid/i)).toBeInTheDocument();
   });
 
+  test('the Razorpay payment sheet does not call the charge a deposit', async () => {
+    // This descriptor reaches the guest's payment sheet and receipt. A cafe
+    // can set the fee to be neither adjusted against the bill nor refundable,
+    // and "security deposit" implies both -- so it must not appear there.
+    withRules({ fee_adjusted_against_bill: false, refund_on_cancellation: false });
+    render(<CheckoutCard />);
+
+    fireEvent.click(screen.getByRole('button', { name: /confirm table/i }));
+
+    await waitFor(() => expect(openRazorpayCheckout).toHaveBeenCalled());
+    const [options] = vi.mocked(openRazorpayCheckout).mock.calls.at(-1)!;
+    expect(options.description).not.toMatch(/deposit/i);
+    expect(options.description).toMatch(/reservation fee/i);
+  });
+
   test('states the cafe cancellation cut-off', () => {
     withRules({ cancellation_cutoff_hours: 48 });
     render(<CheckoutCard />);
