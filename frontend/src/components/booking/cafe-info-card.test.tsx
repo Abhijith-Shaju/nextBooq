@@ -99,3 +99,63 @@ describe('CafeInfoCard address tile', () => {
     expect(link).toHaveAttribute('rel', expect.stringContaining('noreferrer'));
   });
 });
+
+// The fee terms are the part of this flow a guest is most likely to dispute
+// afterwards, so they have to be readable before the guest commits -- not
+// only on the checkout screen.
+describe('CafeInfoCard reservation fee terms', () => {
+  test('states the fee is adjusted against the bill and refundable, by default', () => {
+    mockCafe = baseCafe;
+    render(<CafeInfoCard />);
+
+    expect(screen.getByText(/reservation fee/i)).toBeInTheDocument();
+    expect(screen.getByText(/adjusted against your bill/i)).toBeInTheDocument();
+    expect(screen.getByText(/refundable if you cancel at least/i)).toBeInTheDocument();
+    expect(screen.getByText('24 hours')).toBeInTheDocument();
+  });
+
+  test('says the fee is charged separately when the cafe does not adjust it', () => {
+    mockCafe = {
+      ...baseCafe,
+      reservation_rules: { ...baseCafe.reservation_rules, fee_adjusted_against_bill: false },
+    };
+    render(<CafeInfoCard />);
+
+    expect(screen.getByText(/charged separately/i)).toBeInTheDocument();
+    expect(screen.queryByText(/adjusted against your bill/i)).not.toBeInTheDocument();
+  });
+
+  test('says the fee is non-refundable when the cafe does not refund cancellations', () => {
+    mockCafe = {
+      ...baseCafe,
+      reservation_rules: { ...baseCafe.reservation_rules, refund_on_cancellation: false },
+    };
+    render(<CafeInfoCard />);
+
+    expect(screen.getByText(/non-refundable/i)).toBeInTheDocument();
+    expect(screen.queryByText(/refundable if you cancel/i)).not.toBeInTheDocument();
+  });
+
+  test('reflects a custom cancellation cut-off', () => {
+    mockCafe = {
+      ...baseCafe,
+      reservation_rules: { ...baseCafe.reservation_rules, cancellation_cutoff_hours: 48 },
+    };
+    render(<CafeInfoCard />);
+
+    expect(screen.getByText('48 hours')).toBeInTheDocument();
+  });
+
+  test('falls back to the published defaults for a cafe with no stored terms', () => {
+    // Cafes provisioned before these settings existed have no stored value.
+    // They must keep the terms nextBooq originally published rather than
+    // rendering "undefined hours" at a guest.
+    const { fee_adjusted_against_bill, refund_on_cancellation, cancellation_cutoff_hours, ...rest } =
+      baseCafe.reservation_rules as any;
+    mockCafe = { ...baseCafe, reservation_rules: rest };
+    render(<CafeInfoCard />);
+
+    expect(screen.getByText(/adjusted against your bill/i)).toBeInTheDocument();
+    expect(screen.getByText('24 hours')).toBeInTheDocument();
+  });
+});

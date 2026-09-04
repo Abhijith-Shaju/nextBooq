@@ -84,6 +84,21 @@ export function CheckoutCard() {
   const depositAmount = reservation.amount;
   const depositAmountLabel = Number.isInteger(depositAmount) ? String(depositAmount) : depositAmount.toFixed(2);
 
+  // The fee terms this cafe has set. Called a "reservation fee" rather than a
+  // "deposit" throughout: "deposit" implies the money comes back or comes off
+  // the bill, which is only true when the cafe has opted into it.
+  const adjustedAgainstBill = cafe?.reservation_rules?.fee_adjusted_against_bill ?? true;
+  const refundOnCancellation = cafe?.reservation_rules?.refund_on_cancellation ?? true;
+  const cancellationCutoffHours = cafe?.reservation_rules?.cancellation_cutoff_hours ?? 24;
+  const feeTerms = [
+    adjustedAgainstBill
+      ? 'Adjusted against your bill at the cafe.'
+      : 'Charged separately — it is not deducted from your bill at the cafe.',
+    refundOnCancellation
+      ? `Refundable if you cancel at least ${cancellationCutoffHours} hour${cancellationCutoffHours === 1 ? '' : 's'} before your booking.`
+      : 'Non-refundable once paid.',
+  ].join(' ');
+
   const attemptVerify = async (response: RazorpayCheckoutResponse) => {
     await axiosInstance.post(
       `/api/v1/cafes/${cafe.id}/reservations/${reservation.id}/verify-payment`,
@@ -193,10 +208,12 @@ export function CheckoutCard() {
       </div>
 
       <div className="flex items-baseline justify-between border-t border-dashed border-brand-brown/15 px-5 py-4 mt-4">
-        <span className="text-sm text-brand-mocha">Deposit to confirm</span>
+        <span className="text-sm text-brand-mocha">Reservation fee</span>
         <span className="font-mono text-2xl font-bold text-brand-brown">
           ₹{depositAmountLabel}
-          <span className="ml-1 font-sans text-xs font-normal text-brand-mochaMid">refundable</span>
+          <span className="ml-1 font-sans text-xs font-normal text-brand-mochaMid">
+            {refundOnCancellation ? 'refundable' : 'non-refundable'}
+          </span>
         </span>
       </div>
 
@@ -231,7 +248,7 @@ export function CheckoutCard() {
             <Lock className="mr-1.5 h-4 w-4" /> Pay ₹{depositAmountLabel} &amp; confirm table
           </button>
           <p className="mt-3 text-center text-xs text-brand-mochaMid">
-            Deposit is held by Razorpay and adjusted against your bill at the cafe.
+            Collected securely via Razorpay. {feeTerms}
           </p>
         </div>
       )}

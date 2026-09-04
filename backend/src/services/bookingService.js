@@ -22,6 +22,26 @@ const looksLikeStandaloneMongoError = (error) =>
   (error.message && error.message.includes('replica set'));
 
 /**
+ * Captures the cafe's fee terms as they stand right now, to be stored on the
+ * reservation.
+ *
+ * These are the terms the guest is shown at checkout and agrees to by paying,
+ * so they belong to the booking, not to the cafe's current configuration. A
+ * cafe that later makes its fee non-refundable must not be able to apply that
+ * to money already taken -- which is exactly what would happen if a dispute
+ * read the live Cafe document instead of this snapshot.
+ *
+ * Falls back to the schema defaults for a cafe provisioned before these
+ * settings existed, so an older cafe keeps the terms nextBooq originally
+ * published rather than getting `undefined` written onto its bookings.
+ */
+const captureFeePolicy = (cafe) => ({
+  adjusted_against_bill: cafe.reservation_rules?.fee_adjusted_against_bill ?? true,
+  refund_on_cancellation: cafe.reservation_rules?.refund_on_cancellation ?? true,
+  cancellation_cutoff_hours: cafe.reservation_rules?.cancellation_cutoff_hours ?? 24,
+});
+
+/**
  * Rejects a new hold if the same user already holds an active reservation at this
  * cafe whose time window overlaps the requested one (expired HOLDs are excluded,
  * mirroring allocationEngine's own overlap-exclusion rules).
@@ -91,6 +111,7 @@ const createHoldReservationNonTransactional = async ({
     end_time: new Date(endTime),
     party_size: partySize,
     reservation_timezone: reservationTimezone || cafe.timezone,
+    fee_policy: captureFeePolicy(cafe),
     hold_expires_at: holdExpiresAt,
     status: 'HOLD',
     status_history: [
@@ -191,6 +212,7 @@ const createHoldReservation = async ({
         end_time: new Date(endTime),
         party_size: partySize,
         reservation_timezone: reservationTimezone || cafe.timezone,
+        fee_policy: captureFeePolicy(cafe),
         hold_expires_at: holdExpiresAt,
         status: 'HOLD',
         status_history: [

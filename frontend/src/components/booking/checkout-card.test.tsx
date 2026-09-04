@@ -23,17 +23,17 @@ vi.mock('@/lib/razorpay', () => ({
   openRazorpayCheckout: vi.fn(),
 }));
 
+let mockCheckoutCafe: any = {
+  id: 'cafe_1',
+  slug: 'demo-cafe',
+  name: 'Demo Cafe',
+  reservation_rules: { reservation_fee: 100 },
+  timezone: 'UTC',
+  payments: { razorpay_key_id: 'rzp_test_cafespecific', configured: true },
+};
+
 vi.mock('@/components/providers/tenant-provider', () => ({
-  useTenant: () => ({
-    cafe: {
-      id: 'cafe_1',
-      slug: 'demo-cafe',
-      name: 'Demo Cafe',
-      reservation_rules: { reservation_fee: 100 },
-      timezone: 'UTC',
-      payments: { razorpay_key_id: 'rzp_test_cafespecific', configured: true },
-    },
-  }),
+  useTenant: () => ({ cafe: mockCheckoutCafe }),
 }));
 
 describe('CheckoutCard', () => {
@@ -244,4 +244,59 @@ describe('CheckoutCard', () => {
     await waitFor(() => expect(screen.queryByText(/we couldn't confirm your payment/i)).not.toBeInTheDocument());
   });
 
+});
+
+// Checkout is the last screen before money moves, so the fee terms shown here
+// have to be the cafe's actual terms -- not a platform-wide claim that the fee
+// is refundable and comes off the bill.
+describe('CheckoutCard reservation fee terms', () => {
+  const withRules = (rules: Record<string, unknown>) => {
+    mockCheckoutCafe = {
+      id: 'cafe_1',
+      slug: 'demo-cafe',
+      name: 'Demo Cafe',
+      reservation_rules: { reservation_fee: 100, ...rules },
+      timezone: 'UTC',
+      payments: { razorpay_key_id: 'rzp_test_cafespecific', configured: true },
+    };
+  };
+
+  test('labels the charge a reservation fee, not a deposit', () => {
+    withRules({});
+    render(<CheckoutCard />);
+
+    expect(screen.getByText(/reservation fee/i)).toBeInTheDocument();
+    expect(screen.queryByText(/deposit to confirm/i)).not.toBeInTheDocument();
+  });
+
+  test('shows refundable + adjusted terms by default', () => {
+    withRules({});
+    render(<CheckoutCard />);
+
+    expect(screen.getByText('refundable')).toBeInTheDocument();
+    expect(screen.getByText(/adjusted against your bill/i)).toBeInTheDocument();
+  });
+
+  test('shows non-refundable and separately-charged terms when the cafe opts out', () => {
+    withRules({ fee_adjusted_against_bill: false, refund_on_cancellation: false });
+    render(<CheckoutCard />);
+
+    expect(screen.getByText('non-refundable')).toBeInTheDocument();
+    expect(screen.getByText(/not deducted from your bill/i)).toBeInTheDocument();
+    expect(screen.getByText(/non-refundable once paid/i)).toBeInTheDocument();
+  });
+
+  test('states the cafe cancellation cut-off', () => {
+    withRules({ cancellation_cutoff_hours: 48 });
+    render(<CheckoutCard />);
+
+    expect(screen.getByText(/at least 48 hours before/i)).toBeInTheDocument();
+  });
+
+  test('singularises a one-hour cut-off', () => {
+    withRules({ cancellation_cutoff_hours: 1 });
+    render(<CheckoutCard />);
+
+    expect(screen.getByText(/at least 1 hour before/i)).toBeInTheDocument();
+  });
 });

@@ -4,6 +4,23 @@ export interface ReservationRules {
   booking_lead_time_hours: number;
   hold_duration_minutes: number;
   reservation_fee: number; // rupees, charged to the customer at checkout
+  // Fee terms shown to the guest before payment. Optional because a cafe
+  // provisioned before these settings existed has no stored value; treat a
+  // missing value as the platform default (adjusted, refundable, 24h).
+  fee_adjusted_against_bill?: boolean;
+  refund_on_cancellation?: boolean;
+  cancellation_cutoff_hours?: number;
+}
+
+/**
+ * The fee terms as they stood when a reservation was made, snapshotted onto
+ * the booking so a later change to the cafe's settings cannot rewrite the
+ * deal a guest already paid under.
+ */
+export interface ReservationFeePolicy {
+  adjusted_against_bill: boolean;
+  refund_on_cancellation: boolean;
+  cancellation_cutoff_hours: number;
 }
 
 export interface OperatingHourEntry {

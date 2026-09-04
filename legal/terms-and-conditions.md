@@ -14,12 +14,12 @@ By clicking "I Agree", creating an account, confirming a reservation, or otherwi
 - "**Café Partner**" means a café, restaurant, or food-service business that registers an organization/café account on the Platform to manage table layouts, availability, and reservations.
 - "**Guest**" means an individual who uses the Platform to search for, hold, and reserve a table at a Café Partner's establishment.
 - "**Reservation**" means a table booking made through the Platform, including any associated deposit.
-- "**Deposit**" means the refundable or partially refundable amount a Guest pays at the time of booking to hold a table, as set by the Café Partner.
+- "**Reservation Fee**" means the amount a Guest pays at the time of booking to hold a table, as set by the Café Partner. Whether it is adjusted against the Guest's final bill, and whether it is refunded on cancellation, are configured by each Café Partner and disclosed to the Guest before payment.
 - "**Content**" means all text, images, availability data, floor layouts, or other material made available through the Platform.
 
 ## 3. Role of nextBooq
 
-nextBooq is a reservation-management **technology platform**. It enables Café Partners to publish real-time table availability, hold tables against a time-boxed window, and collect Reservation Deposits directly into the Café Partner's own payment account. **nextBooq is not the seller of food, beverages, or dining services** — the Café Partner is solely responsible for honouring confirmed Reservations, the quality of food and service at its establishment, and its own cancellation, no-show, and refund policy communicated to Guests at the time of booking. nextBooq's role is limited to providing the booking technology and, where applicable, facilitating payment collection through the Café Partner's connected payment gateway account.
+nextBooq is a reservation-management **technology platform**. It enables Café Partners to publish real-time table availability, hold tables against a time-boxed window, and collect Reservation Fees directly into the Café Partner's own payment account. **nextBooq is not the seller of food, beverages, or dining services** — the Café Partner is solely responsible for honouring confirmed Reservations, the quality of food and service at its establishment, and its own cancellation, no-show, and refund policy communicated to Guests at the time of booking. nextBooq's role is limited to providing the booking technology and, where applicable, facilitating payment collection through the Café Partner's connected payment gateway account.
 
 ## 4. Eligibility
 
@@ -29,20 +29,22 @@ You must be at least 18 years of age and competent to contract under the Indian 
 
 Café Partners must provide accurate business details (café name, address, GSTIN where applicable) and maintain the confidentiality of their dashboard login credentials. Guests may be required to provide a name, phone number, and email to complete a Reservation. You are responsible for all activity under your account and must notify {{TODO:SUPPORT_EMAIL}} immediately of any unauthorized use.
 
-## 6. Reservations, Deposits, and Payment
+## 6. Reservations, Fees, and Payment
 
-- Deposit amounts, floor/table assignment, and hold windows are configured by each Café Partner and displayed to the Guest before payment.
-- All Deposit amounts shown at checkout are inclusive of applicable taxes and represent the total amount payable, in compliance with the Consumer Protection (E-Commerce) Rules, 2020.
+- Reservation Fee amounts, floor/table assignment, and hold windows are configured by each Café Partner and displayed to the Guest before payment.
+- **Whether the Reservation Fee is adjusted against the Guest's final bill, and whether it is refunded on cancellation, are each configured by the Café Partner** and displayed to the Guest on the Café Partner's booking page and at checkout before payment. These are not platform-wide terms. The terms in force at the time of booking are recorded against that Reservation and are the terms that apply to it, regardless of any later change the Café Partner makes to its settings.
+- All Reservation Fee amounts shown at checkout are inclusive of applicable taxes and represent the total amount payable, in compliance with the Consumer Protection (E-Commerce) Rules, 2020.
 - Payments are processed through the Café Partner's own Razorpay-registered payment account, a Reserve Bank of India–regulated payment aggregator. nextBooq does not store card, UPI, or bank credentials.
 - A table hold expires automatically if payment is not completed within the time window shown at checkout, and the table is released back to availability.
 
 ## 7. Cancellation, No-Show, and Refund Policy
 
-- **Guest-initiated cancellation:** The Platform does not currently offer a self-service cancellation option within the booking flow. A Guest who wishes to cancel a Reservation must contact the Café Partner directly (using the contact details shown at the time of booking) or reach nextBooq support at {{TODO:SUPPORT_EMAIL}}, before the Café Partner's stated cancellation cut-off. Once notified, the Café Partner processes the cancellation from its dashboard, which updates the Reservation status and triggers a refund of the Deposit to the original payment method via the Café Partner's own payment account, typically within 5–7 business days.
-- **No-show:** If a Guest does not arrive within the grace period stated by the Café Partner at booking, the Deposit may be forfeited to the Café Partner as per that Café Partner's stated policy.
-- **Café Partner–initiated cancellation:** If a Café Partner cancels a confirmed Reservation (e.g., due to closure or an operational issue) from its dashboard, the full Deposit will be refunded to the Guest.
+- **Refundability:** Whether a Reservation Fee is refunded on a timely cancellation is set by each Café Partner and disclosed to the Guest before payment. Where a Café Partner has marked its Reservation Fee non-refundable, no refund arises on cancellation, and this is displayed prominently at checkout.
+- **Guest-initiated cancellation:** The Platform does not currently offer a self-service cancellation option within the booking flow. A Guest who wishes to cancel a Reservation must contact the Café Partner directly (using the contact details shown at the time of booking) or reach nextBooq support at {{TODO:SUPPORT_EMAIL}}, before the Café Partner's stated cancellation cut-off. Once notified, the Café Partner processes the cancellation from its dashboard, which updates the Reservation status and triggers a refund of the Reservation Fee to the original payment method, where that Café Partner offers refunds on cancellation via the Café Partner's own payment account, typically within 5–7 business days.
+- **No-show:** If a Guest does not arrive within the grace period stated by the Café Partner at booking, the Reservation Fee may be forfeited to the Café Partner as per that Café Partner's stated policy.
+- **Café Partner–initiated cancellation:** If a Café Partner cancels a confirmed Reservation (e.g., due to closure or an operational issue) from its dashboard, the full Reservation Fee will be refunded to the Guest.
 - **Payment failures/disputes:** Where a payment succeeds but the Reservation could not be honoured due to a technical error, the amount is flagged for manual refund review and processed by the relevant Café Partner within 5–7 business days.
-- Each Café Partner's specific cancellation window and no-show grace period are displayed to the Guest before the Deposit is charged and form part of the Reservation contract between the Guest and that Café Partner. nextBooq intends to add a self-service cancellation option to the booking flow in future; until then, cancellation is handled manually as described above.
+- Each Café Partner's specific cancellation window and no-show grace period are displayed to the Guest before the Reservation Fee is charged and form part of the Reservation contract between the Guest and that Café Partner. nextBooq intends to add a self-service cancellation option to the booking flow in future; until then, cancellation is handled manually as described above.
 
 ## 8. Café Partner Identity Disclosure
 

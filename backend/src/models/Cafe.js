@@ -32,6 +32,22 @@ const cafeSchema = new mongoose.Schema(
       hold_duration_minutes: { type: Number, default: 10 },
       payment_timeout_minutes: { type: Number, default: 15 },
       reservation_fee: { type: Number, default: 100 },
+      // How the reservation fee behaves once collected. Cafes differ on
+      // this: some treat it as a deposit that comes off the final bill,
+      // others bill it separately and never refund it. Both are legitimate,
+      // but the guest has to be told which one applies *before* paying, and
+      // the published refund policy has to defer to it rather than assert a
+      // single platform-wide rule.
+      //
+      // Defaults match the behaviour nextBooq published before these were
+      // configurable, so an existing cafe's terms do not silently change.
+      fee_adjusted_against_bill: { type: Boolean, default: true },
+      refund_on_cancellation: { type: Boolean, default: true },
+      // Hours before the reservation by which a guest must cancel to qualify
+      // for a refund. Disclosed to the guest and used by staff when they
+      // process a cancellation -- nothing enforces it programmatically,
+      // because there is no customer-facing cancellation route yet.
+      cancellation_cutoff_hours: { type: Number, default: 24 },
     },
     operating_hours: [
       {

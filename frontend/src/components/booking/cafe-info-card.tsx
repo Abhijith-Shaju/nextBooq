@@ -1,7 +1,7 @@
 'use client';
 
 import { useTenant } from '@/components/providers/tenant-provider';
-import { Clock, ShieldCheck, Calendar, Users, Info, MapPin, Phone } from 'lucide-react';
+import { Clock, ShieldCheck, Calendar, Users, Info, MapPin, Phone, IndianRupee } from 'lucide-react';
 
 export function CafeInfoCard() {
   const { cafe } = useTenant();
@@ -30,18 +30,13 @@ export function CafeInfoCard() {
         </p>
       </div>
 
-      <div
-        className={`grid grid-cols-1 gap-4 ${
-          (() => {
-            const optionalTiles = (contactPhone ? 1 : 0) + (hasAddress ? 1 : 0);
-            return optionalTiles === 2
-              ? 'md:grid-cols-2 lg:grid-cols-5'
-              : optionalTiles === 1
-                ? 'md:grid-cols-2 lg:grid-cols-4'
-                : 'md:grid-cols-3';
-          })()
-        }`}
-      >
+      {/* Fixed three-up rather than one column per tile. The tile count now
+          ranges from four to six (the reservation-fee tile plus the optional
+          contact and address ones), and a five- or six-column row squeezes
+          these paragraphs to an unreadable width on a laptop. Wrapping into
+          two rows keeps every tile the same size whatever the cafe has
+          configured. */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         <div className="glass p-5 rounded-3xl border border-brand-brown/10 shadow-brand-sm space-y-2">
           <div className="w-9 h-9 bg-brand-red/10 text-brand-red rounded-xl flex items-center justify-center">
             <Clock className="w-5 h-5" />
@@ -59,6 +54,31 @@ export function CafeInfoCard() {
           <h4 className="font-bold font-display text-sm text-brand-brown">Hold Protection</h4>
           <p className="text-xs text-brand-mocha leading-relaxed">
             Table held for <strong className="text-brand-brown">{rules.hold_duration_minutes || 10} minutes</strong> while completing deposit payment.
+          </p>
+        </div>
+
+        {/* The fee terms have to be visible before the guest commits, not only
+            on the checkout screen -- they are the part of this flow a guest is
+            most likely to dispute afterwards. */}
+        <div className="glass p-5 rounded-3xl border border-brand-brown/10 shadow-brand-sm space-y-2">
+          <div className="w-9 h-9 bg-brand-red/10 text-brand-red rounded-xl flex items-center justify-center">
+            <IndianRupee className="w-5 h-5" />
+          </div>
+          <h4 className="font-bold font-display text-sm text-brand-brown">Reservation Fee</h4>
+          <p className="text-xs text-brand-mocha leading-relaxed">
+            {(rules.fee_adjusted_against_bill ?? true) ? (
+              <>Adjusted against your bill at the cafe.</>
+            ) : (
+              <><strong className="text-brand-brown">Charged separately</strong> &mdash; not deducted from your bill.</>
+            )}{' '}
+            {(rules.refund_on_cancellation ?? true) ? (
+              <>
+                Refundable if you cancel at least{' '}
+                <strong className="text-brand-brown">{rules.cancellation_cutoff_hours ?? 24} hours</strong> ahead.
+              </>
+            ) : (
+              <><strong className="text-brand-brown">Non-refundable</strong> once paid.</>
+            )}
           </p>
         </div>
 

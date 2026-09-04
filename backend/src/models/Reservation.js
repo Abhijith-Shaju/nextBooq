@@ -33,6 +33,25 @@ const paymentDataSchema = new mongoose.Schema(
   { _id: false }
 );
 
+// The cafe's fee terms as they stood when this reservation was made.
+//
+// Snapshotted rather than read live off the Cafe, because these are the terms
+// the guest actually agreed to at checkout. A cafe that later switches its
+// fee to non-refundable must not retroactively change the deal for bookings
+// already paid for -- reading the live setting at dispute time would let it.
+const feePolicySchema = new mongoose.Schema(
+  {
+    // Each field is immutable in its own right, not just the parent path:
+    // Mongoose's `immutable` on `fee_policy` only blocks reassigning the whole
+    // subdocument, so without these a `reservation.fee_policy.x = y; save()`
+    // would quietly persist and rewrite the agreed terms.
+    adjusted_against_bill: { type: Boolean, required: true, immutable: true },
+    refund_on_cancellation: { type: Boolean, required: true, immutable: true },
+    cancellation_cutoff_hours: { type: Number, required: true, immutable: true },
+  },
+  { _id: false }
+);
+
 const reservationSchema = new mongoose.Schema(
   {
     cafe_id: {
@@ -111,6 +130,13 @@ const reservationSchema = new mongoose.Schema(
     payment_data: {
       type: paymentDataSchema,
       default: () => ({}),
+    },
+    // Immutable for the same reason cafe_id and start_time are: the terms of
+    // a booking are not something any later write should be able to revise.
+    fee_policy: {
+      type: feePolicySchema,
+      immutable: true,
+      default: null,
     },
   },
   {

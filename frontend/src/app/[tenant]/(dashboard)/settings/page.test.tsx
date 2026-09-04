@@ -5,6 +5,7 @@ import React from 'react';
 import CafeSettingsPage from './page';
 import { useTenant } from '@/components/providers/tenant-provider';
 import { axiosInstance } from '@/hooks/api/axios-instance';
+import type { ReservationRules } from '@/lib/types/models';
 
 // CafeSettingsPage renders PaymentsEditor, which calls useMutation
 // (useRequestStepUpOtp) — it needs a QueryClientProvider ancestor even though
@@ -29,13 +30,9 @@ vi.mock('@/components/providers/tenant-provider', () => ({
   useTenant: vi.fn(),
 }));
 
-const makeCafe = (
-  overrides: Partial<{
-    default_turn_time_minutes: number;
-    max_party_size: number;
-    reservation_fee: number;
-  }> = {}
-) => ({
+// Typed off the real ReservationRules so a new rule can be overridden here
+// without this helper's own hand-maintained list going stale.
+const makeCafe = (overrides: Partial<ReservationRules> = {}) => ({
   id: 'cafe_1',
   slug: 'demo-cafe',
   name: 'Demo Cafe',
@@ -408,6 +405,92 @@ describe('CafeSettingsPage — branding', () => {
       expect(axiosInstance.put).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({ logo_url: '', brand_primary: '', brand_accent: '' })
+      )
+    );
+  });
+});
+
+// These two terms decide whether a guest gets their money back and whether the
+// fee comes off their bill, so they have to round-trip through the save
+// payload -- a toggle that looks right but never reaches the API would leave
+// the storefront advertising terms the cafe never agreed to.
+describe('CafeSettingsPage — fee and refund policy', () => {
+  beforeEach(() => {
+    refresh.mockReset();
+    vi.mocked(axiosInstance.put).mockReset().mockResolvedValue({ data: { data: {} } });
+  });
+
+  test('defaults to adjusted-and-refundable for a cafe with no stored terms', () => {
+    vi.mocked(useTenant).mockReturnValue({ cafe: makeCafe() } as any);
+    renderPage();
+
+    expect(screen.getByLabelText(/deduct the fee from the final bill/i)).toBeChecked();
+    expect(screen.getByLabelText(/refund the fee if a guest cancels in time/i)).toBeChecked();
+    expect(screen.getByLabelText(/cancellation cut-off/i)).toHaveValue(24);
+  });
+
+  test('reflects a cafe that has opted out of both', () => {
+    vi.mocked(useTenant).mockReturnValue({
+      cafe: makeCafe({
+        fee_adjusted_against_bill: false,
+        refund_on_cancellation: false,
+        cancellation_cutoff_hours: 48,
+      }),
+    } as any);
+    renderPage();
+
+    expect(screen.getByLabelText(/deduct the fee from the final bill/i)).not.toBeChecked();
+    expect(screen.getByLabelText(/refund the fee if a guest cancels in time/i)).not.toBeChecked();
+    expect(screen.getByLabelText(/cancellation cut-off/i)).toHaveValue(48);
+  });
+
+  test('disables the cut-off when refunds are turned off', () => {
+    vi.mocked(useTenant).mockReturnValue({ cafe: makeCafe() } as any);
+    renderPage();
+
+    expect(screen.getByLabelText(/cancellation cut-off/i)).not.toBeDisabled();
+    fireEvent.click(screen.getByLabelText(/refund the fee if a guest cancels in time/i));
+    expect(screen.getByLabelText(/cancellation cut-off/i)).toBeDisabled();
+  });
+
+  test('submits the fee terms alongside the other rules', async () => {
+    vi.mocked(useTenant).mockReturnValue({ cafe: makeCafe() } as any);
+    renderPage();
+
+    fireEvent.click(screen.getByLabelText(/deduct the fee from the final bill/i));
+    fireEvent.change(screen.getByLabelText(/cancellation cut-off/i), { target: { value: '12' } });
+    fireEvent.click(screen.getByRole('button', { name: /save cafe rules/i }));
+
+    await waitFor(() =>
+      expect(axiosInstance.put).toHaveBeenCalledWith(
+        '/api/v1/cafes/cafe_1',
+        expect.objectContaining({
+          reservation_rules: expect.objectContaining({
+            fee_adjusted_against_bill: false,
+            refund_on_cancellation: true,
+            cancellation_cutoff_hours: 12,
+          }),
+        })
+      )
+    );
+  });
+
+  test('a zero-hour cut-off survives the save rather than reverting to 24', async () => {
+    // `||` would treat 0 as missing and silently substitute the default,
+    // turning "cancel any time" into "24 hours notice" without telling anyone.
+    vi.mocked(useTenant).mockReturnValue({ cafe: makeCafe({ cancellation_cutoff_hours: 0 }) } as any);
+    renderPage();
+
+    expect(screen.getByLabelText(/cancellation cut-off/i)).toHaveValue(0);
+
+    fireEvent.click(screen.getByRole('button', { name: /save cafe rules/i }));
+
+    await waitFor(() =>
+      expect(axiosInstance.put).toHaveBeenCalledWith(
+        '/api/v1/cafes/cafe_1',
+        expect.objectContaining({
+          reservation_rules: expect.objectContaining({ cancellation_cutoff_hours: 0 }),
+        })
       )
     );
   });

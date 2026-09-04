@@ -10,7 +10,13 @@ const { isValidHttpsUrl, validateAddress } = require('../../utils/cafeInput');
 const config = require('../../config/env');
 
 const POSITIVE_INT_RULES = ['default_turn_time_minutes', 'max_party_size', 'hold_duration_minutes'];
-const NON_NEGATIVE_INT_RULES = ['booking_lead_time_hours'];
+const NON_NEGATIVE_INT_RULES = ['booking_lead_time_hours', 'cancellation_cutoff_hours'];
+// Fee terms disclosed to the guest before payment. Booleans need their own
+// check: the numeric loops below skip anything they don't recognise, so
+// without this a `"maybe"` or a `1` would reach the schema and be coerced
+// into a policy the cafe never chose.
+const BOOLEAN_RULES = ['fee_adjusted_against_bill', 'refund_on_cancellation'];
+const MAX_CANCELLATION_CUTOFF_HOURS = 24 * 30; // a month's notice is already absurd
 // Rupees, not paise — decimals allowed (e.g. 149.50), unlike the other rules above.
 const POSITIVE_NUMBER_RULES = ['reservation_fee'];
 const MAX_RESERVATION_FEE_RUPEES = 100000;
@@ -170,6 +176,20 @@ const updateCafe = async (req, res, next) => {
             `reservation_rules.${field} must be a positive number no greater than ${MAX_RESERVATION_FEE_RUPEES}`
           );
         }
+      }
+      for (const field of BOOLEAN_RULES) {
+        if (reservation_rules[field] === undefined) continue;
+        if (typeof reservation_rules[field] !== 'boolean') {
+          throw new BadRequestError(`reservation_rules.${field} must be true or false`);
+        }
+      }
+      if (
+        reservation_rules.cancellation_cutoff_hours !== undefined &&
+        reservation_rules.cancellation_cutoff_hours > MAX_CANCELLATION_CUTOFF_HOURS
+      ) {
+        throw new BadRequestError(
+          `reservation_rules.cancellation_cutoff_hours must be no greater than ${MAX_CANCELLATION_CUTOFF_HOURS}`
+        );
       }
 
       cafe.reservation_rules = {

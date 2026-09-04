@@ -22,6 +22,9 @@ const DEFAULT_RULES = {
   booking_lead_time_hours: 24,
   hold_duration_minutes: 10,
   reservation_fee: 100,
+  fee_adjusted_against_bill: true,
+  refund_on_cancellation: true,
+  cancellation_cutoff_hours: 24,
 };
 
 export default function CafeSettingsPage() {
@@ -35,6 +38,18 @@ export default function CafeSettingsPage() {
   const [leadTime, setLeadTime] = useState(rules.booking_lead_time_hours || 24);
   const [holdDuration, setHoldDuration] = useState(rules.hold_duration_minutes || 10);
   const [reservationFee, setReservationFee] = useState(rules.reservation_fee || 100);
+  // `??` rather than `||` throughout: these are booleans and a zero-hour
+  // cutoff, all of which are legitimate values that `||` would silently
+  // replace with the default.
+  const [feeAdjustedAgainstBill, setFeeAdjustedAgainstBill] = useState(
+    rules.fee_adjusted_against_bill ?? true
+  );
+  const [refundOnCancellation, setRefundOnCancellation] = useState(
+    rules.refund_on_cancellation ?? true
+  );
+  const [cancellationCutoffHours, setCancellationCutoffHours] = useState(
+    rules.cancellation_cutoff_hours ?? 24
+  );
   const [operatingHours, setOperatingHours] = useState<OperatingHourEntry[]>(
     mergeOperatingHours(cafe.operating_hours)
   );
@@ -69,6 +84,9 @@ export default function CafeSettingsPage() {
     setLeadTime(rules.booking_lead_time_hours || 24);
     setHoldDuration(rules.hold_duration_minutes || 10);
     setReservationFee(rules.reservation_fee || 100);
+    setFeeAdjustedAgainstBill(rules.fee_adjusted_against_bill ?? true);
+    setRefundOnCancellation(rules.refund_on_cancellation ?? true);
+    setCancellationCutoffHours(rules.cancellation_cutoff_hours ?? 24);
     setOperatingHours(mergeOperatingHours(cafe.operating_hours));
     setDescription(cafe.description || '');
     setHeroImageUrl(cafe.hero_image_url || '');
@@ -92,6 +110,9 @@ export default function CafeSettingsPage() {
     rules.booking_lead_time_hours,
     rules.hold_duration_minutes,
     rules.reservation_fee,
+    rules.fee_adjusted_against_bill,
+    rules.refund_on_cancellation,
+    rules.cancellation_cutoff_hours,
     operatingHoursKey,
     cafe.description,
     cafe.hero_image_url,
@@ -139,6 +160,9 @@ export default function CafeSettingsPage() {
           booking_lead_time_hours: leadTime,
           hold_duration_minutes: holdDuration,
           reservation_fee: reservationFee,
+          fee_adjusted_against_bill: feeAdjustedAgainstBill,
+          refund_on_cancellation: refundOnCancellation,
+          cancellation_cutoff_hours: cancellationCutoffHours,
         },
         operating_hours: operatingHours,
         description,
@@ -282,6 +306,85 @@ export default function CafeSettingsPage() {
                 className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm font-mono tabular-nums"
               />
               <p className="text-[11px] text-brand-mochaMid mt-1">Charged to the customer via Razorpay to confirm each booking.</p>
+            </div>
+          </div>
+
+          {/* Fee terms. These are shown to the guest before they pay and are
+              recorded on each booking, so changing them here affects future
+              bookings only -- existing ones keep the terms they were made
+              under. */}
+          <div className="pt-6 border-t border-brand-brown/10">
+            <h2 className="text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
+              <IndianRupee className="w-4 h-4 text-brand-red" /> Fee and Refund Policy
+            </h2>
+            <p className="text-xs text-brand-mochaMid mb-4">
+              How the reservation fee behaves once collected. Guests see this before paying, and
+              it is recorded on each booking &mdash; changes apply to new bookings only.
+            </p>
+
+            <div className="space-y-3">
+              <label className="flex items-start gap-3 p-4 rounded-xl border border-brand-brown/15 bg-white cursor-pointer hover:bg-brand-tan/20 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={feeAdjustedAgainstBill}
+                  onChange={(e) => setFeeAdjustedAgainstBill(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-brand-red shrink-0"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-brand-brown">
+                    Deduct the fee from the final bill
+                  </span>
+                  <span className="block text-[11px] text-brand-mochaMid mt-0.5">
+                    {feeAdjustedAgainstBill
+                      ? 'The guest pays ₹' + reservationFee + ' now and it comes off what they pay at the table.'
+                      : 'The fee is billed separately and does not reduce the guest’s bill at the table.'}
+                  </span>
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 p-4 rounded-xl border border-brand-brown/15 bg-white cursor-pointer hover:bg-brand-tan/20 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={refundOnCancellation}
+                  onChange={(e) => setRefundOnCancellation(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-brand-red shrink-0"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-brand-brown">
+                    Refund the fee if a guest cancels in time
+                  </span>
+                  <span className="block text-[11px] text-brand-mochaMid mt-0.5">
+                    {refundOnCancellation
+                      ? 'A guest who cancels before the cut-off below gets the fee back.'
+                      : 'The fee is non-refundable. Guests are told this before they pay.'}
+                  </span>
+                </span>
+              </label>
+
+              <div className={refundOnCancellation ? '' : 'opacity-50'}>
+                <label
+                  htmlFor="cancellation-cutoff"
+                  className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5"
+                >
+                  <CalendarClock className="w-4 h-4 text-brand-red" /> Cancellation cut-off (hours)
+                </label>
+                <input
+                  id="cancellation-cutoff"
+                  type="number"
+                  min={0}
+                  max={720}
+                  step={1}
+                  disabled={!refundOnCancellation}
+                  value={cancellationCutoffHours}
+                  onChange={(e) => setCancellationCutoffHours(parseInt(e.target.value) || 0)}
+                  className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm font-mono tabular-nums disabled:bg-brand-tan/20 disabled:cursor-not-allowed"
+                />
+                <p className="text-[11px] text-brand-mochaMid mt-1">
+                  How long before the booking a guest must cancel to get the fee back. Your staff
+                  apply this when cancelling from the dashboard &mdash; nextBooq does not block a
+                  late cancellation automatically.
+                </p>
+              </div>
             </div>
           </div>
 
