@@ -19,6 +19,8 @@ const {
   getDailyManifest,
   updateReservationStatus,
   assignTable,
+  getRefundsOwed,
+  markRefundSettled,
 } = require('../../controllers/host/reservationController');
 const {
   getTables,
@@ -73,6 +75,24 @@ router.put(
   extractTenant,
   requirePermission('edit_reservations'),
   assignTable
+);
+
+// Refunds the cafe owes its guests after a cancellation. Reading the queue is
+// part of running the floor, so it sits with view_reservations; asserting that
+// a guest has actually been paid back is a money claim, so clearing an entry
+// requires manage_billing -- the same permission that guards payout details.
+router.get(
+  '/cafes/:cafeId/refunds-owed',
+  extractTenant,
+  requirePermission('view_reservations'),
+  getRefundsOwed
+);
+
+router.put(
+  '/cafes/:cafeId/reservations/:resId/refund-settled',
+  extractTenant,
+  requirePermission('manage_billing'),
+  markRefundSettled
 );
 
 // Table Inventory Management -- listing tables is read-only (the Host Stand

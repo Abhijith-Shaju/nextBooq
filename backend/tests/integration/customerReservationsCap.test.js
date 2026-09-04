@@ -27,6 +27,8 @@ describe('Integration Test: GET /customer/reservations caps the returned history
       name: 'Customer History Cap Cafe',
       slug: `customer-history-cap-cafe-${Date.now()}`,
       timezone: 'UTC',
+      contact_phone: '+911234567890',
+      address: { line1: '1 Test Street', city: 'Kochi', state: 'Kerala', postal_code: '682001' },
       subscription_status: 'active',
     });
     table = await Table.create({ cafe_id: cafe._id, table_number: 'T1', capacity: 4 });

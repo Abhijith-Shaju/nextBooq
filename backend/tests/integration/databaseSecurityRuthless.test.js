@@ -46,7 +46,7 @@ describe('Database security audit: NoSQL injection', () => {
       password_hash: 'hash',
     });
 
-    const res = await request(app).post('/api/v1/auth/register').send({
+    const res = await request(app).post('/api/v1/auth/register').send({ accept_terms: true,
       name: 'Attacker',
       email: 'attacker@test.com',
       phone: { $ne: null },
@@ -59,7 +59,7 @@ describe('Database security audit: NoSQL injection', () => {
   });
 
   test('FIXED: registering with phone as a $where/regex object is rejected', async () => {
-    const res = await request(app).post('/api/v1/auth/register').send({
+    const res = await request(app).post('/api/v1/auth/register').send({ accept_terms: true,
       name: 'Attacker',
       email: 'attacker2@test.com',
       phone: { $regex: '.*' },
@@ -86,7 +86,7 @@ describe('Database security audit: NoSQL injection', () => {
   });
 
   test('FIXED: customer-quick-auth with phone as an operator object is rejected', async () => {
-    const res = await request(app).post('/api/v1/auth/customer-quick-auth').send({
+    const res = await request(app).post('/api/v1/auth/customer-quick-auth').send({ accept_terms: true,
       name: 'Attacker',
       email: 'quickauth-attacker@test.com',
       phone: { $ne: null },
@@ -97,7 +97,7 @@ describe('Database security audit: NoSQL injection', () => {
   });
 
   test('sanity: registration with well-formed string fields still succeeds after sanitization', async () => {
-    const res = await request(app).post('/api/v1/auth/register').send({
+    const res = await request(app).post('/api/v1/auth/register').send({ accept_terms: true,
       name: 'Legit User',
       email: 'legit@test.com',
       phone: '+15550003333',
@@ -110,7 +110,7 @@ describe('Database security audit: NoSQL injection', () => {
 
 describe('Database security audit: sensitive field exposure', () => {
   test('password_hash never appears in register/login/quick-auth/getMe JSON responses', async () => {
-    const registerRes = await request(app).post('/api/v1/auth/register').send({
+    const registerRes = await request(app).post('/api/v1/auth/register').send({ accept_terms: true,
       name: 'Expose Test',
       email: 'expose@test.com',
       phone: '+15550004444',
@@ -133,7 +133,7 @@ describe('Database security audit: sensitive field exposure', () => {
     expect(meRes.status).toBe(200);
     expect(JSON.stringify(meRes.body)).not.toMatch(/password_hash/i);
 
-    const quickAuthRes = await request(app).post('/api/v1/auth/customer-quick-auth').send({
+    const quickAuthRes = await request(app).post('/api/v1/auth/customer-quick-auth').send({ accept_terms: true,
       name: 'Quick Auth Expose',
       email: 'quickexpose@test.com',
       phone: '+15550005555',
@@ -154,6 +154,8 @@ describe('Database security audit: cross-tenant data isolation', () => {
       name: 'Cafe A',
       slug: `cafe-a-${Date.now()}`,
       timezone: 'UTC',
+      contact_phone: '+911234567890',
+      address: { line1: '1 Test Street', city: 'Kochi', state: 'Kerala', postal_code: '682001' },
       subscription_status: 'active',
     });
     cafeB = await Cafe.create({
@@ -161,6 +163,8 @@ describe('Database security audit: cross-tenant data isolation', () => {
       name: 'Cafe B',
       slug: `cafe-b-${Date.now()}`,
       timezone: 'UTC',
+      contact_phone: '+911234567890',
+      address: { line1: '1 Test Street', city: 'Kochi', state: 'Kerala', postal_code: '682001' },
       subscription_status: 'active',
     });
 

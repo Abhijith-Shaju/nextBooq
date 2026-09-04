@@ -115,6 +115,23 @@ const transitionState = async ({
     updateQuery.table_ids = tableIdsUpdate;
   }
 
+  // Cancelling a reservation whose fee was actually captured leaves money with
+  // the cafe that the guest is owed back. nextBooq does not move money out of a
+  // cafe's Razorpay account on its behalf, so the cancellation cannot itself
+  // issue the refund -- but it must not be silent about it either. Flagging it
+  // here puts the reservation on the cafe's refunds-owed queue, reusing the
+  // same field the webhook path already uses when a payment lands on a
+  // reservation that can no longer be honoured.
+  //
+  // Only when the fee was captured (payment_id present) and only when the
+  // cafe's own terms, as recorded on this booking, promise a refund. A booking
+  // taken under non-refundable terms owes nothing back.
+  const feeWasCaptured = Boolean(reservation.payment_data?.payment_id);
+  const termsPromiseRefund = reservation.fee_policy?.refund_on_cancellation ?? true;
+  if (targetStatus === 'CANCELLED' && feeWasCaptured && termsPromiseRefund) {
+    updateQuery['payment_data.requires_manual_refund'] = true;
+  }
+
   // Execute OCC Update
   const updatedReservation = await Reservation.findOneAndUpdate(
     {

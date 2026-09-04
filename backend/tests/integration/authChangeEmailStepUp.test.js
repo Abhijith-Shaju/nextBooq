@@ -28,14 +28,14 @@ const registerVerified = async (overrides = {}) => {
     password: PASSWORD,
     ...overrides,
   };
-  const res = await request(app).post('/api/v1/auth/register').send(payload);
+  const res = await request(app).post('/api/v1/auth/register').send({ ...payload, accept_terms: true });
   await User.findByIdAndUpdate(res.body.data.user.id, { is_email_verified: true });
   return res.body.data.token;
 };
 
 describe('request-step-up-otp', () => {
   test('rejects an unverified account — no trusted inbox to step up through', async () => {
-    const registerRes = await request(app).post('/api/v1/auth/register').send({
+    const registerRes = await request(app).post('/api/v1/auth/register').send({ accept_terms: true,
       name: 'Unverified Requester',
       email: 'unverified-requester@example.com',
       phone: '+15550300006',
@@ -115,7 +115,7 @@ describe('change-email on an already-verified account (step-up required)', () =>
   });
 
   test('is not required on an unverified account (the recovery path stays password-only)', async () => {
-    const registerRes = await request(app).post('/api/v1/auth/register').send({
+    const registerRes = await request(app).post('/api/v1/auth/register').send({ accept_terms: true,
       name: 'Unverified User',
       email: 'unverified-recovery@example.com',
       phone: '+15550300005',

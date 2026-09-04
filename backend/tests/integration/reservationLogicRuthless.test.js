@@ -62,6 +62,8 @@ describe('Ruthless reservation logic audit', () => {
       name: 'Grill Cafe',
       slug: `grill-cafe-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       timezone: 'UTC',
+      contact_phone: '+911234567890',
+      address: { line1: '1 Test Street', city: 'Kochi', state: 'Kerala', postal_code: '682001' },
       subscription_status: 'active',
       payments: {
         razorpay_key_id: 'rzp_test_fixture',

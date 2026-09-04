@@ -8,7 +8,7 @@ setupTestDB();
 
 describe('Integration Test: Failed Auth Attempt Audit Logging', () => {
   test('logs a LOGIN_FAILED audit event when the password is wrong', async () => {
-    await request(app).post('/api/v1/auth/register').send({
+    await request(app).post('/api/v1/auth/register').send({ accept_terms: true,
       name: 'Jack Owner',
       email: 'jack@example.com',
       phone: '+18885558888',
@@ -46,14 +46,14 @@ describe('Integration Test: Failed Auth Attempt Audit Logging', () => {
   });
 
   test('logs a CUSTOMER_QUICK_AUTH_FAILED audit event when the password is wrong', async () => {
-    await request(app).post('/api/v1/auth/customer-quick-auth').send({
+    await request(app).post('/api/v1/auth/customer-quick-auth').send({ accept_terms: true,
       name: 'Kelly Guest',
       email: 'kelly@example.com',
       phone: '+18885559090',
       password: 'KellysRealPassword1!',
     });
 
-    const res = await request(app).post('/api/v1/auth/customer-quick-auth').send({
+    const res = await request(app).post('/api/v1/auth/customer-quick-auth').send({ accept_terms: true,
       name: 'Kelly Guest',
       email: 'kelly@example.com',
       phone: '+18885559090',

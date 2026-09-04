@@ -42,6 +42,8 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
       name: 'Customer Test Cafe',
       slug: 'customer-test-cafe',
       timezone: 'UTC',
+      contact_phone: '+911234567890',
+      address: { line1: '1 Test Street', city: 'Kochi', state: 'Kerala', postal_code: '682001' },
       subscription_status: 'active',
       operating_hours: [
         { day_of_week: 'monday', open_time: '00:00', close_time: '23:59', is_closed: false },
@@ -71,7 +73,7 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
   test('POST /api/v1/auth/customer-quick-auth creates or logs in a customer', async () => {
     const res = await request(app)
       .post('/api/v1/auth/customer-quick-auth')
-      .send({
+      .send({ accept_terms: true,
         name: 'Alice Guest',
         email: 'alice@example.com',
         phone: '+18885551234',
@@ -90,7 +92,7 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
     // 1. Quick auth customer
     const authRes = await request(app)
       .post('/api/v1/auth/customer-quick-auth')
-      .send({
+      .send({ accept_terms: true,
         name: 'Bob Guest',
         email: 'bob@example.com',
         phone: '+18885559999',
@@ -140,7 +142,7 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
     // First call creates the account with a real password.
     await request(app)
       .post('/api/v1/auth/customer-quick-auth')
-      .send({
+      .send({ accept_terms: true,
         name: 'Carol Guest',
         email: 'carol@example.com',
         phone: '+18885551111',
@@ -151,7 +153,7 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
     // must NOT be able to log in as Carol.
     const res = await request(app)
       .post('/api/v1/auth/customer-quick-auth')
-      .send({
+      .send({ accept_terms: true,
         name: 'Someone Else',
         email: 'carol@example.com',
         phone: '+19998887777',
@@ -164,7 +166,7 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
   test('customer-quick-auth logs in an existing account when the correct password is provided', async () => {
     await request(app)
       .post('/api/v1/auth/customer-quick-auth')
-      .send({
+      .send({ accept_terms: true,
         name: 'Dave Guest',
         email: 'dave@example.com',
         phone: '+18885552222',
@@ -173,7 +175,7 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
 
     const res = await request(app)
       .post('/api/v1/auth/customer-quick-auth')
-      .send({
+      .send({ accept_terms: true,
         name: 'Dave Guest',
         email: 'dave@example.com',
         phone: '+18885552222',
@@ -188,7 +190,7 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
   test('customer-quick-auth rejects an existing account when the wrong password is provided', async () => {
     await request(app)
       .post('/api/v1/auth/customer-quick-auth')
-      .send({
+      .send({ accept_terms: true,
         name: 'Erin Guest',
         email: 'erin@example.com',
         phone: '+18885553333',
@@ -197,7 +199,7 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
 
     const res = await request(app)
       .post('/api/v1/auth/customer-quick-auth')
-      .send({
+      .send({ accept_terms: true,
         name: 'Erin Guest',
         email: 'erin@example.com',
         phone: '+18885553333',
@@ -211,7 +213,7 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
   test('customer-quick-auth rejects a brand-new account when no password is provided', async () => {
     const res = await request(app)
       .post('/api/v1/auth/customer-quick-auth')
-      .send({
+      .send({ accept_terms: true,
         name: 'Frank NewGuest',
         email: 'frank@example.com',
         phone: '+18885554444',
@@ -224,7 +226,7 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
   test('customer-quick-auth creates a brand-new account when a password is provided', async () => {
     const res = await request(app)
       .post('/api/v1/auth/customer-quick-auth')
-      .send({
+      .send({ accept_terms: true,
         name: 'Frank NewGuest',
         email: 'frank2@example.com',
         phone: '+18885554445',
@@ -239,7 +241,7 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
   test('customer-quick-auth rejects a new signup whose phone number is already registered under a different email', async () => {
     await request(app)
       .post('/api/v1/auth/customer-quick-auth')
-      .send({
+      .send({ accept_terms: true,
         name: 'Grace Guest',
         email: 'grace@example.com',
         phone: '+18885555555',
@@ -248,7 +250,7 @@ describe('Customer Authentication & Reservation Integration Tests', () => {
 
     const res = await request(app)
       .post('/api/v1/auth/customer-quick-auth')
-      .send({
+      .send({ accept_terms: true,
         name: 'Someone New',
         email: 'someone-new@example.com',
         phone: '+18885555555',

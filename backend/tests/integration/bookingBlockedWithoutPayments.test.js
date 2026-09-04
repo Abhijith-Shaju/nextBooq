@@ -28,6 +28,8 @@ describe('Integration Test: booking is blocked for a cafe without payments confi
       name: 'Unconfigured Payments Cafe',
       slug: 'unconfigured-payments-cafe',
       timezone: 'UTC',
+      contact_phone: '+911234567890',
+      address: { line1: '1 Test Street', city: 'Kochi', state: 'Kerala', postal_code: '682001' },
     });
     await Table.create({ cafe_id: cafe._id, table_number: 'T1', capacity: 4 });
     const user = await User.create({

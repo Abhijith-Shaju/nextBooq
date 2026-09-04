@@ -64,6 +64,8 @@ describe('POST /cafes/:cafeId/reservations accepts cafe-local date + time', () =
       name: 'Cafe Local Input',
       slug: `cafe-local-input-${Date.now()}`,
       timezone: 'Asia/Kolkata',
+      contact_phone: '+911234567890',
+      address: { line1: '1 Test Street', city: 'Kochi', state: 'Kerala', postal_code: '682001' },
       subscription_status: 'active',
       reservation_rules: {
         default_turn_time_minutes: 60,

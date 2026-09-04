@@ -7,7 +7,7 @@ setupTestDB();
 
 describe('Integration Test: Auth Event Audit Logging', () => {
   test('logs a REGISTER audit event on successful registration', async () => {
-    const res = await request(app).post('/api/v1/auth/register').send({
+    const res = await request(app).post('/api/v1/auth/register').send({ accept_terms: true,
       name: 'Grace Owner',
       email: 'grace@example.com',
       phone: '+18885555555',
@@ -24,7 +24,7 @@ describe('Integration Test: Auth Event Audit Logging', () => {
   });
 
   test('logs a LOGIN audit event on successful login', async () => {
-    await request(app).post('/api/v1/auth/register').send({
+    await request(app).post('/api/v1/auth/register').send({ accept_terms: true,
       name: 'Henry Owner',
       email: 'henry@example.com',
       phone: '+18885556666',
@@ -45,7 +45,7 @@ describe('Integration Test: Auth Event Audit Logging', () => {
   });
 
   test('logs a CUSTOMER_QUICK_AUTH audit event on successful quick-auth', async () => {
-    const res = await request(app).post('/api/v1/auth/customer-quick-auth').send({
+    const res = await request(app).post('/api/v1/auth/customer-quick-auth').send({ accept_terms: true,
       name: 'Ivy Guest',
       email: 'ivy@example.com',
       phone: '+18885557777',

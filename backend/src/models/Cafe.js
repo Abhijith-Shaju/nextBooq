@@ -48,6 +48,11 @@ const cafeSchema = new mongoose.Schema(
       // process a cancellation -- nothing enforces it programmatically,
       // because there is no customer-facing cancellation route yet.
       cancellation_cutoff_hours: { type: Number, default: 24 },
+      // How late a guest may arrive before the booking counts as a no-show.
+      // Disclosed to the guest before payment, because it is the stated basis
+      // on which the fee may be forfeited -- forfeiting against a grace period
+      // nobody published is much harder to defend.
+      no_show_grace_minutes: { type: Number, default: 15 },
     },
     operating_hours: [
       {
@@ -84,6 +89,16 @@ const cafeSchema = new mongoose.Schema(
     contact_phone: {
       type: String,
       trim: true,
+      default: '',
+    },
+    // Goods and Services Tax identifier, where the cafe is registered.
+    // Collected because the Terms tell Cafe Partners it is required and the
+    // Consumer Protection (E-Commerce) Rules expect seller identity to be
+    // published; blank is legitimate for a business below the threshold.
+    gstin: {
+      type: String,
+      trim: true,
+      uppercase: true,
       default: '',
     },
     // Captured during onboarding for verification, then editable by the cafe

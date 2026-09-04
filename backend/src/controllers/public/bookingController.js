@@ -114,6 +114,21 @@ const createReservation = async (req, res, next) => {
       throw new BadRequestError("This cafe hasn't finished setting up payments yet.");
     }
 
+    // Rule 5 of the Consumer Protection (E-Commerce) Rules requires the
+    // seller's address and contact details to be disclosed, and the Terms
+    // state that nextBooq displays them for every Reservation. Both fields are
+    // optional on the Cafe model, so that promise only holds if a cafe cannot
+    // take a booking without them. Gated here rather than at settings-save so
+    // an existing cafe is not locked out of its own dashboard -- it just
+    // cannot sell until the details are in.
+    const hasContactPhone = Boolean(req.cafe.contact_phone?.trim());
+    const hasAddress = Boolean(req.cafe.address?.line1?.trim());
+    if (!hasContactPhone || !hasAddress) {
+      throw new BadRequestError(
+        "This cafe hasn't finished setting up its contact details yet, so it can't take bookings."
+      );
+    }
+
     // 1. Transactional HOLD reservation creation
     const reservation = await createHoldReservation({
       cafeId,

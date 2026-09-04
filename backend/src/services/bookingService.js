@@ -39,6 +39,7 @@ const captureFeePolicy = (cafe) => ({
   adjusted_against_bill: cafe.reservation_rules?.fee_adjusted_against_bill ?? true,
   refund_on_cancellation: cafe.reservation_rules?.refund_on_cancellation ?? true,
   cancellation_cutoff_hours: cafe.reservation_rules?.cancellation_cutoff_hours ?? 24,
+  no_show_grace_minutes: cafe.reservation_rules?.no_show_grace_minutes ?? 15,
 });
 
 /**

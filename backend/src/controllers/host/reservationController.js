@@ -6,6 +6,7 @@ const { suggestAlternateTable } = require('../../services/allocationEngine');
 const { assignReservationToTable } = require('../../services/tableAssignmentService');
 const { localTimeToUTC, getLocalTimeDetails } = require('../../utils/operatingHours');
 const { BadRequestError, NotFoundError } = require('../../utils/errors');
+const { logAuditEvent } = require('../../services/auditService');
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -203,8 +204,96 @@ const assignTable = async (req, res, next) => {
   }
 };
 
+/**
+ * The cafe's own refunds-owed queue.
+ *
+ * nextBooq never moves money out of a cafe's Razorpay account, so a
+ * cancellation cannot issue the refund itself -- it flags the reservation
+ * instead (see stateMachine.js). Without somewhere for staff to see that
+ * flag, the published promise that a cancelled booking is refunded has
+ * nothing behind it: the money just sits there until somebody happens to
+ * notice.
+ */
+const getRefundsOwed = async (req, res, next) => {
+  try {
+    const reservations = await Reservation.find({
+      cafe_id: req.tenantId,
+      'payment_data.requires_manual_refund': true,
+    })
+      .populate('user_id', 'name email phone')
+      .sort({ updated_at: -1 })
+      .limit(200)
+      .lean();
+
+    res.status(200).json({
+      status: 'success',
+      data: reservations.map((r) => ({
+        _id: r._id,
+        status: r.status,
+        start_time: r.start_time,
+        party_size: r.party_size,
+        guest: r.user_id,
+        amount: r.payment_data?.amount ?? 0,
+        currency: r.payment_data?.currency || 'INR',
+        payment_id: r.payment_data?.payment_id || null,
+        cancelled_at: r.cancelled_at,
+      })),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Clears the refunds-owed flag once staff have refunded from Razorpay.
+ *
+ * Deliberately records who marked it settled: this is the point where the
+ * cafe asserts a guest has been paid back, and that assertion is exactly what
+ * a later dispute turns on.
+ */
+const markRefundSettled = async (req, res, next) => {
+  try {
+    const { resId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(resId)) {
+      throw new BadRequestError('Invalid reservation ID');
+    }
+
+    const reservation = await Reservation.findOneAndUpdate(
+      {
+        _id: resId,
+        cafe_id: req.tenantId,
+        'payment_data.requires_manual_refund': true,
+      },
+      { $set: { 'payment_data.requires_manual_refund': false } },
+      { returnDocument: 'after' }
+    );
+
+    if (!reservation) {
+      throw new NotFoundError('No outstanding refund found for this reservation');
+    }
+
+    await logAuditEvent({
+      cafeId: req.tenantId,
+      entityType: 'Reservation',
+      entityId: reservation._id,
+      action: 'REFUND_MARKED_SETTLED',
+      afterState: {
+        amount: reservation.payment_data?.amount ?? 0,
+        payment_id: reservation.payment_data?.payment_id || null,
+      },
+      performedByUserId: req.user._id,
+    });
+
+    res.status(200).json({ status: 'success', data: { reservation_id: reservation._id } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDailyManifest,
   updateReservationStatus,
   assignTable,
+  getRefundsOwed,
+  markRefundSettled,
 };

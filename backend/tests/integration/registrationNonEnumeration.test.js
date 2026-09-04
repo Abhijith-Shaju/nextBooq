@@ -22,7 +22,7 @@ describe('Integration Test: registration does not enumerate which field conflict
   const register = (overrides) =>
     request(app)
       .post('/api/v1/auth/register')
-      .send({
+      .send({ accept_terms: true,
         name: 'New User',
         email: 'brand-new@test.com',
         phone: '+15559990602',

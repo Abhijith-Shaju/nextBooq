@@ -47,6 +47,8 @@ describe('Integration Test: reservation fee is charged from cafe settings, not t
       name: 'Fee Cafe',
       slug: cafeSlug,
       timezone: 'UTC',
+      contact_phone: '+911234567890',
+      address: { line1: '1 Test Street', city: 'Kochi', state: 'Kerala', postal_code: '682001' },
       subscription_status: 'active',
       ...(reservationFee !== undefined ? { reservation_rules: { reservation_fee: reservationFee } } : {}),
       payments: {

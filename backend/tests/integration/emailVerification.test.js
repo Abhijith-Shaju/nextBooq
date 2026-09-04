@@ -17,7 +17,7 @@ describe('Email verification', () => {
   });
 
   test('registration stores a hashed verification code and calls the email service', async () => {
-    const res = await request(app).post('/api/v1/auth/register').send({
+    const res = await request(app).post('/api/v1/auth/register').send({ accept_terms: true,
       name: 'Verify Me',
       email: 'verify-flow@example.com',
       phone: '+15550400001',
@@ -38,7 +38,7 @@ describe('Email verification', () => {
   test('registration succeeds even when the email service rejects', async () => {
     sendVerificationEmail.mockRejectedValueOnce(new Error('provider down'));
 
-    const res = await request(app).post('/api/v1/auth/register').send({
+    const res = await request(app).post('/api/v1/auth/register').send({ accept_terms: true,
       name: 'Verify Fails',
       email: 'verify-fails@example.com',
       phone: '+15550400002',
@@ -50,7 +50,7 @@ describe('Email verification', () => {
   });
 
   test('registration response includes is_email_verified: false', async () => {
-    const res = await request(app).post('/api/v1/auth/register').send({
+    const res = await request(app).post('/api/v1/auth/register').send({ accept_terms: true,
       name: 'Verify Payload',
       email: 'verify-payload@example.com',
       phone: '+15550400003',
@@ -65,7 +65,7 @@ describe('Email verification', () => {
     const register = (overrides = {}) =>
       request(app)
         .post('/api/v1/auth/register')
-        .send({
+        .send({ accept_terms: true,
           name: 'Verify Endpoint',
           email: 'verify-endpoint@example.com',
           phone: '+15550400010',

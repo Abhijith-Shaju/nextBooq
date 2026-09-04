@@ -54,6 +54,8 @@ describe('Integration Test: a cafe with overnight operating hours can actually t
       name: 'Overnight Booking Cafe',
       slug: `overnight-booking-cafe-${Date.now()}`,
       timezone: 'UTC',
+      contact_phone: '+911234567890',
+      address: { line1: '1 Test Street', city: 'Kochi', state: 'Kerala', postal_code: '682001' },
       subscription_status: 'active',
       operating_hours: [{ day_of_week: weekday, open_time: '18:00', close_time: '02:00', is_closed: false }],
       payments: {

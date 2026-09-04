@@ -39,6 +39,16 @@ const generateSocketToken = (userId) => {
   });
 };
 
+// The Terms say acceptance happens by clicking "I Agree". Enforcing the flag
+// server-side, rather than trusting the UI to have shown a checkbox, is what
+// makes terms_accepted_at worth anything as evidence: an account cannot exist
+// without the assertion having been made.
+const assertTermsAccepted = (accepted) => {
+  if (accepted !== true) {
+    throw new BadRequestError('You must accept the Terms and Conditions to create an account');
+  }
+};
+
 // Only applied when *creating* a new account — never on login/auth of an
 // existing user, since retroactively rejecting a pre-existing (weaker)
 // password on login would lock out real customers rather than protect them.
@@ -97,6 +107,7 @@ const registerUser = async (req, res, next) => {
       throw new BadRequestError('name, email, phone, and password must all be strings');
     }
     assertPasswordStrength(password);
+    assertTermsAccepted(req.body.accept_terms);
 
     // One generic message for either conflict (L-06) -- distinguishing "email
     // taken" from "phone taken" would let a caller enumerate which specific
@@ -121,6 +132,7 @@ const registerUser = async (req, res, next) => {
       staff_memberships: [],
       email_verification_code_hash: codeHash,
       email_verification_expires_at: expiresAt,
+      terms_accepted_at: new Date(),
     });
 
     await user.save();
@@ -531,6 +543,48 @@ const changeEmail = async (req, res, next) => {
 // Phone has no verification step (unlike email) — a typo here only affects
 // staff being able to reach the guest, not account access, so it updates
 // immediately once the password check and uniqueness check pass.
+/**
+ * Corrects the user's own display name.
+ *
+ * The Privacy Policy tells a Data Principal they can correct their name
+ * themselves, and the DPDP Act gives them the right to. Deliberately lighter
+ * than changeEmail/changePhone: those alter a login identifier and a
+ * uniqueness constraint, so they demand the current password. A display name
+ * is neither -- putting a password prompt in front of fixing a typo in your
+ * own name discourages exactly the correction the Act is trying to make easy.
+ */
+const changeName = async (req, res, next) => {
+  try {
+    const { name } = req.body;
+    if (typeof name !== 'string' || !name.trim()) {
+      throw new BadRequestError('Name is required');
+    }
+    const cleanName = name.trim();
+    if (cleanName.length > 120) {
+      throw new BadRequestError('Name must be 120 characters or fewer');
+    }
+
+    const user = await User.findById(req.user._id);
+    const previousName = user.name;
+    user.name = cleanName;
+    await user.save();
+
+    await logAuditEvent({
+      cafeId: null,
+      entityType: 'User',
+      entityId: user._id,
+      action: 'NAME_CHANGED',
+      beforeState: { name: previousName },
+      afterState: { name: cleanName },
+      performedByUserId: user._id,
+    });
+
+    res.status(200).json({ status: 'success', data: { name: user.name } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const changePhone = async (req, res, next) => {
   try {
     const { newPhone, currentPassword } = req.body;
@@ -684,7 +738,11 @@ const customerQuickAuth = async (req, res, next) => {
     }
 
     if (!user) {
+      // The booking overlay is a second front door onto account creation, so
+      // the acceptance gate has to sit on it too -- otherwise a guest can be
+      // given an account without ever asserting they accepted the Terms.
       assertPasswordStrength(password);
+      assertTermsAccepted(req.body.accept_terms);
 
       const salt = await bcrypt.genSalt(10);
       const password_hash = await bcrypt.hash(password, salt);
@@ -696,6 +754,7 @@ const customerQuickAuth = async (req, res, next) => {
         email: cleanEmail,
         phone: cleanPhone,
         password_hash,
+        terms_accepted_at: new Date(),
         staff_memberships: [],
         email_verification_code_hash: codeHash,
         email_verification_expires_at: expiresAt,
@@ -779,6 +838,7 @@ module.exports = {
   getSocketToken,
   changeEmail,
   changePhone,
+  changeName,
   requestStepUpOtp,
   // Exported for backend/tests/unit/cookieDomain.test.js only — lets that
   // test assert on the exact cookie attributes res.cookie() is called with

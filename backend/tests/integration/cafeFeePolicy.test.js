@@ -64,6 +64,8 @@ describe('Cafe reservation fee policy', () => {
       name: 'Fee Policy Cafe',
       slug: `fee-policy-${Date.now()}`,
       timezone: 'Asia/Kolkata',
+      contact_phone: '+911234567890',
+      address: { line1: '1 Test Street', city: 'Kochi', state: 'Kerala', postal_code: '682001' },
       subscription_status: 'active',
       reservation_rules: { booking_lead_time_hours: 1, reservation_fee: 100 },
       payments: {
@@ -158,6 +160,29 @@ describe('Cafe reservation fee policy', () => {
     });
   });
 
+  describe('contact details must be published before a cafe can sell', () => {
+    // The Terms state that nextBooq displays the cafe's address and contact
+    // details for every Reservation, per Rule 5 of the Consumer Protection
+    // (E-Commerce) Rules. Both fields are optional on the model, so that only
+    // holds if a cafe without them cannot take a booking.
+    test.each([
+      ['no contact phone', { contact_phone: '' }],
+      ['no address line1', { 'address.line1': '' }],
+    ])('refuses a booking when the cafe has %s', async (_label, unset) => {
+      await Cafe.updateOne({ _id: cafe._id }, { $set: unset });
+
+      const res = await book();
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/contact details/i);
+    });
+
+    test('allows the booking once both are present', async () => {
+      const res = await book();
+      expect(res.status).toBe(201);
+    });
+  });
+
   describe('the policy is published to the guest before they pay', () => {
     test('the public cafe payload carries the fee terms', async () => {
       await updateRules({ fee_adjusted_against_bill: false, refund_on_cancellation: false });
@@ -188,6 +213,7 @@ describe('Cafe reservation fee policy', () => {
         adjusted_against_bill: false,
         refund_on_cancellation: false,
         cancellation_cutoff_hours: 12,
+        no_show_grace_minutes: 15,
       });
     });
 

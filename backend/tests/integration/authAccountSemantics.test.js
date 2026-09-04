@@ -123,7 +123,7 @@ describe('normal account semantics', () => {
   });
 
   test('registration creates only a normal account and returns the normalized auth user', async () => {
-    const res = await request(app).post('/api/v1/auth/register').send(registration);
+    const res = await request(app).post('/api/v1/auth/register').send({ ...registration, accept_terms: true });
 
     expect(res.status).toBe(201);
     expect(Object.keys(res.body.data.user).sort()).toEqual(expectedAuthUserKeys);
@@ -185,7 +185,7 @@ describe('normal account semantics', () => {
   });
 
   test('quick auth and me return the same normalized account fields', async () => {
-    const quickAuth = await request(app).post('/api/v1/auth/customer-quick-auth').send({
+    const quickAuth = await request(app).post('/api/v1/auth/customer-quick-auth').send({ accept_terms: true,
       name: 'Quick Customer',
       email: 'quick-customer@example.com',
       phone: '+15550100003',
@@ -214,7 +214,7 @@ describe('normal account semantics', () => {
 
 describe('legacy self-service cafe creation is unavailable', () => {
   test('a registered normal account cannot create an organization, cafe, owner membership, or subscription', async () => {
-    const registrationRes = await request(app).post('/api/v1/auth/register').send(registration);
+    const registrationRes = await request(app).post('/api/v1/auth/register').send({ ...registration, accept_terms: true });
     const userId = registrationRes.body.data.user.id;
 
     const res = await request(app)

@@ -48,6 +48,10 @@ const feePolicySchema = new mongoose.Schema(
     adjusted_against_bill: { type: Boolean, required: true, immutable: true },
     refund_on_cancellation: { type: Boolean, required: true, immutable: true },
     cancellation_cutoff_hours: { type: Number, required: true, immutable: true },
+    // Not `required`, unlike its siblings: reservations written before this
+    // field existed have no value for it, and marking it required would make
+    // those documents fail validation on an unrelated later write.
+    no_show_grace_minutes: { type: Number, immutable: true },
   },
   { _id: false }
 );

@@ -9,14 +9,27 @@ const { logAuditEvent } = require('../../services/auditService');
 const { isValidHttpsUrl, validateAddress } = require('../../utils/cafeInput');
 const config = require('../../config/env');
 
-const POSITIVE_INT_RULES = ['default_turn_time_minutes', 'max_party_size', 'hold_duration_minutes'];
-const NON_NEGATIVE_INT_RULES = ['booking_lead_time_hours', 'cancellation_cutoff_hours'];
+const POSITIVE_INT_RULES = [
+  'default_turn_time_minutes',
+  'max_party_size',
+  'hold_duration_minutes',
+  'payment_timeout_minutes',
+];
+const NON_NEGATIVE_INT_RULES = [
+  'booking_lead_time_hours',
+  'cancellation_cutoff_hours',
+  'no_show_grace_minutes',
+];
 // Fee terms disclosed to the guest before payment. Booleans need their own
 // check: the numeric loops below skip anything they don't recognise, so
 // without this a `"maybe"` or a `1` would reach the schema and be coerced
 // into a policy the cafe never chose.
 const BOOLEAN_RULES = ['fee_adjusted_against_bill', 'refund_on_cancellation'];
 const MAX_CANCELLATION_CUTOFF_HOURS = 24 * 30; // a month's notice is already absurd
+const MAX_NO_SHOW_GRACE_MINUTES = 240; // four hours late is not "running late"
+// Format per the CBIC spec: 2-digit state code, 10-char PAN, entity digit,
+// 'Z', then a checksum character.
+const GSTIN_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 // Rupees, not paise — decimals allowed (e.g. 149.50), unlike the other rules above.
 const POSITIVE_NUMBER_RULES = ['reservation_fee'];
 const MAX_RESERVATION_FEE_RUPEES = 100000;
@@ -141,6 +154,7 @@ const updateCafe = async (req, res, next) => {
       hero_image_url,
       hero_overlay,
       contact_phone,
+      gstin,
       logo_url,
       brand_primary,
       brand_accent,
@@ -191,6 +205,14 @@ const updateCafe = async (req, res, next) => {
           `reservation_rules.cancellation_cutoff_hours must be no greater than ${MAX_CANCELLATION_CUTOFF_HOURS}`
         );
       }
+      if (
+        reservation_rules.no_show_grace_minutes !== undefined &&
+        reservation_rules.no_show_grace_minutes > MAX_NO_SHOW_GRACE_MINUTES
+      ) {
+        throw new BadRequestError(
+          `reservation_rules.no_show_grace_minutes must be no greater than ${MAX_NO_SHOW_GRACE_MINUTES}`
+        );
+      }
 
       cafe.reservation_rules = {
         ...cafe.reservation_rules.toObject(),
@@ -235,6 +257,20 @@ const updateCafe = async (req, res, next) => {
         throw new BadRequestError(`contact_phone must be ${MAX_CONTACT_PHONE_LENGTH} characters or fewer`);
       }
       cafe.contact_phone = contact_phone.trim();
+    }
+
+    if (gstin !== undefined) {
+      if (typeof gstin !== 'string') {
+        throw new BadRequestError('gstin must be a string');
+      }
+      const cleaned = gstin.trim().toUpperCase();
+      // Blank is legitimate -- a business below the registration threshold has
+      // no GSTIN -- but a value that is present must be a real one, or it is
+      // worse than leaving it empty.
+      if (cleaned && !GSTIN_PATTERN.test(cleaned)) {
+        throw new BadRequestError('gstin must be a valid 15-character GSTIN, or blank');
+      }
+      cafe.gstin = cleaned;
     }
 
     // Same shape the onboarding application captured — validated by the one

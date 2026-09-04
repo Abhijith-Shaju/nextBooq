@@ -19,7 +19,7 @@ describe('Integration Test: httpOnly session cookie authentication', () => {
   };
 
   test('login sets an httpOnly, path=/ session cookie', async () => {
-    await request(app).post('/api/v1/auth/register').send(credentials);
+    await request(app).post('/api/v1/auth/register').send({ ...credentials, accept_terms: true });
 
     const res = await request(app)
       .post('/api/v1/auth/login')
@@ -32,7 +32,7 @@ describe('Integration Test: httpOnly session cookie authentication', () => {
   });
 
   test('a request authenticates via the session cookie alone (no Authorization header)', async () => {
-    await request(app).post('/api/v1/auth/register').send(credentials);
+    await request(app).post('/api/v1/auth/register').send({ ...credentials, accept_terms: true });
     const loginRes = await request(app)
       .post('/api/v1/auth/login')
       .send({ email: credentials.email, password: credentials.password });
@@ -54,7 +54,7 @@ describe('Integration Test: httpOnly session cookie authentication', () => {
   });
 
   test('GET /auth/socket-token issues a fresh token to a cookie-authenticated user', async () => {
-    await request(app).post('/api/v1/auth/register').send(credentials);
+    await request(app).post('/api/v1/auth/register').send({ ...credentials, accept_terms: true });
     const loginRes = await request(app)
       .post('/api/v1/auth/login')
       .send({ email: credentials.email, password: credentials.password });
@@ -78,7 +78,7 @@ describe('Integration Test: httpOnly session cookie authentication', () => {
   // carry a distinct audience claim rather than being indistinguishable
   // from a real session token.
   test('GET /auth/socket-token issues a short-lived, socket-audience token, not a 7-day session token', async () => {
-    await request(app).post('/api/v1/auth/register').send(credentials);
+    await request(app).post('/api/v1/auth/register').send({ ...credentials, accept_terms: true });
     const loginRes = await request(app)
       .post('/api/v1/auth/login')
       .send({ email: credentials.email, password: credentials.password });
@@ -93,7 +93,7 @@ describe('Integration Test: httpOnly session cookie authentication', () => {
   });
 
   test('a socket token cannot be used to authenticate a REST request', async () => {
-    await request(app).post('/api/v1/auth/register').send(credentials);
+    await request(app).post('/api/v1/auth/register').send({ ...credentials, accept_terms: true });
     const loginRes = await request(app)
       .post('/api/v1/auth/login')
       .send({ email: credentials.email, password: credentials.password });
@@ -117,7 +117,7 @@ describe('session cookie attributes and scope', () => {
   };
 
   const login = async () => {
-    await request(app).post('/api/v1/auth/register').send(creds);
+    await request(app).post('/api/v1/auth/register').send({ ...creds, accept_terms: true });
     return request(app).post('/api/v1/auth/login').send({ email: creds.email, password: creds.password });
   };
 

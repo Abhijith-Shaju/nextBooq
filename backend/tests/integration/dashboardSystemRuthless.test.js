@@ -27,6 +27,8 @@ describe('Ruthless dashboard system audit', () => {
       name: 'Audit Cafe',
       slug: `audit-cafe-${Date.now()}`,
       timezone: 'UTC',
+      contact_phone: '+911234567890',
+      address: { line1: '1 Test Street', city: 'Kochi', state: 'Kerala', postal_code: '682001' },
       subscription_status: 'active',
     });
 

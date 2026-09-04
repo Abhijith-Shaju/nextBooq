@@ -26,7 +26,7 @@ const registerAndLogin = async (overrides = {}) => {
     password: PASSWORD,
     ...overrides,
   };
-  const res = await request(app).post('/api/v1/auth/register').send(payload);
+  const res = await request(app).post('/api/v1/auth/register').send({ ...payload, accept_terms: true });
   return { token: res.body.data.token, user: res.body.data.user };
 };
 

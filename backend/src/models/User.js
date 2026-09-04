@@ -137,6 +137,17 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    // When this user affirmatively accepted the Terms.
+    //
+    // The Terms claim acceptance happens "by clicking I Agree", and until this
+    // existed nothing recorded that anyone had. Indian courts treat clickwrap
+    // as materially stronger evidence than browsewrap, so the claim needs a
+    // record behind it. Null on accounts created before this shipped -- absence
+    // means unknown, not refused.
+    terms_accepted_at: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },

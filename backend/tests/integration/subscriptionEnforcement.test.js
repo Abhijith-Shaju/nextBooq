@@ -22,6 +22,8 @@ describe('Integration Test: Subscription Enforcement Middleware', () => {
       name: 'Sub Cafe',
       slug: 'sub-cafe',
       timezone: 'UTC',
+      contact_phone: '+911234567890',
+      address: { line1: '1 Test Street', city: 'Kochi', state: 'Kerala', postal_code: '682001' },
       subscription_status: 'inactive', // Subscription is INACTIVE
       payments: {
         razorpay_key_id: 'rzp_test_fixture',

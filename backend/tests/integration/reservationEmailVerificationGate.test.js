@@ -34,6 +34,8 @@ describe('Integration Test: reservation creation blocked for unverified email', 
       name: 'Email Gate Cafe',
       slug: 'email-gate-cafe',
       timezone: 'UTC',
+      contact_phone: '+911234567890',
+      address: { line1: '1 Test Street', city: 'Kochi', state: 'Kerala', postal_code: '682001' },
       payments: { razorpay_key_id: 'rzp_test_key', configured: true },
     });
     await Table.create({ cafe_id: cafe._id, table_number: 'T1', capacity: 4 });

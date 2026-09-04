@@ -6,7 +6,7 @@ setupTestDB();
 
 describe('Integration Test: minimum password strength on registration/quick-auth', () => {
   test('registration rejects a password shorter than 8 characters', async () => {
-    const res = await request(app).post('/api/v1/auth/register').send({
+    const res = await request(app).post('/api/v1/auth/register').send({ accept_terms: true,
       name: 'Weak Password User',
       email: 'weak-pw@test.com',
       phone: '+1555000999',
@@ -18,7 +18,7 @@ describe('Integration Test: minimum password strength on registration/quick-auth
   });
 
   test('registration accepts a password of at least 8 characters', async () => {
-    const res = await request(app).post('/api/v1/auth/register').send({
+    const res = await request(app).post('/api/v1/auth/register').send({ accept_terms: true,
       name: 'Strong Password User',
       email: 'strong-pw@test.com',
       phone: '+1555001000',
@@ -29,7 +29,7 @@ describe('Integration Test: minimum password strength on registration/quick-auth
   });
 
   test('customer quick-auth rejects a password shorter than 8 characters for a new account', async () => {
-    const res = await request(app).post('/api/v1/auth/customer-quick-auth').send({
+    const res = await request(app).post('/api/v1/auth/customer-quick-auth').send({ accept_terms: true,
       name: 'Weak Quick Auth',
       email: 'weak-quick@test.com',
       phone: '+1555001001',
