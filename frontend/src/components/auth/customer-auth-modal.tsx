@@ -24,6 +24,7 @@ export function CustomerAuthModal({
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   const loginMutation = useLogin();
   const registerMutation = useRegister();
@@ -52,9 +53,13 @@ export function CustomerAuthModal({
       toast.error('Please fill in all required fields');
       return;
     }
+    if (!acceptTerms) {
+      toast.error('Please accept the Terms and Conditions to continue');
+      return;
+    }
 
     registerMutation.mutate(
-      { name, email, phone, password },
+      { name, email, phone, password, accept_terms: true },
       {
         onSuccess: () => {
           toast.success('Account created successfully');
@@ -208,9 +213,31 @@ export function CustomerAuthModal({
               </div>
             </div>
 
+            {/* Third registration path in the app, and it needs the same
+                clickwrap gate as the other two -- the API refuses without it. */}
+            <label className="flex items-start gap-2.5 text-[11px] text-brand-mocha cursor-pointer">
+              <input
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-brand-red shrink-0"
+              />
+              <span>
+                I agree to the{' '}
+                <a href="/legal/terms" target="_blank" rel="noreferrer" className="text-brand-red font-semibold hover:underline">
+                  Terms
+                </a>{' '}
+                and{' '}
+                <a href="/legal/privacy" target="_blank" rel="noreferrer" className="text-brand-red font-semibold hover:underline">
+                  Privacy Policy
+                </a>
+                .
+              </span>
+            </label>
+
             <Button
               type="submit"
-              disabled={registerMutation.isPending}
+              disabled={registerMutation.isPending || !acceptTerms}
               className="w-full cta-hero py-3 justify-center text-sm font-bold shadow-brand-md mt-2"
             >
               {registerMutation.isPending ? (

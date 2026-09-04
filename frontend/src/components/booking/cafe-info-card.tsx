@@ -78,7 +78,13 @@ export function CafeInfoCard() {
               </>
             ) : (
               <><strong className="text-brand-brown">Non-refundable</strong> once paid.</>
-            )}
+            )}{' '}
+            {/* The grace period is the stated basis on which the fee may be
+                kept, so it has to be visible before the guest pays -- not
+                only in the Terms. */}
+            Arrive within{' '}
+            <strong className="text-brand-brown">{rules.no_show_grace_minutes ?? 15} minutes</strong> of
+            your time or it counts as a no-show.
           </p>
         </div>
 

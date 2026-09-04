@@ -72,6 +72,8 @@ describe('AuthOverlay', () => {
       screen.getByPlaceholderText('Choose a password for your account'),
       { target: { value: 'password123' } }
     );
+    // Booking as a new guest creates an account, so the clickwrap gate applies.
+    fireEvent.click(screen.getByRole('checkbox'));
 
     fireEvent.click(screen.getByRole('button', { name: /proceed to payment/i }));
 
@@ -81,6 +83,7 @@ describe('AuthOverlay', () => {
         email: 'jane@example.com',
         phone: '+919876543210',
         password: 'password123',
+        accept_terms: true,
       })
     );
     await vi.waitFor(() =>

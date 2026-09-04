@@ -57,7 +57,7 @@ Do this **before the café's stated cancellation cut-off**, which is shown to yo
 
 ### Refund timelines
 
-Refunds are initiated by the café through its Razorpay account. Once initiated, the amount typically reaches your original payment method within **5–7 business days**, depending on your bank or card issuer. nextBooq does not control this timeline.
+When a cancellation entitles you to a refund, the Reservation is placed on that café's refunds-owed queue and the café issues the refund from its own Razorpay account. nextBooq never holds your money and cannot issue the refund itself. Once initiated, the amount typically reaches your original payment method within **5–7 business days**, depending on your bank or card issuer. nextBooq does not control this timeline.
 
 If a refund you are owed has not arrived within **10 business days**, contact us at {{TODO:SUPPORT_EMAIL}} and we will follow it up with the café on your behalf.
 
@@ -76,7 +76,7 @@ Deposit forfeiture on a no-show exists so that cafés holding a table for you ar
 
 ## 6. Failed and duplicate payments
 
-- If your payment fails, no booking is created and no amount is captured. If your bank shows a pending amount, it is an authorisation hold that is normally released within 5–7 business days.
+- If your payment fails, **no confirmed booking results and no amount is captured.** The table is held only until the payment window shown at checkout runs out, after which it is released automatically. If your bank shows a pending amount, it is an authorisation hold that is normally released within 5–7 business days.
 - If you are charged twice for the same reservation, contact {{TODO:SUPPORT_EMAIL}} with both payment references and we will arrange the duplicate to be refunded in full.
 
 ---

@@ -25,6 +25,7 @@ import { useMyCafeApplication } from '@/hooks/onboarding/use-my-cafe-application
 import { useResendVerificationEmail } from '@/hooks/auth/use-resend-verification-email';
 import { useChangeEmail } from '@/hooks/auth/use-change-email';
 import { useChangePhone } from '@/hooks/auth/use-change-phone';
+import { useChangeName } from '@/hooks/auth/use-change-name';
 import { useRequestStepUpOtp } from '@/hooks/auth/use-request-step-up-otp';
 import { ChangeCredentialForm } from '@/components/auth/change-credential-form';
 import { useBookingStore } from '@/store/use-booking-store';
@@ -35,7 +36,7 @@ import { CafeApplicationCard } from '@/components/profile/cafe-application-card'
 import { Reservation } from '@/lib/types/models';
 import { toast } from 'sonner';
 
-type EditField = 'email' | 'phone' | null;
+type EditField = 'email' | 'phone' | 'name' | null;
 
 const SUBSCRIPTION_STATUS_STYLES: Record<string, string> = {
   active: 'border-emerald-200 bg-emerald-100 text-emerald-800',
@@ -67,8 +68,10 @@ export default function ProfilePage() {
   const resendVerification = useResendVerificationEmail();
   const changeEmail = useChangeEmail();
   const changePhone = useChangePhone();
+  const changeName = useChangeName();
   const requestStepUpOtp = useRequestStepUpOtp();
   const [editing, setEditing] = useState<EditField>(null);
+  const [nameDraft, setNameDraft] = useState('');
 
   if (!user) {
     return null;
@@ -170,7 +173,70 @@ export default function ProfilePage() {
                 .join('')}
             </div>
             <div>
-              <div className="font-display text-xl font-bold text-brand-brown">{user.name}</div>
+              {/* The Privacy Policy tells a Data Principal they can correct
+                  their own name. No password prompt: a display name is not a
+                  login identifier, and friction here discourages exactly the
+                  correction the DPDP Act wants to be easy. */}
+              {editing === 'name' ? (
+                <form
+                  className="flex flex-wrap items-center gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const value = nameDraft.trim();
+                    if (!value) {
+                      toast.error('Name cannot be empty');
+                      return;
+                    }
+                    changeName.mutate(
+                      { name: value },
+                      {
+                        onSuccess: () => {
+                          toast.success('Name updated.');
+                          setEditing(null);
+                        },
+                      }
+                    );
+                  }}
+                >
+                  <input
+                    aria-label="Your name"
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    maxLength={120}
+                    className="rounded-lg border border-brand-brown/20 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-red"
+                  />
+                  <button
+                    type="submit"
+                    disabled={changeName.isPending}
+                    className="rounded-lg bg-brand-red px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditing(null)}
+                    className="text-xs font-bold text-brand-mocha hover:underline"
+                  >
+                    Cancel
+                  </button>
+                </form>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-display text-xl font-bold text-brand-brown">{user.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNameDraft(user.name);
+                      setEditing('name');
+                    }}
+                    aria-label="Change name"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-brand-mocha hover:text-brand-brown hover:underline"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Change
+                  </button>
+                </div>
+              )}
               <div className="mt-0.5 text-sm text-brand-mocha">{PROFILE_ROLE_LABELS[role]}</div>
             </div>
           </div>
@@ -226,6 +292,7 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     onClick={() => setEditing('email')}
+                    aria-label="Change email"
                     className="inline-flex items-center gap-1 text-xs font-bold text-brand-mocha hover:text-brand-brown hover:underline"
                   >
                     <Pencil className="h-3 w-3" />
@@ -255,6 +322,7 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     onClick={() => setEditing('phone')}
+                    aria-label="Change phone number"
                     className="inline-flex items-center gap-1 text-xs font-bold text-brand-mocha hover:text-brand-brown hover:underline"
                   >
                     <Pencil className="h-3 w-3" />

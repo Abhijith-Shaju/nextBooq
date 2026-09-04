@@ -9,6 +9,10 @@ export interface CustomerQuickAuthPayload {
   email: string;
   phone: string;
   password: string;
+  // Required by the API when this call creates the account. The booking
+  // overlay is a second front door onto registration, so it carries the same
+  // acceptance gate as the register form.
+  accept_terms: boolean;
 }
 
 export interface CustomerQuickAuthResponse {

@@ -28,6 +28,7 @@ export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChang
   const [guestPassword, setGuestPassword] = useState('');
   const [specialNotes, setSpecialNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   // Validation helpers
   const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
@@ -56,6 +57,10 @@ export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChang
         toast.error('Please enter a password of at least 8 characters');
         return;
       }
+      if (!acceptTerms) {
+        toast.error('Please accept the Terms and Conditions to continue');
+        return;
+      }
     }
 
     // Sent as the cafe's own wall clock. The server resolves it to an instant
@@ -80,6 +85,7 @@ export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChang
           email: guestEmail.trim(),
           phone: guestPhone.trim(),
           password: guestPassword.trim(),
+          accept_terms: true,
         });
       }
 
@@ -253,6 +259,35 @@ export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChang
             </div>
           )}
 
+          {/* Booking as a new guest creates an account, so the same clickwrap
+              gate as the register form applies. An already-signed-in guest
+              accepted at registration and is not asked again. */}
+          {!isAuthenticated ? (
+            <label className="flex items-start gap-2.5 text-[11px] text-brand-mocha cursor-pointer">
+              <input
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-brand-red shrink-0"
+              />
+              <span>
+                I agree to the{' '}
+                <a href="/legal/terms" target="_blank" rel="noreferrer" className="text-brand-red font-semibold hover:underline">
+                  Terms
+                </a>
+                ,{' '}
+                <a href="/legal/privacy" target="_blank" rel="noreferrer" className="text-brand-red font-semibold hover:underline">
+                  Privacy Policy
+                </a>{' '}
+                and this cafe&rsquo;s{' '}
+                <a href="/legal/refunds" target="_blank" rel="noreferrer" className="text-brand-red font-semibold hover:underline">
+                  fee terms
+                </a>
+                .
+              </span>
+            </label>
+          ) : null}
+
           {/* Submit Action Button */}
           <Button
             onClick={handleHoldReservation}
@@ -260,6 +295,7 @@ export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChang
               isSubmitting ||
               bookTable.isPending ||
               quickAuth.isPending ||
+              (!isAuthenticated && !acceptTerms) ||
               (isAuthenticated && !user?.is_email_verified)
             }
             className="w-full cta-hero py-4 justify-center mt-2 text-base font-bold shadow-brand-md rounded-2xl"

@@ -41,7 +41,7 @@ Each café you book with ("**Café Partner**") is a **separate Data Fiduciary** 
 
 ### 2.3 Data we do **not** collect
 
-We do not collect payment instrument details, we do not use advertising or cross-site tracking cookies, and we do not build advertising profiles. The only cookie we set is a session cookie (`nb_session`), which is `HttpOnly` and exists solely to keep you signed in.
+We do not collect payment instrument details, we do not use advertising or cross-site tracking cookies, and we do not build advertising profiles. The only cookie nextBooq sets is a session cookie (`nb_session`), which is `HttpOnly` and exists solely to keep you signed in. Our hosting provider may set its own strictly-functional cookies to route and secure requests.
 
 ---
 
@@ -95,7 +95,7 @@ Our frontend is served from a global content delivery network, which means stati
 | Security and audit logs | {{TODO:RETENTION_LOGS — suggest 12 months}} |
 | Verification and reset codes | Minutes — cleared as soon as used or expired |
 
-Under the DPDP Act we must erase personal data once the purpose is served and retention is no longer required by law.
+These are the retention periods we operate to. **They are applied on request and on review rather than by an automated deletion job**, so if you want your data erased sooner, ask us (see §7) and we will action it. Under the DPDP Act we must erase personal data once the purpose is served and retention is no longer required by law.
 
 ---
 
@@ -104,13 +104,13 @@ Under the DPDP Act we must erase personal data once the purpose is served and re
 Under the DPDP Act you have the right to:
 
 1. **Access** — obtain a summary of the personal data we hold about you and how it is processed, including the identities of those we have shared it with. This includes any private notes a Café Partner has recorded about you.
-2. **Correction and completion** — have inaccurate or incomplete data corrected. You can change your own name, email, and phone from your profile at any time.
+2. **Correction and completion** — have inaccurate or incomplete data corrected. You can change your own name, email address and phone number from your profile at any time; anything else, ask us.
 3. **Erasure** — have your data deleted once the purpose is served, subject to retention we are legally required to observe (see §6).
 4. **Nomination** — nominate another individual to exercise your rights if you die or become incapacitated.
 5. **Grievance redressal** — complain to us first (see §9), and escalate to the Data Protection Board of India if unsatisfied.
 6. **Withdraw consent** — at any time, and as easily as you gave it. Withdrawal does not undo processing already carried out, and may mean we cannot honour existing reservations.
 
-To exercise any right, email **{{TODO:GRIEVANCE_OFFICER_EMAIL}}** from the address registered on your account. We will respond within **{{TODO:DSR_RESPONSE_DAYS — suggest 30}} days**.
+**How to exercise these rights.** Access, erasure and nomination are handled by our Grievance Officer rather than through a self-service screen: email **{{TODO:GRIEVANCE_OFFICER_EMAIL}}** from the address registered on your account and we will respond within **{{TODO:DSR_RESPONSE_DAYS — suggest 30}} days**. Correcting your own name, email or phone does not need a request — do it from your profile.
 
 You are responsible under the DPDP Act for providing accurate information and for not filing false or frivolous complaints.
 

@@ -18,6 +18,7 @@ function RegisterForm() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   const registerMutation = useRegister();
 
@@ -31,9 +32,13 @@ function RegisterForm() {
       toast.error('Password must be at least 8 characters long');
       return;
     }
+    if (!acceptTerms) {
+      toast.error('Please accept the Terms and Conditions to continue');
+      return;
+    }
 
     registerMutation.mutate(
-      { name, email, phone, password },
+      { name, email, phone, password, accept_terms: true },
       {
         onSuccess: (user) => {
           const destination = resolvePostAuthDestination(user, callbackUrl);
@@ -127,9 +132,36 @@ function RegisterForm() {
               </div>
             </div>
 
+            {/* Clickwrap, not browsewrap. The Terms claim acceptance happens by
+                clicking "I Agree", and Indian courts treat an explicit
+                affirmative act as materially stronger evidence than a notice
+                that using the site implies agreement. The API refuses the
+                registration without it, so this cannot be bypassed by a
+                client that skips the box. */}
+            <label className="flex items-start gap-2.5 text-xs text-brand-mocha cursor-pointer">
+              <input
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-brand-red shrink-0"
+                aria-describedby="terms-consent-text"
+              />
+              <span id="terms-consent-text">
+                I agree to the{' '}
+                <Link href="/legal/terms" target="_blank" className="text-brand-red font-semibold hover:underline">
+                  Terms and Conditions
+                </Link>{' '}
+                and the{' '}
+                <Link href="/legal/privacy" target="_blank" className="text-brand-red font-semibold hover:underline">
+                  Privacy Policy
+                </Link>
+                .
+              </span>
+            </label>
+
             <button
               type="submit"
-              disabled={registerMutation.isPending}
+              disabled={registerMutation.isPending || !acceptTerms}
               className="w-full cta-hero py-3.5 justify-center mt-2 text-base font-semibold shadow-brand-md"
             >
               {registerMutation.isPending ? (

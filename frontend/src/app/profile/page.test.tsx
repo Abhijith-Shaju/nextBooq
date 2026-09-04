@@ -48,6 +48,11 @@ vi.mock('@/hooks/auth/use-change-phone', () => ({
   useChangePhone: () => ({ mutate: changePhoneMutateMock, isPending: false }),
 }));
 
+const changeNameMutateMock = vi.fn();
+vi.mock('@/hooks/auth/use-change-name', () => ({
+  useChangeName: () => ({ mutate: changeNameMutateMock, isPending: false }),
+}));
+
 const requestStepUpOtpMutateMock = vi.fn();
 vi.mock('@/hooks/auth/use-request-step-up-otp', () => ({
   useRequestStepUpOtp: () => ({ mutate: requestStepUpOtpMutateMock, isPending: false }),
@@ -124,7 +129,7 @@ describe('ProfilePage', () => {
 
     render(<ProfilePage />);
 
-    fireEvent.click(screen.getAllByRole('button', { name: /change/i })[0]);
+    fireEvent.click(screen.getByRole('button', { name: /change email/i }));
     expect(screen.getByText(/confirm it's you/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /send code/i }));
@@ -148,7 +153,7 @@ describe('ProfilePage', () => {
 
     render(<ProfilePage />);
 
-    fireEvent.click(screen.getAllByRole('button', { name: /change/i })[0]);
+    fireEvent.click(screen.getByRole('button', { name: /change email/i }));
     expect(screen.queryByText(/confirm it's you/i)).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByPlaceholderText('New email address'), { target: { value: 'fixed@test.com' } });
@@ -167,7 +172,7 @@ describe('ProfilePage', () => {
 
     render(<ProfilePage />);
 
-    fireEvent.click(screen.getAllByRole('button', { name: /change/i })[1]);
+    fireEvent.click(screen.getByRole('button', { name: /change phone number/i }));
     fireEvent.change(screen.getByPlaceholderText('New phone number'), { target: { value: '+15559998888' } });
     fireEvent.change(screen.getByPlaceholderText('Current password'), { target: { value: 'secret123' } });
     fireEvent.click(screen.getByRole('button', { name: /save phone number/i }));

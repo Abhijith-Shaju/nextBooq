@@ -67,6 +67,9 @@ describe('CustomerAuthModal', () => {
     fireEvent.change(screen.getByPlaceholderText('jane@example.com'), { target: { value: 'jane@example.com' } });
     fireEvent.change(screen.getByPlaceholderText('+91 98765 43210'), { target: { value: '+919876543210' } });
     fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'password123' } });
+    // Creating an account requires the clickwrap acceptance; the API refuses
+    // without it, so the form must not be submittable without it either.
+    fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 
     expect(registerMutate).toHaveBeenCalledWith(
@@ -75,6 +78,7 @@ describe('CustomerAuthModal', () => {
         email: 'jane@example.com',
         phone: '+919876543210',
         password: 'password123',
+        accept_terms: true,
       },
       expect.objectContaining({ onSuccess: expect.any(Function) })
     );

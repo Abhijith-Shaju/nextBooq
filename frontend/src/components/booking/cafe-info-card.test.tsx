@@ -159,3 +159,26 @@ describe('CafeInfoCard reservation fee terms', () => {
     expect(screen.getByText('24 hours')).toBeInTheDocument();
   });
 });
+
+// The grace period is the stated basis on which a cafe may keep the fee after
+// a no-show, so the Terms promise it is shown before payment. It has to
+// actually appear, and reflect the cafe's own setting.
+describe('CafeInfoCard no-show grace period', () => {
+  test('states the default grace period', () => {
+    mockCafe = baseCafe;
+    render(<CafeInfoCard />);
+
+    expect(screen.getByText('15 minutes')).toBeInTheDocument();
+    expect(screen.getByText(/counts as a no-show/i)).toBeInTheDocument();
+  });
+
+  test('reflects a custom grace period', () => {
+    mockCafe = {
+      ...baseCafe,
+      reservation_rules: { ...baseCafe.reservation_rules, no_show_grace_minutes: 30 },
+    };
+    render(<CafeInfoCard />);
+
+    expect(screen.getByText('30 minutes')).toBeInTheDocument();
+  });
+});

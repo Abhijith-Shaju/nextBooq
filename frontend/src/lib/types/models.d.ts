@@ -10,6 +10,8 @@ export interface ReservationRules {
   fee_adjusted_against_bill?: boolean;
   refund_on_cancellation?: boolean;
   cancellation_cutoff_hours?: number;
+  no_show_grace_minutes?: number;
+  payment_timeout_minutes?: number;
 }
 
 /**
@@ -21,6 +23,7 @@ export interface ReservationFeePolicy {
   adjusted_against_bill: boolean;
   refund_on_cancellation: boolean;
   cancellation_cutoff_hours: number;
+  no_show_grace_minutes?: number;
 }
 
 export interface OperatingHourEntry {
@@ -65,6 +68,7 @@ export interface Cafe {
   hero_image_url?: string;
   hero_overlay?: 'subtle' | 'balanced' | 'vivid';
   contact_phone?: string;
+  gstin?: string;
   address?: CafeAddress;
   menu?: CafeMenuCategory[];
   payments?: {

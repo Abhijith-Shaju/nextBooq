@@ -25,6 +25,8 @@ const DEFAULT_RULES = {
   fee_adjusted_against_bill: true,
   refund_on_cancellation: true,
   cancellation_cutoff_hours: 24,
+  no_show_grace_minutes: 15,
+  payment_timeout_minutes: 15,
 };
 
 export default function CafeSettingsPage() {
@@ -50,6 +52,11 @@ export default function CafeSettingsPage() {
   const [cancellationCutoffHours, setCancellationCutoffHours] = useState(
     rules.cancellation_cutoff_hours ?? 24
   );
+  const [noShowGraceMinutes, setNoShowGraceMinutes] = useState(
+    rules.no_show_grace_minutes ?? 15
+  );
+  const [paymentTimeout, setPaymentTimeout] = useState(rules.payment_timeout_minutes ?? 15);
+  const [gstin, setGstin] = useState(cafe.gstin || '');
   const [operatingHours, setOperatingHours] = useState<OperatingHourEntry[]>(
     mergeOperatingHours(cafe.operating_hours)
   );
@@ -87,6 +94,9 @@ export default function CafeSettingsPage() {
     setFeeAdjustedAgainstBill(rules.fee_adjusted_against_bill ?? true);
     setRefundOnCancellation(rules.refund_on_cancellation ?? true);
     setCancellationCutoffHours(rules.cancellation_cutoff_hours ?? 24);
+    setNoShowGraceMinutes(rules.no_show_grace_minutes ?? 15);
+    setPaymentTimeout(rules.payment_timeout_minutes ?? 15);
+    setGstin(cafe.gstin || '');
     setOperatingHours(mergeOperatingHours(cafe.operating_hours));
     setDescription(cafe.description || '');
     setHeroImageUrl(cafe.hero_image_url || '');
@@ -113,6 +123,9 @@ export default function CafeSettingsPage() {
     rules.fee_adjusted_against_bill,
     rules.refund_on_cancellation,
     rules.cancellation_cutoff_hours,
+    rules.no_show_grace_minutes,
+    rules.payment_timeout_minutes,
+    cafe.gstin,
     operatingHoursKey,
     cafe.description,
     cafe.hero_image_url,
@@ -163,7 +176,10 @@ export default function CafeSettingsPage() {
           fee_adjusted_against_bill: feeAdjustedAgainstBill,
           refund_on_cancellation: refundOnCancellation,
           cancellation_cutoff_hours: cancellationCutoffHours,
+          no_show_grace_minutes: noShowGraceMinutes,
+          payment_timeout_minutes: paymentTimeout,
         },
+        gstin,
         operating_hours: operatingHours,
         description,
         hero_image_url: heroImageUrl,
@@ -383,6 +399,74 @@ export default function CafeSettingsPage() {
                   How long before the booking a guest must cancel to get the fee back. Your staff
                   apply this when cancelling from the dashboard &mdash; nextBooq does not block a
                   late cancellation automatically.
+                </p>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="no-show-grace"
+                  className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5"
+                >
+                  <Clock className="w-4 h-4 text-brand-red" /> No-show grace period (minutes)
+                </label>
+                <input
+                  id="no-show-grace"
+                  type="number"
+                  min={0}
+                  max={240}
+                  step={1}
+                  value={noShowGraceMinutes}
+                  onChange={(e) => setNoShowGraceMinutes(parseInt(e.target.value) || 0)}
+                  className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm font-mono tabular-nums"
+                />
+                <p className="text-[11px] text-brand-mochaMid mt-1">
+                  How late a guest may arrive before the booking counts as a no-show. Shown to
+                  guests before they pay, because it is the stated basis for keeping the fee.
+                </p>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="payment-timeout"
+                  className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5"
+                >
+                  <Clock className="w-4 h-4 text-brand-red" /> Payment window (minutes)
+                </label>
+                <input
+                  id="payment-timeout"
+                  type="number"
+                  min={1}
+                  max={120}
+                  step={1}
+                  value={paymentTimeout}
+                  onChange={(e) => setPaymentTimeout(parseInt(e.target.value) || 15)}
+                  className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm font-mono tabular-nums"
+                />
+                <p className="text-[11px] text-brand-mochaMid mt-1">
+                  How long a booking waits for payment before the table is released. This is the
+                  deadline actually enforced.
+                </p>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="cafe-gstin"
+                  className="block text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5"
+                >
+                  <IndianRupee className="w-4 h-4 text-brand-red" /> GSTIN
+                </label>
+                <input
+                  id="cafe-gstin"
+                  type="text"
+                  maxLength={15}
+                  value={gstin}
+                  onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                  placeholder="22AAAAA0000A1Z5"
+                  className="w-full px-4 py-3 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm font-mono tracking-wide"
+                />
+                <p className="text-[11px] text-brand-mochaMid mt-1">
+                  Shown on your storefront as part of your business details. Leave blank if your
+                  business is not GST-registered.
                 </p>
               </div>
             </div>
