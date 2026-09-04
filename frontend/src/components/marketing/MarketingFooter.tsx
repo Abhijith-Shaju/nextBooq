@@ -19,7 +19,7 @@ export default function MarketingFooter() {
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Top section */}
-        <div className="py-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+        <div className="py-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10">
           {/* Brand column */}
           <div className="space-y-4 lg:col-span-2 max-w-sm">
             <Link href="/" className="flex items-center gap-2 group" aria-label="nextBooq home">
@@ -43,8 +43,28 @@ export default function MarketingFooter() {
               <Link href="/#about" className="text-sm text-white/60 hover:text-white transition-colors">
                 About
               </Link>
-              <Link href="/#contact" className="text-sm text-white/60 hover:text-white transition-colors">
+              {/* Standalone route, not the /#contact anchor: this one has to
+                  survive being linked from an email, a search result, or a
+                  payment aggregator's onboarding form. */}
+              <Link href="/contact" className="text-sm text-white/60 hover:text-white transition-colors">
                 Contact
+              </Link>
+            </nav>
+          </div>
+
+          {/* Legal column — published as separate URLs because the E-Commerce
+              Rules 2020 and payment aggregators both expect them reachable. */}
+          <div className="space-y-3">
+            <h3 className="font-display text-sm font-semibold text-white tracking-wide uppercase">Legal</h3>
+            <nav className="flex flex-col gap-2.5" aria-label="Legal">
+              <Link href="/legal/terms" className="text-sm text-white/60 hover:text-white transition-colors">
+                Terms &amp; Conditions
+              </Link>
+              <Link href="/legal/privacy" className="text-sm text-white/60 hover:text-white transition-colors">
+                Privacy Policy
+              </Link>
+              <Link href="/legal/refunds" className="text-sm text-white/60 hover:text-white transition-colors">
+                Cancellation &amp; Refunds
               </Link>
             </nav>
           </div>

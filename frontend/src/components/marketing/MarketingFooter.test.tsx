@@ -54,3 +54,21 @@ describe('MarketingFooter', () => {
     expect(screen.queryByRole('link', { name: 'Get a demo' })).not.toBeInTheDocument();
   });
 });
+
+describe('MarketingFooter legal and contact links', () => {
+  // These have to be real routes, not the landing page's /#contact anchor:
+  // the E-Commerce Rules 2020 expect them published, and a payment aggregator
+  // will fetch the URLs during onboarding. An anchor 404s when linked directly.
+  test.each([
+    ['Terms & Conditions', '/legal/terms'],
+    ['Privacy Policy', '/legal/privacy'],
+    ['Cancellation & Refunds', '/legal/refunds'],
+    ['Contact', '/contact'],
+  ])('links %s to %s', (name, href) => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: false, isLoading: false });
+
+    render(<MarketingFooter />);
+
+    expect(screen.getByRole('link', { name })).toHaveAttribute('href', href);
+  });
+});

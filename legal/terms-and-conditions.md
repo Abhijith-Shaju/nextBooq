@@ -1,10 +1,10 @@
 # Terms and Conditions
 
-**Last Updated: [date]**
+**Last Updated: {{TODO:EFFECTIVE_DATE}}**
 
 ## 1. Introduction and Acceptance
 
-These Terms and Conditions ("**Terms**") constitute a legally binding agreement between you ("**User**", "**you**", "**Guest**" or "**Café Partner**" as the context requires) and [Company Legal Name] ("**nextBooq**", "**Company**", "**we**", "**us**"), a company/proprietorship incorporated under the laws of India, having its registered office at [registered address], governing your access to and use of the nextBooq website, dashboard, and booking widgets (collectively, the "**Platform**").
+These Terms and Conditions ("**Terms**") constitute a legally binding agreement between you ("**User**", "**you**", "**Guest**" or "**Café Partner**" as the context requires) and {{TODO:PARTNER_NAMES}}, carrying on business together under the trade name "**nextBooq**" ("**nextBooq**", "**we**", "**us**"), having a place of business at {{TODO:BUSINESS_ADDRESS}}, governing your access to and use of the nextBooq website, dashboard, and booking widgets (collectively, the "**Platform**").
 
 By clicking "I Agree", creating an account, confirming a reservation, or otherwise using the Platform, you affirmatively accept these Terms in accordance with Section 10 of the Indian Contract Act, 1872. If you do not agree, do not use the Platform.
 
@@ -27,7 +27,7 @@ You must be at least 18 years of age and competent to contract under the Indian 
 
 ## 5. Account Registration
 
-Café Partners must provide accurate business details (café name, address, GSTIN where applicable) and maintain the confidentiality of their dashboard login credentials. Guests may be required to provide a name, phone number, and email to complete a Reservation. You are responsible for all activity under your account and must notify [support email] immediately of any unauthorized use.
+Café Partners must provide accurate business details (café name, address, GSTIN where applicable) and maintain the confidentiality of their dashboard login credentials. Guests may be required to provide a name, phone number, and email to complete a Reservation. You are responsible for all activity under your account and must notify {{TODO:SUPPORT_EMAIL}} immediately of any unauthorized use.
 
 ## 6. Reservations, Deposits, and Payment
 
@@ -38,21 +38,21 @@ Café Partners must provide accurate business details (café name, address, GSTI
 
 ## 7. Cancellation, No-Show, and Refund Policy
 
-- **Guest-initiated cancellation:** Guests may cancel a Reservation before the Café Partner's stated cancellation cut-off (shown at the time of booking) for a refund of the Deposit to the original payment method, processed by the Café Partner's payment account, typically within [X] business days.
+- **Guest-initiated cancellation:** The Platform does not currently offer a self-service cancellation option within the booking flow. A Guest who wishes to cancel a Reservation must contact the Café Partner directly (using the contact details shown at the time of booking) or reach nextBooq support at {{TODO:SUPPORT_EMAIL}}, before the Café Partner's stated cancellation cut-off. Once notified, the Café Partner processes the cancellation from its dashboard, which updates the Reservation status and triggers a refund of the Deposit to the original payment method via the Café Partner's own payment account, typically within 5–7 business days.
 - **No-show:** If a Guest does not arrive within the grace period stated by the Café Partner at booking, the Deposit may be forfeited to the Café Partner as per that Café Partner's stated policy.
-- **Café Partner–initiated cancellation:** If a Café Partner cancels a confirmed Reservation (e.g., due to closure or an operational issue), the full Deposit will be refunded to the Guest.
-- **Payment failures/disputes:** Where a payment succeeds but the Reservation could not be honoured due to a technical error, the amount is flagged for manual refund review and processed by the relevant Café Partner within [X] business days.
-- Each Café Partner's specific cancellation window and no-show grace period are displayed to the Guest before the Deposit is charged and form part of the Reservation contract between the Guest and that Café Partner.
+- **Café Partner–initiated cancellation:** If a Café Partner cancels a confirmed Reservation (e.g., due to closure or an operational issue) from its dashboard, the full Deposit will be refunded to the Guest.
+- **Payment failures/disputes:** Where a payment succeeds but the Reservation could not be honoured due to a technical error, the amount is flagged for manual refund review and processed by the relevant Café Partner within 5–7 business days.
+- Each Café Partner's specific cancellation window and no-show grace period are displayed to the Guest before the Deposit is charged and form part of the Reservation contract between the Guest and that Café Partner. nextBooq intends to add a self-service cancellation option to the booking flow in future; until then, cancellation is handled manually as described above.
 
 ## 8. Café Partner Identity Disclosure
 
-For every Reservation, the Platform displays: the Café Partner's business name, address, and contact details, in compliance with Rule 5 of the Consumer Protection (E-Commerce) Rules, 2020. nextBooq's own registered details are:
+For every Reservation, the Platform displays: the Café Partner's business name, address, and contact details, in compliance with Rule 5 of the Consumer Protection (E-Commerce) Rules, 2020. nextBooq's own details are:
 
-- Legal name: [Company Legal Name]
-- Registered address: [address]
-- Customer support email: [email]
-- Customer support phone: [phone, with hours of operation]
-- GSTIN: [number, if applicable]
+- Operated by: {{TODO:PARTNER_NAMES}}, trading as "nextBooq" (unregistered partnership — see note below)
+- Business address: {{TODO:BUSINESS_ADDRESS}}
+- Customer support email: {{TODO:SUPPORT_EMAIL}}
+- Customer support phone: {{TODO:SUPPORT_PHONE}} (Mon–Sat, {{TODO:SUPPORT_HOURS}} IST)
+- GSTIN: {{TODO:GSTIN_OR_NOT_APPLICABLE}}
 
 ## 9. User Obligations and Prohibited Conduct
 
@@ -90,17 +90,17 @@ nextBooq may suspend or terminate a Café Partner's or Guest's access to the Pla
 
 ## 16. Data Protection and Privacy
 
-Your personal data (including name, phone number, email, and Reservation history) is processed in accordance with the Digital Personal Data Protection Act, 2023, and our Privacy Policy available at [link], which is incorporated into these Terms by reference. By using the Platform, you consent to the collection and processing of your personal data for the purposes described in the Privacy Policy, including sharing Reservation details with the relevant Café Partner to fulfil your booking. You may withdraw consent or exercise your rights as a Data Principal (including the right to access, correction, and erasure) as described in the Privacy Policy.
+Your personal data (including name, phone number, email, and Reservation history) is processed in accordance with the Digital Personal Data Protection Act, 2023, and our Privacy Policy available at https://www.nextbooq.in/legal/privacy, which is incorporated into these Terms by reference. By using the Platform, you consent to the collection and processing of your personal data for the purposes described in the Privacy Policy, including sharing Reservation details with the relevant Café Partner to fulfil your booking. As a Data Principal under the DPDP Act you have the right to access a summary of your personal data and how it is processed, to correct or complete inaccurate data, to have data erased once the purpose is served, to nominate another individual to exercise these rights in the event of your death or incapacity, and to a readily available grievance-redressal mechanism. You may withdraw consent at any time, as easily as it was given; withdrawal does not affect processing already carried out, and may prevent us from fulfilling existing Reservations. The procedure for exercising each right is set out in the Privacy Policy.
 
 ## 17. Grievance Redressal
 
 In accordance with the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021 and the Consumer Protection Act, 2019, the name and contact details of the Grievance Officer are provided below:
 
-- **Grievance Officer:** [Full Name]
-- **Designation:** [title]
-- **Email:** [email]
-- **Phone:** [number]
-- **Address:** [postal address]
+- **Grievance Officer:** {{TODO:GRIEVANCE_OFFICER_NAME}}
+- **Designation:** {{TODO:GRIEVANCE_OFFICER_TITLE}}
+- **Email:** {{TODO:GRIEVANCE_OFFICER_EMAIL}}
+- **Phone:** {{TODO:GRIEVANCE_OFFICER_PHONE}}
+- **Address:** {{TODO:GRIEVANCE_OFFICER_ADDRESS}}
 
 The Grievance Officer will acknowledge complaints within 24 hours and resolve them within 15 days of receipt, or within such shorter period as prescribed by law for specific categories of complaints. Complaints specifically about a Reservation experience at a Café Partner's establishment (e.g., food quality, service) should first be raised with that Café Partner; nextBooq will assist in escalating unresolved platform-related disputes.
 
@@ -110,11 +110,11 @@ Neither party shall be liable for delay or failure to perform obligations due to
 
 ## 19. Governing Law and Jurisdiction
 
-These Terms shall be governed by and construed in accordance with the laws of India. The courts at [city], [state] shall have exclusive jurisdiction over any disputes arising out of or in connection with these Terms.
+These Terms shall be governed by and construed in accordance with the laws of India. The courts at {{TODO:JURISDICTION_CITY}}, {{TODO:JURISDICTION_STATE}} shall have exclusive jurisdiction over any disputes arising out of or in connection with these Terms.
 
 ## 20. Amendment
 
-nextBooq reserves the right to modify these Terms at any time. Material changes will be notified via email or in-dashboard notice at least [X] days in advance. Continued use of the Platform after such notice constitutes acceptance of the revised Terms.
+nextBooq reserves the right to modify these Terms at any time. Material changes will be notified via email or in-dashboard notice at least 15 days in advance. Continued use of the Platform after such notice constitutes acceptance of the revised Terms.
 
 ## 21. Severability
 
@@ -122,7 +122,7 @@ If any provision of these Terms is held invalid or unenforceable, the remaining 
 
 ## 22. Contact Information
 
-For questions about these Terms, contact: [email], [phone], [address].
+For questions about these Terms, contact: {{TODO:SUPPORT_EMAIL}}, {{TODO:SUPPORT_PHONE}}, {{TODO:BUSINESS_ADDRESS}}.
 
 ---
 
