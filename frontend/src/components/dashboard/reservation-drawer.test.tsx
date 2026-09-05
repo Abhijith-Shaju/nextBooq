@@ -159,3 +159,55 @@ describe('ReservationDrawer table-occupancy conflict on seating', () => {
     });
   });
 });
+
+// These counters were accumulated on every COMPLETED / NO_SHOW but nothing
+// displayed them, so the "recognise repeat guests and manage no-shows"
+// purpose the Privacy Policy states for holding them was not real.
+describe('ReservationDrawer guest history', () => {
+  const renderWith = (guest_history?: { total_visits: number; total_no_shows: number }) => {
+    const queryClient = new QueryClient();
+    useDashboardStore.setState({ isDrawerOpen: true, selectedReservationId: 'res_1' });
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <ReservationDrawer cafeId="cafe_1" reservations={[{ ...reservation, guest_history }]} />
+      </QueryClientProvider>
+    );
+  };
+
+  beforeEach(() => {
+    useDashboardStore.setState({ isDrawerOpen: false, selectedReservationId: null });
+  });
+
+  test('shows the visit count for a returning guest', () => {
+    renderWith({ total_visits: 7, total_no_shows: 0 });
+    expect(screen.getByText('7 previous visits')).toBeInTheDocument();
+    // Anchored: a loose /no-show/i also matches the "Mark No-Show" button.
+    expect(screen.queryByText(/^\d+ no-shows?$/)).not.toBeInTheDocument();
+  });
+
+  test('warns about prior no-shows', () => {
+    renderWith({ total_visits: 2, total_no_shows: 1 });
+    expect(screen.getByText('2 previous visits')).toBeInTheDocument();
+    expect(screen.getByText('1 no-show')).toBeInTheDocument();
+  });
+
+  test('singularises a single visit', () => {
+    renderWith({ total_visits: 1, total_no_shows: 0 });
+    expect(screen.getByText('1 previous visit')).toBeInTheDocument();
+  });
+
+  test('shows nothing at all for a first-time guest', () => {
+    // A row of zeroes is noise on the busiest screen in the product.
+    renderWith({ total_visits: 0, total_no_shows: 0 });
+    expect(screen.queryByText(/previous visit/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^\d+ no-shows?$/)).not.toBeInTheDocument();
+  });
+
+  test('renders normally when the field is absent entirely', () => {
+    // A manifest response cached from before this shipped has no
+    // guest_history at all; the drawer must not blow up on it.
+    renderWith(undefined);
+    expect(screen.getByText('Priya Sharma')).toBeInTheDocument();
+    expect(screen.queryByText(/previous visit/i)).not.toBeInTheDocument();
+  });
+});

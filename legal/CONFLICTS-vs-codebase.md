@@ -232,6 +232,49 @@ Resend is wired for transactional mail only.
 
 ---
 
+## 13. Café notes about a guest were declared but never existed *(correction)*
+
+**This entry corrects an error in an earlier revision of this document**,
+which listed Privacy §2's data inventory as wholly accurate. It was verified
+by confirming the field existed on the schema, without checking whether
+anything ever wrote to it. Nothing did.
+
+**Document said** — Privacy Policy §2.2:
+> Café Partner notes about you — Staff at a café you have booked with can record free-text private notes against your record at that café. You have a right of access to these — see §7.
+
+**Code did** — `private_notes` existed on the `CafeCustomer` model with
+`default: ''`, and **nothing wrote it**: no route, no service, no UI. Every
+row in production held the empty-string default. The policy described a
+surveillance capability that did not exist, which is both false and
+needlessly alarming to a guest reading it.
+
+**Resolved** — the field is removed from the model and the claim is removed
+from the Privacy Policy. Reinstate both together if staff note-taking is ever
+wanted, along with a route letting a guest read the notes back, since the
+policy promised exactly that access.
+
+---
+
+## 14. Visit and no-show counts were collected for a purpose that was not real
+
+**Document says** — Privacy Policy §3 justifies holding these as:
+> Letting a café recognise repeat guests and manage no-shows
+
+**Code did** — `stateMachine.js` has always incremented `total_visits` on
+`COMPLETED` and `total_no_shows` on `NO_SHOW`, and the counters were
+genuinely accumulating in production. But **no route exposed them and no UI
+read them**, so no café could recognise anything. Behavioural records about
+identifiable people were being accumulated for a stated purpose that nothing
+could serve — which is a purpose-limitation problem under the DPDP Act, not
+merely a missing feature.
+
+**Resolved** — the host manifest now attaches each guest's counts, and the
+reservation drawer shows them as a repeat-guest badge and a no-show warning.
+The stated purpose is now true. The alternative, had the feature not been
+wanted, was to stop collecting them.
+
+---
+
 ## Claims I checked and found accurate
 
 Worth recording, so the list above isn't mistaken for the whole picture:
@@ -242,9 +285,10 @@ Worth recording, so the list above isn't mistaken for the whole picture:
   true, per-café credentials, encrypted at rest.
 - **"The only cookie we set is a session cookie (`nb_session`), HttpOnly"** —
   true; that is the only `res.cookie` call in the backend.
-- **Privacy §2's data inventory** — accurate, including the less obvious
-  entries: per-café `total_visits` / `total_no_shows`, the café's free-text
-  `private_notes` about a guest, and audit logs holding IP addresses.
+- **Privacy §2's data inventory** — accurate for the audit logs holding IP
+  addresses, and for the per-café `total_visits` / `total_no_shows` counters.
+  It was **not** accurate about `private_notes` — see entry 13, which corrects
+  an error in an earlier revision of this register.
 - **Privacy §8's security claims** — bcrypt password hashing, HttpOnly
   sessions, AES-256-GCM for café payment credentials, role-scoped access,
   HTTPS, audit logging. All verified.

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Reservation = require('../../models/Reservation');
+const CafeCustomer = require('../../models/CafeCustomer');
 const { transitionState } = require('../../services/stateMachine');
 const { findSeatedOccupancyConflict } = require('../../services/tableOccupancyService');
 const { suggestAlternateTable } = require('../../services/allocationEngine');
@@ -53,16 +54,65 @@ const getDailyManifest = async (req, res, next) => {
     })
       .populate('user_id', 'name email phone')
       .populate('table_ids', 'table_number capacity')
-      .sort({ start_time: 1 });
+      .sort({ start_time: 1 })
+      .lean();
+
+    const withGuestHistory = await attachGuestHistory(cafeId, reservations);
 
     res.status(200).json({
       status: 'success',
-      count: reservations.length,
-      data: reservations,
+      count: withGuestHistory.length,
+      data: withGuestHistory,
     });
   } catch (error) {
     next(error);
   }
+};
+
+/**
+ * Attaches each guest's visit and no-show history at this cafe to the
+ * reservations being returned.
+ *
+ * stateMachine.js has always accumulated these counters (COMPLETED bumps
+ * total_visits, NO_SHOW bumps total_no_shows), but nothing ever read them
+ * back, so the data sat in CafeCustomer where no host could see it. The
+ * Privacy Policy justifies collecting it as "letting a cafe recognise repeat
+ * guests and manage no-shows" -- a purpose that was not real while the
+ * numbers were invisible. Surfacing them here is what makes that true.
+ *
+ * One query for the whole page rather than one per reservation: a busy
+ * service can render fifty rows, and the same guest often appears more than
+ * once in a day.
+ */
+const attachGuestHistory = async (cafeId, reservations) => {
+  const userIds = [
+    ...new Set(
+      reservations
+        .map((r) => (r.user_id && (r.user_id._id || r.user_id))?.toString())
+        .filter(Boolean)
+    ),
+  ];
+  if (userIds.length === 0) return reservations;
+
+  const records = await CafeCustomer.find({ cafe_id: cafeId, user_id: { $in: userIds } })
+    .select('user_id total_visits total_no_shows')
+    .lean();
+
+  const byUserId = new Map(records.map((c) => [c.user_id.toString(), c]));
+
+  return reservations.map((r) => {
+    const key = (r.user_id && (r.user_id._id || r.user_id))?.toString();
+    const record = key ? byUserId.get(key) : null;
+    return {
+      ...r,
+      // Always present, so the client never has to distinguish "no history
+      // yet" from "the server did not send it".
+      guest_history: {
+        total_visits: record?.total_visits ?? 0,
+        total_no_shows: record?.total_no_shows ?? 0,
+      },
+    };
+  });
 };
 
 /**

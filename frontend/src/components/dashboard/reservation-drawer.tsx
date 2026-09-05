@@ -30,6 +30,12 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
 
   const resId = res._id || res.id;
 
+  // Defaults rather than optional chaining at each use: an older cached
+  // manifest response predates guest_history, and a first-time guest has no
+  // CafeCustomer record at all.
+  const visits = res.guest_history?.total_visits ?? 0;
+  const noShows = res.guest_history?.total_no_shows ?? 0;
+
   const handleStatusChange = (
     newStatus: ReservationStatus,
     options: { force?: boolean; reassign?: boolean } = {}
@@ -105,6 +111,29 @@ export function ReservationDrawer({ cafeId, reservations }: ReservationDrawerPro
                   <p className="text-xs text-brand-mocha">Party of {res.party_size} Guests</p>
                 </div>
               </div>
+
+              {/* The cafe's own history with this guest. These counters have
+                  always been accumulated on COMPLETED and NO_SHOW, but nothing
+                  displayed them, so the "recognise repeat guests and manage
+                  no-shows" purpose the Privacy Policy states was not real.
+                  Shown only once there is something to say -- a first-time
+                  guest gets no badge rather than a row of zeroes. */}
+              {(visits > 0 || noShows > 0) && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {visits > 0 && (
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
+                      <UserCheck className="w-3 h-3" />
+                      {visits === 1 ? '1 previous visit' : `${visits} previous visits`}
+                    </span>
+                  )}
+                  {noShows > 0 && (
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-[11px] font-semibold text-amber-900">
+                      <AlertCircle className="w-3 h-3" />
+                      {noShows === 1 ? '1 no-show' : `${noShows} no-shows`}
+                    </span>
+                  )}
+                </div>
+              )}
 
               <div className="pt-2 border-t border-brand-brown/10 space-y-1.5 text-xs text-brand-mocha">
                 <div className="flex items-center gap-2">

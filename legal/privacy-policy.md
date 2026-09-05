@@ -34,8 +34,7 @@ Each café you book with ("**Café Partner**") is a **separate Data Fiduciary** 
 |---|---|
 | Reservation records | Date, time, party size, table assigned, status history, and the timestamps of each status change |
 | Deposit payment references | Razorpay order and payment identifiers, amount, and currency. **We never receive or store your card, UPI, or bank credentials** — see §4 |
-| Visit and no-show counts | Each Café Partner accumulates a count of your completed visits and no-shows at that café |
-| Café Partner notes about you | Staff at a café you have booked with can record free-text private notes against your record at that café. You have a right of access to these — see §7 |
+| Visit and no-show counts | Each Café Partner accumulates a count of your completed visits and no-shows at that café. Staff at that café can see these counts when they open your booking |
 | Email verification and password-reset codes | Stored only as hashes, time-limited, and single-use |
 | Security and audit logs | Including your IP address, the action taken, and timestamps — for failed logins, rate-limit blocks, and changes to café settings |
 
@@ -56,7 +55,7 @@ Under the DPDP Act we process personal data on the basis of your **consent**, gi
 | Creating and honouring reservations | Name, phone, reservation details — shared with the relevant Café Partner |
 | Collecting and refunding the reservation deposit | Payment references, shared with Razorpay and the Café Partner |
 | Showing you your booking history | Reservation records |
-| Letting a café recognise repeat guests and manage no-shows | Visit and no-show counts, café notes |
+| Letting a café recognise repeat guests and manage no-shows | Visit and no-show counts |
 | Protecting the Platform from abuse | IP address, audit logs, rate-limit records |
 | Responding to your queries and grievances | Whatever you send us |
 
@@ -103,7 +102,7 @@ These are the retention periods we operate to. **They are applied on request and
 
 Under the DPDP Act you have the right to:
 
-1. **Access** — obtain a summary of the personal data we hold about you and how it is processed, including the identities of those we have shared it with. This includes any private notes a Café Partner has recorded about you.
+1. **Access** — obtain a summary of the personal data we hold about you and how it is processed, including the identities of those we have shared it with. This includes the visit and no-show counts a Café Partner holds about you.
 2. **Correction and completion** — have inaccurate or incomplete data corrected. You can change your own name, email address and phone number from your profile at any time; anything else, ask us.
 3. **Erasure** — have your data deleted once the purpose is served, subject to retention we are legally required to observe (see §6).
 4. **Nomination** — nominate another individual to exercise your rights if you die or become incapacitated.

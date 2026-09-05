@@ -180,6 +180,14 @@ export interface Reservation {
     currency?: string;
     expires_at?: string;
   };
+  // This cafe's own history with the guest, attached by the host manifest
+  // endpoint. Optional because only that endpoint sends it -- the customer's
+  // own reservation list deliberately does not, since these counters are the
+  // cafe's operational view rather than something to show the diner.
+  guest_history?: {
+    total_visits: number;
+    total_no_shows: number;
+  };
   created_at?: string;
   updated_at?: string;
 }
