@@ -111,8 +111,20 @@ function TenantDashboardGuard({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-brand-cream flex flex-col md:flex-row font-sans">
-      {/* Sidebar Navigation */}
-      <aside className="w-full md:w-64 bg-white/70 backdrop-blur-sm border-r border-brand-brown/10 p-6 flex flex-col justify-between shrink-0">
+      {/* Sidebar Navigation
+          From md up the sidebar is exactly one viewport tall and pinned there,
+          so it stays put while the manifest or table list scrolls past it.
+          `self-start` is what makes that work: as a flex child it would
+          otherwise stretch to the full height of the (arbitrarily tall) page
+          content, and a stretched item cannot stick. `overflow-y-auto` is the
+          fallback for a short laptop window where the nav plus the profile
+          block are together taller than the viewport — they scroll inside the
+          sidebar rather than being clipped.
+          dvh rather than vh because tablet browsers collapse their toolbar on
+          scroll, and 100vh there is taller than what you can actually see.
+          Below md the sidebar is a full-width block stacked above the content,
+          which is left exactly as it was. */}
+      <aside className="w-full md:w-64 md:h-dvh md:sticky md:top-0 md:self-start md:overflow-y-auto bg-white/70 backdrop-blur-sm border-r border-brand-brown/10 p-6 flex flex-col justify-between shrink-0">
         <div>
           {/* Brand Header */}
           <div className="flex items-center gap-3 mb-8">
