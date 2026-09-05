@@ -6,7 +6,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { useTenant } from '@/components/providers/tenant-provider';
 import { useQueryClient } from '@tanstack/react-query';
 import { io } from 'socket.io-client';
-import { Coffee, LayoutDashboard, Calendar, Grid, Settings, LogOut, User } from 'lucide-react';
+import { Coffee, LayoutDashboard, Calendar, Grid, Settings, LogOut, User, IndianRupee } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { isNavItemActive } from '@/lib/dashboard/nav-active';
 import { axiosInstance } from '@/hooks/api/axios-instance';
@@ -14,6 +14,7 @@ import { hasStaffMembershipForCafe, hasCafePermission } from '@/lib/dashboard/te
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { EmailVerificationBanner } from '@/components/shared/email-verification-banner';
+import { useRefundsOwed } from '@/hooks/host/use-refunds-owed';
 
 function TenantDashboardGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -105,9 +106,18 @@ function TenantDashboardGuard({ children }: { children: React.ReactNode }) {
   const navItems = [
     { label: 'Host Stand', href: `/${cafe.slug}/dashboard`, icon: LayoutDashboard, permission: 'view_reservations' },
     { label: 'Reservations', href: `/${cafe.slug}/reservations`, icon: Calendar, permission: 'view_reservations' },
+    { label: 'Refunds', href: `/${cafe.slug}/refunds`, icon: IndianRupee, permission: 'view_reservations' },
     { label: 'Tables Inventory', href: `/${cafe.slug}/tables`, icon: Grid, permission: 'edit_tables' },
     { label: 'Cafe Settings', href: `/${cafe.slug}/settings`, icon: Settings, permission: 'edit_settings' },
   ].filter((item) => hasCafePermission(user, cafe.id, item.permission));
+
+  // Money a guest is still waiting for should be visible without having to
+  // remember to go looking, so the count rides on the nav item. Gated on the
+  // same permission as the link: a staff member who cannot read the queue
+  // would just get a 403 and an error toast on every dashboard page.
+  const canReadRefunds = hasCafePermission(user, cafe.id, 'view_reservations');
+  const { data: refundsOwed = [] } = useRefundsOwed(cafe?.id, canReadRefunds);
+  const refundsOwedCount = refundsOwed.length;
 
   return (
     <div className="min-h-screen bg-brand-cream flex flex-col md:flex-row font-sans">
@@ -156,7 +166,17 @@ function TenantDashboardGuard({ children }: { children: React.ReactNode }) {
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  {item.label === 'Refunds' && refundsOwedCount > 0 ? (
+                    <span
+                      aria-label={`${refundsOwedCount} refunds owed`}
+                      className={`min-w-5 px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums text-center ${
+                        isActive ? 'bg-white/25 text-white' : 'bg-amber-100 text-amber-900'
+                      }`}
+                    >
+                      {refundsOwedCount}
+                    </span>
+                  ) : null}
                 </Link>
               );
             })}

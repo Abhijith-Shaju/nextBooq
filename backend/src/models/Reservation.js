@@ -28,6 +28,15 @@ const paymentDataSchema = new mongoose.Schema(
     status: { type: String, default: 'CREATED' },
     webhook_processed: { type: Boolean, default: false },
     requires_manual_refund: { type: Boolean, default: false },
+    // Evidence that the refund actually happened. nextBooq never moves money
+    // out of a cafe's Razorpay account, so clearing the refunds-owed queue is
+    // a claim ("I paid this guest back"), not an action. Without a reference
+    // the claim is only somebody's word, which is worth little if the guest
+    // later says they were never refunded. Free text rather than a strict
+    // rfnd_ id: a cafe may legitimately refund by UPI or bank transfer and
+    // should be able to record that reference instead.
+    refund_reference: { type: String, default: null },
+    refund_settled_at: { type: Date, default: null },
     expires_at: { type: Date, default: null },
   },
   { _id: false }

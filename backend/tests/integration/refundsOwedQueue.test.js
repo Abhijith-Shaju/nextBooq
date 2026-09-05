@@ -1,4 +1,5 @@
 const request = require('supertest');
+const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const app = require('../../src/app');
 const config = require('../../src/config/env');
@@ -170,7 +171,8 @@ describe('Refunds owed after a cancellation', () => {
 
     const res = await request(app)
       .put(`/api/v1/cafes/${cafe._id}/reservations/${reservation._id}/refund-settled`)
-      .set('Authorization', `Bearer ${ownerToken}`);
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ refund_reference: 'rfnd_TEST123' });
 
     expect(res.status).toBe(200);
     expect((await listRefunds()).body.data).toHaveLength(0);
@@ -183,7 +185,8 @@ describe('Refunds owed after a cancellation', () => {
 
     const res = await request(app)
       .put(`/api/v1/cafes/${cafe._id}/reservations/${reservation._id}/refund-settled`)
-      .set('Authorization', `Bearer ${managerToken}`);
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ refund_reference: 'rfnd_TEST123' });
 
     expect(res.status).toBe(403);
     // Still owed -- a denied click must not quietly clear the debt.
@@ -195,11 +198,13 @@ describe('Refunds owed after a cancellation', () => {
     await cancel(reservation);
     await request(app)
       .put(`/api/v1/cafes/${cafe._id}/reservations/${reservation._id}/refund-settled`)
-      .set('Authorization', `Bearer ${ownerToken}`);
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ refund_reference: 'rfnd_TEST123' });
 
     const again = await request(app)
       .put(`/api/v1/cafes/${cafe._id}/reservations/${reservation._id}/refund-settled`)
-      .set('Authorization', `Bearer ${ownerToken}`);
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ refund_reference: 'rfnd_TEST123' });
 
     expect(again.status).toBe(404);
   });
@@ -221,5 +226,83 @@ describe('Refunds owed after a cancellation', () => {
       .set('Authorization', `Bearer ${ownerToken}`);
 
     expect(res.status).toBe(403);
+  });
+
+  describe('the refund reference', () => {
+    // Clearing an entry asserts a guest has had their money back, and nothing
+    // in nextBooq can verify that -- the refund happens in the cafe's own
+    // Razorpay account. The reference is what makes the claim checkable later
+    // rather than being somebody's unsupported word.
+    const settle = (reservation, body) =>
+      request(app)
+        .put(`/api/v1/cafes/${cafe._id}/reservations/${reservation._id}/refund-settled`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send(body);
+
+    test.each([
+      ['omitted entirely', undefined],
+      ['empty', { refund_reference: '' }],
+      ['only whitespace', { refund_reference: '   ' }],
+      ['a non-string', { refund_reference: 12345 }],
+      ['an injected operator', { refund_reference: { $ne: null } }],
+    ])('refuses to settle when the reference is %s', async (_label, body) => {
+      const reservation = await makeReservation();
+      await cancel(reservation);
+
+      const res = await settle(reservation, body);
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/refund_reference is required/i);
+      // The debt must survive a rejected attempt.
+      expect((await listRefunds()).body.data).toHaveLength(1);
+    });
+
+    test('rejects an absurdly long reference', async () => {
+      const reservation = await makeReservation();
+      await cancel(reservation);
+
+      const res = await settle(reservation, { refund_reference: 'x'.repeat(101) });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/100 characters or fewer/i);
+    });
+
+    test('stores the reference and the time it was settled', async () => {
+      const reservation = await makeReservation();
+      await cancel(reservation);
+
+      await settle(reservation, { refund_reference: '  rfnd_MNO456  ' });
+
+      const saved = await Reservation.findById(reservation._id);
+      // Trimmed, so a stray paste does not become part of the evidence.
+      expect(saved.payment_data.refund_reference).toBe('rfnd_MNO456');
+      expect(saved.payment_data.refund_settled_at).toBeInstanceOf(Date);
+      expect(saved.payment_data.requires_manual_refund).toBe(false);
+    });
+
+    test('accepts a non-Razorpay reference, for a refund paid another way', async () => {
+      // A cafe may legitimately settle by UPI or bank transfer; forcing an
+      // rfnd_ prefix would leave those refunds impossible to record.
+      const reservation = await makeReservation();
+      await cancel(reservation);
+
+      const res = await settle(reservation, { refund_reference: 'UPI/423318871234' });
+
+      expect(res.status).toBe(200);
+      const saved = await Reservation.findById(reservation._id);
+      expect(saved.payment_data.refund_reference).toBe('UPI/423318871234');
+    });
+
+    test('records the reference on the audit trail', async () => {
+      const reservation = await makeReservation();
+      await cancel(reservation);
+
+      await settle(reservation, { refund_reference: 'rfnd_AUDIT1' });
+
+      const entry = await mongoose.connection.db
+        .collection('auditlogs')
+        .findOne({ action: 'REFUND_MARKED_SETTLED' }, { sort: { _id: -1 } });
+      expect(entry.after_state.refund_reference).toBe('rfnd_AUDIT1');
+    });
   });
 });

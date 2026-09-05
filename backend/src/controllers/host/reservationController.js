@@ -301,11 +301,32 @@ const getRefundsOwed = async (req, res, next) => {
  * cafe asserts a guest has been paid back, and that assertion is exactly what
  * a later dispute turns on.
  */
+const MAX_REFUND_REFERENCE_LENGTH = 100;
+
 const markRefundSettled = async (req, res, next) => {
   try {
     const { resId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(resId)) {
       throw new BadRequestError('Invalid reservation ID');
+    }
+
+    // Clearing an entry asserts that a guest has had their money back, and
+    // nothing in nextBooq can verify that -- the refund happens in the cafe's
+    // own Razorpay account. Requiring a reference is what makes the claim
+    // checkable afterwards instead of being somebody's unsupported word.
+    // Deliberately not pattern-matched to `rfnd_`: a refund settled by UPI or
+    // bank transfer has a perfectly good reference of a different shape.
+    const reference =
+      typeof req.body?.refund_reference === 'string' ? req.body.refund_reference.trim() : '';
+    if (!reference) {
+      throw new BadRequestError(
+        'refund_reference is required — record the Razorpay refund id, or the reference of however the guest was paid back'
+      );
+    }
+    if (reference.length > MAX_REFUND_REFERENCE_LENGTH) {
+      throw new BadRequestError(
+        `refund_reference must be ${MAX_REFUND_REFERENCE_LENGTH} characters or fewer`
+      );
     }
 
     const reservation = await Reservation.findOneAndUpdate(
@@ -314,7 +335,13 @@ const markRefundSettled = async (req, res, next) => {
         cafe_id: req.tenantId,
         'payment_data.requires_manual_refund': true,
       },
-      { $set: { 'payment_data.requires_manual_refund': false } },
+      {
+        $set: {
+          'payment_data.requires_manual_refund': false,
+          'payment_data.refund_reference': reference,
+          'payment_data.refund_settled_at': new Date(),
+        },
+      },
       { returnDocument: 'after' }
     );
 
@@ -330,6 +357,7 @@ const markRefundSettled = async (req, res, next) => {
       afterState: {
         amount: reservation.payment_data?.amount ?? 0,
         payment_id: reservation.payment_data?.payment_id || null,
+        refund_reference: reference,
       },
       performedByUserId: req.user._id,
     });
