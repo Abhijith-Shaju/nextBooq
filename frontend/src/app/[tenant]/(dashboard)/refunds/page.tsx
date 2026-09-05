@@ -4,10 +4,15 @@ import { useState } from 'react';
 import { useTenant } from '@/components/providers/tenant-provider';
 import { useAuth } from '@/components/providers/auth-provider';
 import { hasCafePermission } from '@/lib/dashboard/tenant-membership';
-import { useRefundsOwed, useMarkRefundSettled, type RefundOwed } from '@/hooks/host/use-refunds-owed';
+import {
+  useRefundsOwed,
+  useRefundsSettled,
+  useMarkRefundSettled,
+  type RefundOwed,
+} from '@/hooks/host/use-refunds-owed';
 import { getReservationGuestName } from '@/lib/dashboard/reservation-guest';
 import { useModalDismiss } from '@/hooks/use-modal-dismiss';
-import { IndianRupee, CheckCircle2, Loader2, Lock, AlertCircle, X } from 'lucide-react';
+import { IndianRupee, CheckCircle2, Loader2, Lock, AlertCircle, X, History } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 const formatAmount = (amount: number) =>
@@ -154,9 +159,17 @@ export default function RefundsOwedPage() {
   const { cafe } = useTenant();
   const { user } = useAuth();
   const [settling, setSettling] = useState<RefundOwed | null>(null);
+  const [tab, setTab] = useState<'owed' | 'settled'>('owed');
 
   const canSettle = hasCafePermission(user, cafe.id, 'manage_billing');
   const { data: refunds = [], isLoading, isError } = useRefundsOwed(cafe?.id);
+  // History is only fetched once someone opens the tab -- the owed queue is
+  // the working view and this is a lookup nobody needs loaded by default.
+  const {
+    data: settled = [],
+    isLoading: settledLoading,
+    isError: settledError,
+  } = useRefundsSettled(cafe?.id, tab === 'settled');
 
   const total = refunds.reduce((sum, r) => sum + (r.amount || 0), 0);
 
@@ -164,10 +177,10 @@ export default function RefundsOwedPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/70 backdrop-blur-sm p-5 rounded-2xl border border-brand-brown/10">
         <div>
-          <h1 className="text-2xl font-bold font-display text-brand-brown">Refunds Owed</h1>
+          <h1 className="text-2xl font-bold font-display text-brand-brown">Refunds</h1>
           <p className="text-xs text-brand-mochaMid mt-0.5">
-            Guests waiting to be paid back. nextBooq never holds your money, so these are refunded
-            from your own Razorpay account.
+            Guests waiting to be paid back, and the ones you have already settled. nextBooq never
+            holds your money, so refunds come from your own Razorpay account.
           </p>
         </div>
         {refunds.length > 0 ? (
@@ -189,6 +202,92 @@ export default function RefundsOwedPage() {
         </p>
       ) : null}
 
+      <div className="flex gap-1 border-b border-brand-brown/10" role="tablist">
+        {([
+          ['owed', `Owed${refunds.length ? ` (${refunds.length})` : ''}`],
+          ['settled', 'Settled'],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={tab === key}
+            onClick={() => setTab(key)}
+            className={`px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${
+              tab === key
+                ? 'border-brand-red text-brand-brown'
+                : 'border-transparent text-brand-mocha hover:text-brand-brown'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'settled' ? (
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-brand-brown/10 overflow-hidden">
+          {settledLoading ? (
+            <p className="p-8 text-center text-sm text-brand-mochaMid">Loading history…</p>
+          ) : settledError ? (
+            <p className="p-8 text-center text-sm text-red-700">
+              Could not load the refund history. Please refresh.
+            </p>
+          ) : settled.length === 0 ? (
+            <div className="p-10 text-center">
+              <History className="w-8 h-8 text-brand-mochaMid mx-auto mb-3" />
+              <p className="font-semibold text-brand-brown">No refunds recorded yet</p>
+              <p className="text-xs text-brand-mochaMid mt-1">
+                Refunds you mark as paid will be listed here with their reference.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm min-w-[640px]">
+                <thead className="bg-brand-tan/40 text-brand-mocha">
+                  <tr>
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide">Guest</th>
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide">Refunded</th>
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide">Reference</th>
+                    <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {settled.map((r) => (
+                    <tr key={r._id} className="border-t border-brand-brown/10">
+                      <td className="px-5 py-3">
+                        <p className="font-semibold text-brand-brown">
+                          {getReservationGuestName({ user_id: r.guest } as never)}
+                        </p>
+                        <p className="text-[11px] text-brand-mochaMid">
+                          {typeof r.guest === 'object' && r.guest?.email ? r.guest.email : '—'}
+                        </p>
+                      </td>
+                      <td className="px-5 py-3 text-xs text-brand-mocha whitespace-nowrap">
+                        {r.refund_settled_at
+                          ? format(parseISO(r.refund_settled_at), 'd MMM yyyy, HH:mm')
+                          : '—'}
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className="font-mono text-[11px] text-brand-brown break-all">
+                          {r.refund_reference || '—'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 font-mono font-bold text-brand-brown tabular-nums whitespace-nowrap">
+                        <IndianRupee className="w-3.5 h-3.5 inline -mt-0.5" />
+                        {formatAmount(r.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="px-5 py-3 text-[11px] text-brand-mochaMid border-t border-brand-brown/10">
+                Showing the 50 most recent. The reference is what evidences the refund if a guest
+                ever queries it.
+              </p>
+            </div>
+          )}
+        </div>
+      ) : (
       <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-brand-brown/10 overflow-hidden">
         {isLoading ? (
           <p className="p-8 text-center text-sm text-brand-mochaMid">Loading refunds…</p>
@@ -260,6 +359,7 @@ export default function RefundsOwedPage() {
           </div>
         )}
       </div>
+      )}
 
       {settling ? (
         <SettleDialog entry={settling} cafeId={cafe?.id} onClose={() => setSettling(null)} />

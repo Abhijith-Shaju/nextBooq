@@ -19,7 +19,21 @@ export interface RefundOwed {
   cancelled_at: string | null;
 }
 
+/** A refund the cafe has already paid, kept so it can be evidenced later. */
+export interface RefundSettled {
+  _id: string;
+  status: string;
+  start_time: string;
+  guest?: { _id?: string; name?: string; email?: string; phone?: string } | string | null;
+  amount: number;
+  currency: string;
+  payment_id: string | null;
+  refund_reference: string | null;
+  refund_settled_at: string | null;
+}
+
 export const refundsOwedQueryKey = (cafeId: string | undefined) => ['refunds-owed', cafeId];
+export const refundsSettledQueryKey = (cafeId: string | undefined) => ['refunds-settled', cafeId];
 
 /**
  * `enabled` is left to the caller rather than defaulted to `!!cafeId`: the
@@ -32,6 +46,22 @@ export const useRefundsOwed = (cafeId: string | undefined, enabled = true) =>
     queryFn: async () => {
       const { data } = await axiosInstance.get<ApiResponse<RefundOwed[]>>(
         `/api/v1/cafes/${cafeId}/refunds-owed`
+      );
+      return data.data || [];
+    },
+    enabled: !!cafeId && enabled,
+  });
+
+/**
+ * Only fetched when the settled tab is actually opened -- the owed queue is
+ * the working view, and this is history nobody needs loaded by default.
+ */
+export const useRefundsSettled = (cafeId: string | undefined, enabled = true) =>
+  useQuery({
+    queryKey: refundsSettledQueryKey(cafeId),
+    queryFn: async () => {
+      const { data } = await axiosInstance.get<ApiResponse<RefundSettled[]>>(
+        `/api/v1/cafes/${cafeId}/refunds-settled`
       );
       return data.data || [];
     },
@@ -60,6 +90,8 @@ export const useMarkRefundSettled = (cafeId: string | undefined) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: refundsOwedQueryKey(cafeId) });
+      // The entry moves from one tab to the other, so the history is stale too.
+      queryClient.invalidateQueries({ queryKey: refundsSettledQueryKey(cafeId) });
       toast.success('Refund recorded');
     },
   });

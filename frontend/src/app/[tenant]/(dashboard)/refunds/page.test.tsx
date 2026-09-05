@@ -154,3 +154,73 @@ describe('RefundsOwedPage', () => {
     });
   });
 });
+
+// Settled entries leave the owed queue, so without this tab the refund
+// reference -- the only evidence a guest was actually paid -- is readable
+// nowhere but the database. Whoever answers "was I refunded?" should not
+// need a mongo shell.
+describe('RefundsOwedPage settled history', () => {
+  const settledEntry = {
+    _id: 'res_9',
+    status: 'CANCELLED',
+    start_time: '2026-08-11T13:30:00.000Z',
+    guest: { _id: 'u2', name: 'Arjun Nair', email: 'arjun@test.com' },
+    amount: 100,
+    currency: 'INR',
+    payment_id: 'pay_OLD1',
+    refund_reference: 'rfnd_SETTLED42',
+    refund_settled_at: '2026-08-12T09:00:00.000Z',
+  };
+
+  const routeData = (owed: unknown[], settled: unknown[]) => {
+    vi.mocked(axiosInstance.get).mockImplementation(async (url: string) =>
+      url.includes('refunds-settled') ? { data: { data: settled } } : { data: { data: owed } }
+    );
+  };
+
+  beforeEach(() => {
+    vi.mocked(useTenant).mockReturnValue({ cafe: CAFE } as never);
+    vi.mocked(axiosInstance.get).mockReset();
+    withPermissions(['view_reservations', 'manage_billing']);
+  });
+
+  test('does not fetch the history until the tab is opened', async () => {
+    routeData([owedEntry], [settledEntry]);
+    renderPage();
+
+    await screen.findByText('Priya Sharma');
+    const settledCalls = vi
+      .mocked(axiosInstance.get)
+      .mock.calls.filter(([url]) => String(url).includes('refunds-settled'));
+    expect(settledCalls).toHaveLength(0);
+  });
+
+  test('shows the reference and when it was refunded', async () => {
+    routeData([owedEntry], [settledEntry]);
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('tab', { name: /settled/i }));
+
+    expect(await screen.findByText('Arjun Nair')).toBeInTheDocument();
+    expect(screen.getByText('rfnd_SETTLED42')).toBeInTheDocument();
+    // The owed row must not bleed into the history tab.
+    expect(screen.queryByText('Priya Sharma')).not.toBeInTheDocument();
+  });
+
+  test('has its own empty state', async () => {
+    routeData([], []);
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('tab', { name: /settled/i }));
+
+    expect(await screen.findByText('No refunds recorded yet')).toBeInTheDocument();
+  });
+
+  test('the owed tab shows a count and the settled tab does not', async () => {
+    routeData([owedEntry], [settledEntry]);
+    renderPage();
+
+    expect(await screen.findByRole('tab', { name: 'Owed (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Settled' })).toBeInTheDocument();
+  });
+});

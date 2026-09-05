@@ -301,6 +301,48 @@ const getRefundsOwed = async (req, res, next) => {
  * cafe asserts a guest has been paid back, and that assertion is exactly what
  * a later dispute turns on.
  */
+/**
+ * Refunds this cafe has already settled.
+ *
+ * Settling an entry removes it from the owed queue, which is right for a
+ * worklist but leaves the reference -- the only evidence the guest was
+ * actually paid back -- readable nowhere but the database. If a guest ever
+ * disputes a refund, the person who has to answer them should not need a
+ * mongo shell to do it.
+ *
+ * Same permission as reading the owed queue: this is a read of the same
+ * facts, just after the fact.
+ */
+const getRefundsSettled = async (req, res, next) => {
+  try {
+    const reservations = await Reservation.find({
+      cafe_id: req.tenantId,
+      'payment_data.refund_reference': { $nin: [null, ''] },
+    })
+      .populate('user_id', 'name email phone')
+      .sort({ 'payment_data.refund_settled_at': -1 })
+      .limit(50)
+      .lean();
+
+    res.status(200).json({
+      status: 'success',
+      data: reservations.map((r) => ({
+        _id: r._id,
+        status: r.status,
+        start_time: r.start_time,
+        guest: r.user_id,
+        amount: r.payment_data?.amount ?? 0,
+        currency: r.payment_data?.currency || 'INR',
+        payment_id: r.payment_data?.payment_id || null,
+        refund_reference: r.payment_data?.refund_reference || null,
+        refund_settled_at: r.payment_data?.refund_settled_at || null,
+      })),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const MAX_REFUND_REFERENCE_LENGTH = 100;
 
 const markRefundSettled = async (req, res, next) => {
@@ -373,5 +415,6 @@ module.exports = {
   updateReservationStatus,
   assignTable,
   getRefundsOwed,
+  getRefundsSettled,
   markRefundSettled,
 };

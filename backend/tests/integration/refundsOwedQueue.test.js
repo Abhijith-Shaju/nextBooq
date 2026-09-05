@@ -305,4 +305,76 @@ describe('Refunds owed after a cancellation', () => {
       expect(entry.after_state.refund_reference).toBe('rfnd_AUDIT1');
     });
   });
+
+  describe('the settled history', () => {
+    const listSettled = (token = ownerToken) =>
+      request(app)
+        .get(`/api/v1/cafes/${cafe._id}/refunds-settled`)
+        .set('Authorization', `Bearer ${token}`);
+
+    const settle = (reservation, reference) =>
+      request(app)
+        .put(`/api/v1/cafes/${cafe._id}/reservations/${reservation._id}/refund-settled`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ refund_reference: reference });
+
+    test('is empty before anything has been refunded', async () => {
+      const res = await listSettled();
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveLength(0);
+    });
+
+    test('a settled refund moves from the owed queue into the history', async () => {
+      const reservation = await makeReservation();
+      await cancel(reservation);
+      await settle(reservation, 'rfnd_HIST01');
+
+      expect((await listRefunds()).body.data).toHaveLength(0);
+
+      const res = await listSettled();
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0]).toMatchObject({
+        refund_reference: 'rfnd_HIST01',
+        amount: expect.any(Number),
+      });
+      expect(res.body.data[0].refund_settled_at).toBeTruthy();
+    });
+
+    test('a host without manage_billing can still read the history', async () => {
+      // Whoever answers a guest asking "was I refunded?" is often not the
+      // person who controls the money.
+      const reservation = await makeReservation();
+      await cancel(reservation);
+      await settle(reservation, 'rfnd_HIST02');
+
+      const res = await listSettled(managerToken);
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveLength(1);
+    });
+
+    test('is scoped to the cafe', async () => {
+      const otherOrg = await Organization.create({ name: 'Other Settled Org' });
+      const otherCafe = await Cafe.create({
+        org_id: otherOrg._id,
+        name: 'Other Settled Cafe',
+        slug: `other-settled-${Date.now()}`,
+        timezone: 'UTC',
+        subscription_status: 'active',
+      });
+      await Reservation.create({
+        cafe_id: otherCafe._id,
+        user_id: guest._id,
+        table_ids: [],
+        start_time: new Date(Date.now() + 3600000),
+        end_time: new Date(Date.now() + 7200000),
+        party_size: 2,
+        reservation_timezone: 'UTC',
+        status: 'CANCELLED',
+        payment_data: { amount: 500, refund_reference: 'rfnd_ELSEWHERE', refund_settled_at: new Date() },
+      });
+
+      const res = await listSettled();
+      expect(res.body.data).toHaveLength(0);
+    });
+  });
 });

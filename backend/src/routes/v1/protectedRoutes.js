@@ -20,6 +20,7 @@ const {
   updateReservationStatus,
   assignTable,
   getRefundsOwed,
+  getRefundsSettled,
   markRefundSettled,
 } = require('../../controllers/host/reservationController');
 const {
@@ -86,6 +87,16 @@ router.get(
   extractTenant,
   requirePermission('view_reservations'),
   getRefundsOwed
+);
+
+// The settled history. Same permission as the owed queue -- it is the same
+// facts read after the fact, and whoever answers a guest asking "was I
+// refunded?" needs to be able to look it up.
+router.get(
+  '/cafes/:cafeId/refunds-settled',
+  extractTenant,
+  requirePermission('view_reservations'),
+  getRefundsSettled
 );
 
 router.put(
