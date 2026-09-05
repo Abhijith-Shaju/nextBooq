@@ -286,6 +286,7 @@ const getRefundsOwed = async (req, res, next) => {
         amount: r.payment_data?.amount ?? 0,
         currency: r.payment_data?.currency || 'INR',
         payment_id: r.payment_data?.payment_id || null,
+        refund_reason: r.payment_data?.refund_reason || null,
         cancelled_at: r.cancelled_at,
       })),
     });
@@ -338,6 +339,78 @@ const getRefundsSettled = async (req, res, next) => {
         refund_settled_at: r.payment_data?.refund_settled_at || null,
       })),
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const MAX_REFUND_REASON_LENGTH = 300;
+
+/**
+ * Puts a reservation on the refunds-owed queue by hand.
+ *
+ * The automatic paths only cover refunds the rules require: a cancellation
+ * under refundable terms, or a payment landing on a booking that can no
+ * longer be honoured. They deliberately do not cover a cafe *choosing* to
+ * refund -- a service complaint, a no-show it decides to waive, a booking
+ * taken under non-refundable terms it wants to refund anyway. Without this
+ * there was no way to record that decision, so the money owed lived only in
+ * somebody's head.
+ *
+ * Requires manage_billing, the same permission as settling: deciding the cafe
+ * owes money is the same class of decision as asserting it has been paid.
+ */
+const markRefundOwed = async (req, res, next) => {
+  try {
+    const { resId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(resId)) {
+      throw new BadRequestError('Invalid reservation ID');
+    }
+
+    const reason =
+      typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
+    if (!reason) {
+      throw new BadRequestError('reason is required — say why this refund is owed');
+    }
+    if (reason.length > MAX_REFUND_REASON_LENGTH) {
+      throw new BadRequestError(
+        `reason must be ${MAX_REFUND_REASON_LENGTH} characters or fewer`
+      );
+    }
+
+    const reservation = await Reservation.findOne({ _id: resId, cafe_id: req.tenantId });
+    if (!reservation) {
+      throw new NotFoundError('Reservation not found');
+    }
+    // Nothing was ever captured, so there is nothing to give back. Flagging
+    // one of these would put an unpayable entry on the queue.
+    if (!reservation.payment_data?.payment_id) {
+      throw new BadRequestError(
+        'This booking was never paid for, so there is nothing to refund'
+      );
+    }
+    if (reservation.payment_data?.requires_manual_refund) {
+      throw new BadRequestError('This booking is already on the refunds-owed queue');
+    }
+
+    reservation.payment_data.requires_manual_refund = true;
+    reservation.payment_data.refund_reason = reason;
+    await reservation.save();
+
+    await logAuditEvent({
+      cafeId: req.tenantId,
+      entityType: 'Reservation',
+      entityId: reservation._id,
+      action: 'REFUND_FLAGGED_MANUALLY',
+      afterState: {
+        amount: reservation.payment_data?.amount ?? 0,
+        payment_id: reservation.payment_data?.payment_id || null,
+        reason,
+      },
+      performedByUserId: req.user._id,
+    });
+
+    res.status(200).json({ status: 'success', data: { reservation_id: reservation._id } });
   } catch (error) {
     next(error);
   }
@@ -416,5 +489,6 @@ module.exports = {
   assignTable,
   getRefundsOwed,
   getRefundsSettled,
+  markRefundOwed,
   markRefundSettled,
 };

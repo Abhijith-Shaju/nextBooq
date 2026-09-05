@@ -331,6 +331,15 @@ export default function RefundsOwedPage() {
                       <span className="block text-[11px] text-brand-mochaMid">
                         {r.status.replace(/_/g, ' ').toLowerCase()}
                       </span>
+                      {/* Only set when a human put this on the queue. The
+                          automatic paths explain themselves from the status,
+                          but a discretionary entry does not -- whoever pays it
+                          needs to know why the cafe agreed to. */}
+                      {r.refund_reason ? (
+                        <span className="mt-1 block max-w-[26ch] text-[11px] italic text-brand-mocha">
+                          “{r.refund_reason}”
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-5 py-3">
                       <span className="font-mono text-[11px] text-brand-mocha break-all">

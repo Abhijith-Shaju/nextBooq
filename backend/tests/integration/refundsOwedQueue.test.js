@@ -377,4 +377,122 @@ describe('Refunds owed after a cancellation', () => {
       expect(res.body.data).toHaveLength(0);
     });
   });
+
+  describe('flagging a refund by hand', () => {
+    // The automatic paths only cover refunds the rules require. A cafe that
+    // decides to refund anyway -- a complaint, a waived no-show, a booking
+    // taken under non-refundable terms -- had no way to record that, so the
+    // money owed lived only in somebody's head.
+    const flag = (reservation, body, token = ownerToken) =>
+      request(app)
+        .put(`/api/v1/cafes/${cafe._id}/reservations/${reservation._id}/refund-owed`)
+        .set('Authorization', `Bearer ${token}`)
+        .send(body);
+
+    const paidReservation = async (status = 'COMPLETED') => {
+      const r = await makeReservation();
+      await Reservation.updateOne(
+        { _id: r._id },
+        { $set: { status, 'payment_data.payment_id': 'pay_PAID1', 'payment_data.amount': 250 } }
+      );
+      return r;
+    };
+
+    test('adds a paid booking to the queue with its reason', async () => {
+      const reservation = await paidReservation();
+
+      const res = await flag(reservation, { reason: 'Kitchen closed early, guest not seated' });
+
+      expect(res.status).toBe(200);
+      const queue = (await listRefunds()).body.data;
+      expect(queue).toHaveLength(1);
+      expect(queue[0].refund_reason).toBe('Kitchen closed early, guest not seated');
+    });
+
+    test('works regardless of status, so a completed or no-show booking can be refunded', async () => {
+      // Goodwill refunds are decided after the fact; restricting this to
+      // CANCELLED would rule out the cases it exists for.
+      for (const status of ['COMPLETED', 'NO_SHOW']) {
+        const reservation = await paidReservation(status);
+        const res = await flag(reservation, { reason: `goodwill after ${status}` });
+        expect(res.status).toBe(200);
+      }
+      expect((await listRefunds()).body.data).toHaveLength(2);
+    });
+
+    test('refuses a booking that was never paid for', async () => {
+      // Nothing was captured, so there is nothing to give back -- flagging it
+      // would put an unpayable entry on the queue. The shared fixture is a
+      // paid booking, so the payment has to be explicitly removed here.
+      const reservation = await makeReservation({
+        status: 'PENDING_PAYMENT',
+        payment_data: { order_id: 'order_test', amount: 100, currency: 'INR' },
+      });
+
+      const res = await flag(reservation, { reason: 'guest complained' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/never paid for/i);
+      expect((await listRefunds()).body.data).toHaveLength(0);
+    });
+
+    test('refuses to add the same booking twice', async () => {
+      const reservation = await paidReservation();
+      await flag(reservation, { reason: 'first' });
+
+      const again = await flag(reservation, { reason: 'second' });
+
+      expect(again.status).toBe(400);
+      expect(again.body.message).toMatch(/already on the refunds-owed queue/i);
+      expect((await listRefunds()).body.data).toHaveLength(1);
+    });
+
+    test.each([
+      ['omitted', undefined],
+      ['empty', { reason: '' }],
+      ['whitespace', { reason: '   ' }],
+      ['a non-string', { reason: 42 }],
+    ])('refuses a reason that is %s', async (_label, body) => {
+      const reservation = await paidReservation();
+
+      const res = await flag(reservation, body);
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/reason is required/i);
+      expect((await listRefunds()).body.data).toHaveLength(0);
+    });
+
+    test('requires manage_billing, not merely the ability to cancel', async () => {
+      const reservation = await paidReservation();
+
+      const res = await flag(reservation, { reason: 'goodwill' }, managerToken);
+
+      expect(res.status).toBe(403);
+      expect((await listRefunds()).body.data).toHaveLength(0);
+    });
+
+    test('records the reason on the audit trail', async () => {
+      const reservation = await paidReservation();
+
+      await flag(reservation, { reason: 'wrong table, guest left' });
+
+      const entry = await mongoose.connection.db
+        .collection('auditlogs')
+        .findOne({ action: 'REFUND_FLAGGED_MANUALLY' }, { sort: { _id: -1 } });
+      expect(entry.after_state.reason).toBe('wrong table, guest left');
+    });
+
+    test('a manually flagged refund can then be settled like any other', async () => {
+      const reservation = await paidReservation();
+      await flag(reservation, { reason: 'goodwill' });
+
+      const settled = await request(app)
+        .put(`/api/v1/cafes/${cafe._id}/reservations/${reservation._id}/refund-settled`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ refund_reference: 'rfnd_MANUAL1' });
+
+      expect(settled.status).toBe(200);
+      expect((await listRefunds()).body.data).toHaveLength(0);
+    });
+  });
 });

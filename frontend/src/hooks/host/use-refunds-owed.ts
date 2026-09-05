@@ -16,6 +16,8 @@ export interface RefundOwed {
   amount: number;
   currency: string;
   payment_id: string | null;
+  /** Set only when a human put this on the queue; the automatic paths leave it null. */
+  refund_reason: string | null;
   cancelled_at: string | null;
 }
 
@@ -67,6 +69,40 @@ export const useRefundsSettled = (cafeId: string | undefined, enabled = true) =>
     },
     enabled: !!cafeId && enabled,
   });
+
+/**
+ * Puts a reservation on the refunds-owed queue by hand, for a refund the cafe
+ * chooses to make rather than one the rules require.
+ */
+export const useMarkRefundOwed = (cafeId: string | undefined) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      reservationId,
+      reason,
+    }: {
+      reservationId: string;
+      reason: string;
+    }) => {
+      const { data } = await axiosInstance.put(
+        `/api/v1/cafes/${cafeId}/reservations/${reservationId}/refund-owed`,
+        { reason },
+        // The dialog shows the failure next to the field; the global toast
+        // would duplicate it.
+        { skipGlobalErrorToast: true }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: refundsOwedQueryKey(cafeId) });
+      // The row's own flag changed, so the manifest the history page reads is
+      // stale too -- otherwise the action stays clickable until a refetch.
+      queryClient.invalidateQueries({ queryKey: ['reservations'] });
+      toast.success('Added to refunds owed');
+    },
+  });
+};
 
 export const useMarkRefundSettled = (cafeId: string | undefined) => {
   const queryClient = useQueryClient();

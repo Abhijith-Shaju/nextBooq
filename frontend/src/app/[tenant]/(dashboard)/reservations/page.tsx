@@ -12,7 +12,11 @@ import {
 } from '@/lib/dashboard/reservation-guest';
 import { getReservationToken } from '@/lib/booking/reservation-token';
 import { matchesReservationSearch } from '@/lib/dashboard/reservation-search';
-import { Calendar, Search, Filter, Users, Hash, Clock } from 'lucide-react';
+import { Calendar, Search, Filter, Users, Hash, Clock, IndianRupee } from 'lucide-react';
+import { useAuth } from '@/components/providers/auth-provider';
+import { hasCafePermission } from '@/lib/dashboard/tenant-membership';
+import { FlagRefundDialog } from '@/components/dashboard/flag-refund-dialog';
+import { Reservation } from '@/lib/types/models';
 import { format, parseISO } from 'date-fns';
 
 export default function ReservationsHistoryPage() {
@@ -20,6 +24,19 @@ export default function ReservationsHistoryPage() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [flagging, setFlagging] = useState<Reservation | null>(null);
+  const { user } = useAuth();
+
+  // Deciding the cafe owes money is the same class of decision as asserting it
+  // has been paid, so this matches the settle permission rather than the
+  // read-the-queue one.
+  const canFlagRefund = hasCafePermission(user, cafe?.id, 'manage_billing');
+
+  // Only a booking whose fee was actually captured can be refunded, and one
+  // already on the queue must not be added twice -- the API refuses both, but
+  // offering the action anyway would just be a button that always errors.
+  const isFlaggable = (res: Reservation) =>
+    Boolean(res.payment_data?.payment_id) && !res.payment_data?.requires_manual_refund;
 
   const { data: reservations = [], isLoading, isError } = useManifest(cafe?.id, selectedDate);
 
@@ -92,24 +109,25 @@ export default function ReservationsHistoryPage() {
                 <th className="p-4">Table</th>
                 <th className="p-4">Status</th>
                 <th className="p-4">Version</th>
+                {canFlagRefund ? <th className="p-4 sr-only">Actions</th> : null}
               </tr>
             </thead>
             <tbody className="divide-y divide-brand-brown/10">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-brand-mochaMid animate-pulse">
+                  <td colSpan={canFlagRefund ? 8 : 7} className="p-8 text-center text-brand-mochaMid animate-pulse">
                     Loading reservation history...
                   </td>
                 </tr>
               ) : isError ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-brand-redDark font-semibold">
+                  <td colSpan={canFlagRefund ? 8 : 7} className="p-8 text-center text-brand-redDark font-semibold">
                     Couldn&rsquo;t load reservations. Please try refreshing the page.
                   </td>
                 </tr>
               ) : filteredReservations.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-brand-mochaMid">
+                  <td colSpan={canFlagRefund ? 8 : 7} className="p-8 text-center text-brand-mochaMid">
                     No reservations matched your criteria.
                   </td>
                 </tr>
@@ -145,6 +163,23 @@ export default function ReservationsHistoryPage() {
                         <StatusBadge status={res.status} />
                       </td>
                       <td className="p-4 font-mono text-xs text-brand-mochaMid tabular-nums">{res.__v ?? 0}</td>
+                      {canFlagRefund ? (
+                        <td className="p-4 text-right">
+                          {res.payment_data?.requires_manual_refund ? (
+                            <span className="text-[11px] font-semibold text-amber-800 whitespace-nowrap">
+                              Refund owed
+                            </span>
+                          ) : isFlaggable(res) ? (
+                            <button
+                              type="button"
+                              onClick={() => setFlagging(res)}
+                              className="tone-neutral py-1.5 px-2.5 rounded-lg text-[11px] font-semibold hover:opacity-80 whitespace-nowrap inline-flex items-center gap-1"
+                            >
+                              <IndianRupee className="w-3 h-3" /> Flag refund
+                            </button>
+                          ) : null}
+                        </td>
+                      ) : null}
                     </tr>
                   );
                 })
@@ -153,6 +188,13 @@ export default function ReservationsHistoryPage() {
           </table>
         </div>
       </div>
+      {flagging ? (
+        <FlagRefundDialog
+          reservation={flagging}
+          cafeId={cafe?.id}
+          onClose={() => setFlagging(null)}
+        />
+      ) : null}
     </div>
   );
 }

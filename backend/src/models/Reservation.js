@@ -37,6 +37,13 @@ const paymentDataSchema = new mongoose.Schema(
     // should be able to record that reference instead.
     refund_reference: { type: String, default: null },
     refund_settled_at: { type: Date, default: null },
+    // Why a refund is owed, when a human decided it rather than the rules.
+    // The automatic paths (a cancellation under refundable terms, a payment
+    // landing on a booking that can no longer be honoured) explain themselves
+    // from the reservation's own status. A manual flag does not: someone
+    // decided the cafe owes money the rules did not require, and the person
+    // who later settles it needs to know why before paying it.
+    refund_reason: { type: String, default: null },
     expires_at: { type: Date, default: null },
   },
   { _id: false }

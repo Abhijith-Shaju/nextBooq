@@ -63,6 +63,27 @@ describe('RefundsOwedPage', () => {
     expect(screen.getByText('1 outstanding')).toBeInTheDocument();
   });
 
+  test('shows the reason on a manually flagged entry', async () => {
+    // A discretionary entry does not explain itself from the status the way
+    // an automatic one does, so whoever settles it must be able to see why.
+    vi.mocked(axiosInstance.get).mockResolvedValue({
+      data: { data: [{ ...owedEntry, refund_reason: 'Kitchen closed early' }] },
+    });
+    renderPage();
+
+    expect(await screen.findByText(/Kitchen closed early/)).toBeInTheDocument();
+  });
+
+  test('shows no reason for an automatic entry', async () => {
+    vi.mocked(axiosInstance.get).mockResolvedValue({
+      data: { data: [{ ...owedEntry, refund_reason: null }] },
+    });
+    renderPage();
+
+    await screen.findByText('Priya Sharma');
+    expect(screen.queryByText(/“/)).not.toBeInTheDocument();
+  });
+
   test('shows a clear empty state when nothing is owed', async () => {
     vi.mocked(axiosInstance.get).mockResolvedValue({ data: { data: [] } });
     renderPage();

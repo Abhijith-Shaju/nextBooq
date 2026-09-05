@@ -21,6 +21,7 @@ const {
   assignTable,
   getRefundsOwed,
   getRefundsSettled,
+  markRefundOwed,
   markRefundSettled,
 } = require('../../controllers/host/reservationController');
 const {
@@ -97,6 +98,17 @@ router.get(
   extractTenant,
   requirePermission('view_reservations'),
   getRefundsSettled
+);
+
+// Putting a reservation on the queue by hand, for a refund the cafe chooses
+// to make rather than one the rules require. Same permission as settling:
+// deciding the cafe owes money is the same class of decision as asserting it
+// has been paid.
+router.put(
+  '/cafes/:cafeId/reservations/:resId/refund-owed',
+  extractTenant,
+  requirePermission('manage_billing'),
+  markRefundOwed
 );
 
 router.put(

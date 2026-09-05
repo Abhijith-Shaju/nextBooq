@@ -176,9 +176,17 @@ export interface Reservation {
   hold_expires_at?: string;
   payment_data?: {
     order_id?: string;
+    payment_id?: string | null;
     amount?: number;
     currency?: string;
     expires_at?: string;
+    // Refund bookkeeping. nextBooq never moves money out of a cafe's Razorpay
+    // account, so these record what is owed and what has been paid back
+    // rather than driving any transfer.
+    requires_manual_refund?: boolean;
+    refund_reason?: string | null;
+    refund_reference?: string | null;
+    refund_settled_at?: string | null;
   };
   // This cafe's own history with the guest, attached by the host manifest
   // endpoint. Optional because only that endpoint sends it -- the customer's
