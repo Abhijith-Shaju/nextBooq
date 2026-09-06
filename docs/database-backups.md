@@ -51,8 +51,46 @@ In `ap-south-1`, same region as everything else. Then:
 
 - **Block all public access** — on, without exception
 - **Default encryption** — SSE-S3 is enough
-- **Lifecycle rule** — expire objects under `mongo/` after 30 days, so
-  storage cost stays flat instead of growing forever
+- **Lifecycle rule** — expire objects under `mongo/` after 30 days
+
+The retention window is a privacy decision rather than a cost one. These
+dumps are a few megabytes, so a year of them would cost around a rupee a
+month. The reason to keep the window short is erasure: when someone
+exercises their DPDP right to be forgotten you remove them from the live
+database, but every backup taken beforehand still contains them and is
+still restorable. Thirty days bounds how long that stays true to
+something defensible. A two-year archive would make the deletion promise
+in the privacy policy substantially false.
+
+The cost of that choice is real and worth naming: corruption nobody
+notices within 30 days is unrecoverable.
+
+Apply it with the CLI so the rule is reproducible rather than a thing
+somebody once clicked:
+
+```json
+{
+  "Rules": [
+    {
+      "ID": "expire-mongo-backups",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "mongo/" },
+      "Expiration": { "Days": 30 },
+      "NoncurrentVersionExpiration": { "NoncurrentDays": 7 },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 1 }
+    }
+  ]
+}
+```
+
+```bash
+aws s3api put-bucket-lifecycle-configuration --bucket YOUR-BUCKET --lifecycle-configuration file://lifecycle.json
+aws s3api get-bucket-lifecycle-configuration --bucket YOUR-BUCKET
+```
+
+`AbortIncompleteMultipartUpload` matters more than it looks: an upload
+interrupted partway leaves parts you are billed for and which do not show
+up in the bucket listing.
 - **Versioning** — optional, but it means an overwrite can't destroy an
   older backup
 
