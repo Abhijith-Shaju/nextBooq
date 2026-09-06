@@ -70,7 +70,8 @@ We do **not** sell your personal data, and we do not share it for anyone else's 
 | **The Café Partner you book with** | Your name, phone, email, and reservation details | To honour your booking |
 | **Razorpay Software Private Limited** | Payment details you enter directly with them, plus the order reference | To process the deposit. Razorpay is an RBI-regulated payment aggregator and is a separate Data Fiduciary for the payment data you give it. Your card/UPI details go to Razorpay, never to us |
 | **{{TODO:EMAIL_PROVIDER_NAME — currently Resend}}** | Your email address and the message content | To send verification, password-reset, and booking emails |
-| **Our hosting and database providers** | Data at rest and in transit | {{TODO:CONFIRM_HOSTING — frontend on Vercel; API on AWS; database provider and region to be confirmed}} |
+| **Amazon Web Services and MongoDB Atlas** | Data at rest and in transit | To host our API and database, both in the Mumbai region (`ap-south-1`) |
+| **Vercel** | Requests for the website and dashboard | To serve the frontend from a global content delivery network |
 | **Law enforcement or regulators** | As legally required | Only where compelled by valid legal process |
 
 **Important:** each Café Partner collects deposits into **its own Razorpay account**. Money for a booking goes to that café directly, not to nextBooq.
@@ -79,9 +80,13 @@ We do **not** sell your personal data, and we do not share it for anyone else's 
 
 ## 5. Where your data is stored, and cross-border transfers
 
-{{TODO:CONFIRM_DATA_LOCATION}} — state the country/region where your database and backups actually reside. If any processing occurs outside India, say so here; the DPDP Act permits transfers except to countries the Central Government restricts by notification.
+Your personal data is stored and processed in **India**. Our application database (MongoDB Atlas) and our API servers (Amazon Web Services) are both located in the Mumbai region (`ap-south-1`).
 
-Our frontend is served from a global content delivery network, which means static page assets may be served from edge locations outside India. Personal data itself is processed by our API and database.
+We do not transfer your personal data outside India for storage. The DPDP Act permits such transfers except to countries the Central Government restricts by notification; if we ever begin storing or processing personal data outside India, we will update this policy before doing so.
+
+Our website is served from a global content delivery network, so static page assets — and the routing check that decides whether you are signed in — may be handled at edge locations outside India. That check reads only whether your session cookie is present and unexpired; it does not read your profile, your bookings, or any other personal data, and it stores nothing.
+
+All storage, and all processing of your account and reservation data, happens in India.
 
 ---
 
