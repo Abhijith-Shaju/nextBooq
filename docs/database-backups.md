@@ -181,8 +181,23 @@ inspect it, and only then decide what to copy back. Restoring into Atlas
 alongside the live data is also a bad idea on M0, where the 512 MB ceiling
 is shared with the copy you just made.
 
+Two details that will otherwise make a perfectly good backup look broken:
+
+**The production database is named `test`, not `nextbooq`.** The connection
+string has no database path, so the driver used its default. `--nsFrom`
+must say `test.*`; point it at `nextbooq.*` and mongorestore cheerfully
+restores nothing at all. (Local dev *is* `nextbooq`, which is exactly why
+the remap below is not optional — without it you overwrite your own dev
+database.)
+
+**Do not extract the `.gz` first.** `mongodump --gzip` compresses the whole
+archive, so the S3 object is a real gzip file and `mongorestore --gzip`
+reads it directly. If you have already extracted it — Windows makes this
+easy to do by accident — you have a plain archive, and passing `--gzip`
+then fails with `gzip: invalid header`. Drop the flag in that case.
+
 ```bash
-mongorestore --uri="mongodb://localhost:27017" --gzip --archive=./restore.archive.gz --nsFrom='nextbooq.*' --nsTo='nextbooq_restored.*'
+mongorestore --uri="mongodb://localhost:27017" --gzip --archive=./restore.archive.gz --nsFrom='test.*' --nsTo='nextbooq_restored.*'
 ```
 
 Then check it holds what you expect:
