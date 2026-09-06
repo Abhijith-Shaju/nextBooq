@@ -30,10 +30,19 @@ echo "deb [signed-by=/usr/share/keyrings/mongodb.gpg] https://repo.mongodb.org/a
 sudo apt update && sudo apt install -y mongodb-database-tools
 ```
 
-AWS CLI v2:
+AWS CLI v2. A stock Ubuntu server image has no `unzip`, and the installer
+is only distributed as a zip, so install that first:
 
 ```bash
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscli.zip && unzip -q awscli.zip && sudo ./aws/install
+sudo apt install -y unzip
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscli.zip
+unzip -q awscli.zip && sudo ./aws/install && rm -rf awscli.zip aws/
+```
+
+Check it took, since the installer is quiet on success:
+
+```bash
+aws --version
 ```
 
 ### 2. Create the bucket
