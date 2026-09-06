@@ -181,14 +181,22 @@ inspect it, and only then decide what to copy back. Restoring into Atlas
 alongside the live data is also a bad idea on M0, where the 512 MB ceiling
 is shared with the copy you just made.
 
-Two details that will otherwise make a perfectly good backup look broken:
+Three details that will otherwise make a perfectly good backup look broken:
 
-**The production database is named `test`, not `nextbooq`.** The connection
-string has no database path, so the driver used its default. `--nsFrom`
-must say `test.*`; point it at `nextbooq.*` and mongorestore cheerfully
-restores nothing at all. (Local dev *is* `nextbooq`, which is exactly why
-the remap below is not optional — without it you overwrite your own dev
-database.)
+**Always remap to a scratch name.** Production and local dev are now both
+called `nextbooq`, so restoring an archive without `--nsTo` overwrites your
+own development database with production data. The remap is not a nicety.
+
+**Check which database name the archive actually holds.** Archives taken
+before 7 September 2026 contain `test`, because the production connection
+string had no database path and the driver used its default; the database
+was renamed to `nextbooq` on that date. Point `--nsFrom` at the wrong one
+and mongorestore restores nothing at all and still exits successfully. To
+check before restoring:
+
+```bash
+strings archive-file | grep -m1 -A1 '^db$'
+```
 
 **Do not extract the `.gz` first.** `mongodump --gzip` compresses the whole
 archive, so the S3 object is a real gzip file and `mongorestore --gzip`
@@ -197,7 +205,7 @@ easy to do by accident — you have a plain archive, and passing `--gzip`
 then fails with `gzip: invalid header`. Drop the flag in that case.
 
 ```bash
-mongorestore --uri="mongodb://localhost:27017" --gzip --archive=./restore.archive.gz --nsFrom='test.*' --nsTo='nextbooq_restored.*'
+mongorestore --uri="mongodb://localhost:27017" --gzip --archive=./restore.archive.gz --nsFrom='nextbooq.*' --nsTo='nextbooq_restored.*'
 ```
 
 Then check it holds what you expect:
