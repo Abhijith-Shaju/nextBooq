@@ -191,6 +191,20 @@ Then check it holds what you expect:
 mongosh "mongodb://localhost:27017/nextbooq_restored" --eval 'db.getCollectionNames().forEach(c => print(c, db[c].countDocuments()))'
 ```
 
+Expect ten collections, one per model in `backend/src/models`:
+
+```
+auditlogs  cafeapplications  cafecustomers  caves  organizations
+reservations  subscriptions  sweeplocks  tables  users
+```
+
+**`caves` is the cafes collection, and is not a mistake.** The `Cafe`
+model does not pin a collection name, so Mongoose pluralizes it, and its
+rule for words ending in "-fe" is the knife/knives one. Worth knowing
+before you go looking: `db.cafes` returns nothing and looks exactly like
+the café records are missing, which is a bad discovery to make while
+already restoring from a backup.
+
 ### Test this before you need it
 
 An untested backup is a guess. Run the restore once, now, while nothing is
