@@ -57,9 +57,22 @@ export function PaymentsEditor({ cafeId, razorpayKeyId, configured, onSaved }: P
 
   return (
     <div className="pt-6 border-t border-brand-brown/10 space-y-4">
-      <h2 className="text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
-        <CreditCard className="w-4 h-4 text-brand-red" /> Payments
-      </h2>
+      <div className="flex items-center justify-between gap-3 mb-1.5">
+        <h2 className="text-sm font-semibold text-brand-brown flex items-center gap-1.5">
+          <CreditCard className="w-4 h-4 text-brand-red" /> Payments
+        </h2>
+        {/* Placed here rather than buried below because the webhook step that
+            follows a save is where this goes wrong, and it goes wrong silently:
+            a wrong URL returns 404 to Razorpay and nothing at all to us. */}
+        <a
+          href="/help/razorpay-setup"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 text-xs font-semibold text-brand-red hover:underline"
+        >
+          Setup guide
+        </a>
+      </div>
 
       {configured && !replacing ? (
         <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">

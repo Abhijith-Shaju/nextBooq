@@ -674,6 +674,26 @@ export default function CafeSettingsPage() {
               <p>
                 Secret: <span className="font-mono">{webhookReveal.secret}</span>
               </p>
+              {/* The events matter as much as the URL and are easy to miss in
+                  Razorpay's long list of tick boxes. Without payment.failed an
+                  abandoned checkout is never reconciled. */}
+              <p>
+                Events: <span className="font-mono">payment.captured</span> and{' '}
+                <span className="font-mono">payment.failed</span>
+              </p>
+              {/* A wrong URL returns 404 to Razorpay and nothing at all to us,
+                  so the only way anyone finds out is by looking at Razorpay's
+                  delivery log. The guide says to do that. */}
+              <p className="pt-1">
+                <a
+                  href="/help/razorpay-setup"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold underline underline-offset-2"
+                >
+                  Setup guide — including how to check it actually worked
+                </a>
+              </p>
             </div>
           )}
 
