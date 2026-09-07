@@ -5,6 +5,7 @@ import { CustomerAuthModal } from './customer-auth-modal';
 
 const loginMutate = vi.fn();
 const registerMutate = vi.fn();
+const forgotMutate = vi.fn();
 
 // "Log In" appears both as the tab toggle and as the submit button.
 const getLoginSubmitButton = () =>
@@ -22,10 +23,15 @@ vi.mock('@/hooks/auth/use-register', () => ({
   useRegister: () => ({ mutate: registerMutate, isPending: false }),
 }));
 
+vi.mock('@/hooks/auth/use-forgot-password', () => ({
+  useForgotPassword: () => ({ mutate: forgotMutate, isPending: false }),
+}));
+
 describe('CustomerAuthModal', () => {
   beforeEach(() => {
     loginMutate.mockReset();
     registerMutate.mockReset();
+    forgotMutate.mockReset();
   });
 
   test('does not render its dialog content when closed', () => {
@@ -90,5 +96,76 @@ describe('CustomerAuthModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
     fireEvent.click(screen.getByRole('button', { name: /create account/i }));
     expect(registerMutate).not.toHaveBeenCalled();
+  });
+
+  describe('showing the password', () => {
+    test('masks the password until asked, then reveals it', () => {
+      render(<CustomerAuthModal open onOpenChange={vi.fn()} />);
+      const field = screen.getByPlaceholderText('••••••••');
+      expect(field).toHaveAttribute('type', 'password');
+
+      fireEvent.click(screen.getByRole('button', { name: /show password/i }));
+      expect(field).toHaveAttribute('type', 'text');
+
+      fireEvent.click(screen.getByRole('button', { name: /hide password/i }));
+      expect(field).toHaveAttribute('type', 'password');
+    });
+
+    test('re-masks when the view changes', () => {
+      // A guest may reveal the password to check a typo; it should not still be
+      // legible on screen when they come back to the form later.
+      render(<CustomerAuthModal open onOpenChange={vi.fn()} />);
+      fireEvent.click(screen.getByRole('button', { name: /show password/i }));
+      fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
+
+      expect(screen.getByPlaceholderText('••••••••')).toHaveAttribute('type', 'password');
+    });
+  });
+
+  describe('resetting a forgotten password', () => {
+    const openReset = () => {
+      render(<CustomerAuthModal open onOpenChange={vi.fn()} />);
+      fireEvent.click(screen.getByRole('button', { name: /forgot password/i }));
+    };
+
+    test('resets inside the modal rather than navigating away', () => {
+      // The /auth/forgot-password page lives in the control plane, so a link out
+      // would drop a guest out of the cafe storefront mid-booking.
+      openReset();
+      expect(screen.getByText(/reset your password/i)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /forgot password/i })).not.toBeInTheDocument();
+    });
+
+    test('sends the reset request for the entered email', () => {
+      openReset();
+      fireEvent.change(screen.getByPlaceholderText('your@email.com'), {
+        target: { value: 'guest@example.com' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /send reset link/i }));
+
+      expect(forgotMutate).toHaveBeenCalledWith(
+        { email: 'guest@example.com' },
+        expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) })
+      );
+    });
+
+    test('says the same thing whether or not the account exists', () => {
+      // Anything else turns this form into an account-enumeration oracle, so the
+      // failure path must land on the identical confirmation.
+      forgotMutate.mockImplementation((_payload, { onError }: any) => onError());
+      openReset();
+      fireEvent.change(screen.getByPlaceholderText('your@email.com'), {
+        target: { value: 'nobody@example.com' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /send reset link/i }));
+
+      expect(screen.getByText(/if an account exists for that email/i)).toBeInTheDocument();
+    });
+
+    test('can go back to log in', () => {
+      openReset();
+      fireEvent.click(screen.getByRole('button', { name: /back to log in/i }));
+      expect(getLoginSubmitButton()).toBeInTheDocument();
+    });
   });
 });
