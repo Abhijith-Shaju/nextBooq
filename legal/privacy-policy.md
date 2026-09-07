@@ -1,8 +1,8 @@
 # Privacy Policy
 
-**Last Updated: {{TODO:EFFECTIVE_DATE}}**
+**Last Updated: 8 September 2026**
 
-This Privacy Policy explains how {{TODO:PARTNER_NAMES}}, carrying on business together under the trade name "**nextBooq**" ("**nextBooq**", "**we**", "**us**"), having a place of business at {{TODO:BUSINESS_ADDRESS}}, collects, uses, shares, and protects your personal data when you use the nextBooq website, dashboard, and booking widgets (the "**Platform**").
+This Privacy Policy explains how Abhijith Shaju, Shashank Singh and Visvatharasan Saravanan, carrying on business together under the trade name "**nextBooq**" ("**nextBooq**", "**we**", "**us**"), having a place of business at Lovely Professional University, Jalandhar-Delhi G.T. Road (NH-1), Phagwara, Punjab 144411, collects, uses, shares, and protects your personal data when you use the nextBooq website, dashboard, and booking widgets (the "**Platform**").
 
 We process personal data in accordance with the **Digital Personal Data Protection Act, 2023** ("**DPDP Act**") and the **Information Technology Act, 2000** and rules made thereunder. This Policy is incorporated by reference into our [Terms and Conditions](https://www.nextbooq.in/legal/terms).
 
@@ -69,7 +69,7 @@ We do **not** sell your personal data, and we do not share it for anyone else's 
 |---|---|---|
 | **The Café Partner you book with** | Your name, phone, email, and reservation details | To honour your booking |
 | **Razorpay Software Private Limited** | Payment details you enter directly with them, plus the order reference | To process the deposit. Razorpay is an RBI-regulated payment aggregator and is a separate Data Fiduciary for the payment data you give it. Your card/UPI details go to Razorpay, never to us |
-| **{{TODO:EMAIL_PROVIDER_NAME — currently Resend}}** | Your email address and the message content | To send verification, password-reset, and booking emails |
+| **Resend** | Your email address and the message content | To send verification, password-reset, and booking emails |
 | **Amazon Web Services and MongoDB Atlas** | Data at rest and in transit | To host our API and database, both in the Mumbai region (`ap-south-1`) |
 | **Vercel** | Requests for the website and dashboard | To serve the frontend from a global content delivery network |
 | **Law enforcement or regulators** | As legally required | Only where compelled by valid legal process |
@@ -94,9 +94,9 @@ All storage, and all processing of your account and reservation data, happens in
 
 | Data | Retention |
 |---|---|
-| Account data | While your account is open, and for {{TODO:RETENTION_ACCOUNT — suggest 12 months}} after you ask us to delete it or after prolonged inactivity |
-| Reservation and deposit records | {{TODO:RETENTION_FINANCIAL — suggest 8 years}}, to meet tax and accounting obligations |
-| Security and audit logs | {{TODO:RETENTION_LOGS — suggest 12 months}} |
+| Account data | While your account is open, and for 12 months after you ask us to delete it or after prolonged inactivity |
+| Reservation and deposit records | 8 years, to meet tax and accounting obligations |
+| Security and audit logs | 12 months |
 | Verification and reset codes | Minutes — cleared as soon as used or expired |
 
 These are the retention periods we operate to. **They are applied on request and on review rather than by an automated deletion job**, so if you want your data erased sooner, ask us (see §7) and we will action it. Under the DPDP Act we must erase personal data once the purpose is served and retention is no longer required by law.
@@ -114,7 +114,7 @@ Under the DPDP Act you have the right to:
 5. **Grievance redressal** — complain to us first (see §9), and escalate to the Data Protection Board of India if unsatisfied.
 6. **Withdraw consent** — at any time, and as easily as you gave it. Withdrawal does not undo processing already carried out, and may mean we cannot honour existing reservations.
 
-**How to exercise these rights.** Access, erasure and nomination are handled by our Grievance Officer rather than through a self-service screen: email **{{TODO:GRIEVANCE_OFFICER_EMAIL}}** from the address registered on your account and we will respond within **{{TODO:DSR_RESPONSE_DAYS — suggest 30}} days**. Correcting your own name, email or phone does not need a request — do it from your profile.
+**How to exercise these rights.** Access, erasure and nomination are handled by our Grievance Officer rather than through a self-service screen: email **shashanksingh9048@gmail.com** from the address registered on your account and we will respond within **30 days**. Correcting your own name, email or phone does not need a request — do it from your profile.
 
 You are responsible under the DPDP Act for providing accurate information and for not filing false or frivolous complaints.
 
@@ -135,11 +135,11 @@ No system is perfectly secure. If a personal data breach occurs, we will notify 
 
 ## 9. Grievance Officer
 
-- **Grievance Officer:** {{TODO:GRIEVANCE_OFFICER_NAME}}
-- **Designation:** {{TODO:GRIEVANCE_OFFICER_TITLE}}
-- **Email:** {{TODO:GRIEVANCE_OFFICER_EMAIL}}
-- **Phone:** {{TODO:GRIEVANCE_OFFICER_PHONE}}
-- **Address:** {{TODO:GRIEVANCE_OFFICER_ADDRESS}}
+- **Grievance Officer:** Shashank Singh
+- **Designation:** Grievance Officer & Managing Partner
+- **Email:** shashanksingh9048@gmail.com
+- **Phone:** +91 96300 23003
+- **Address:** Lovely Professional University, Jalandhar-Delhi G.T. Road (NH-1), Phagwara, Punjab 144411
 
 We acknowledge complaints within **24 hours** and resolve them within **15 days**, in line with the IT Rules 2021. If you are not satisfied, you may complain to the **Data Protection Board of India**.
 
@@ -159,7 +159,7 @@ We may update this Policy. Material changes will be notified by email or in-Plat
 
 ## 12. Contact
 
-{{TODO:SUPPORT_EMAIL}} · {{TODO:SUPPORT_PHONE}} · {{TODO:BUSINESS_ADDRESS}}
+nextbooq@gmail.com · +91 96300 23003 · Lovely Professional University, Jalandhar-Delhi G.T. Road (NH-1), Phagwara, Punjab 144411
 
 ---
 

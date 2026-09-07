@@ -47,16 +47,26 @@ export async function readLegalDocument(slug: LegalDocumentSlug): Promise<string
   // because of the \r sitting between the text and the newline.
   const raw = file.replace(/\r\n/g, '\n');
 
-  // The documents carry `{{TODO:...}}` markers for details that only the
-  // business can supply (registered address, grievance officer, GSTIN).
-  // Render them as a visible placeholder rather than leaking the raw marker,
-  // so an unfinished document is obvious to whoever is reviewing the page
-  // instead of looking like intentional copy.
-  // Deliberately emits no emphasis markers of its own: several of these
-  // markers sit inside an already-bold line (`**Last Updated: {{...}}**`), and
-  // wrapping the replacement in `**` produced nested bold that broke both the
-  // rendering and any regex reading that line. Square brackets already read as
-  // a placeholder without needing emphasis.
+  return renderTodoPlaceholders(raw);
+}
+
+/**
+ * Renders a `{{TODO:...}}` marker as a visible placeholder rather than leaking
+ * the raw marker, so an unfinished document is obvious to whoever is reviewing
+ * the page instead of looking like intentional copy.
+ *
+ * The published documents were completed on 8 September 2026 and carry no
+ * markers today. This is kept, and tested directly, because a clause added
+ * later will arrive with one — and the failure it guards against is a literal
+ * `{{TODO:GSTIN_OR_NOT_APPLICABLE}}` sitting on a public legal page.
+ *
+ * Deliberately emits no emphasis of its own: several markers sat inside an
+ * already-bold line (`**Last Updated: {{...}}**`), and wrapping the replacement
+ * in `**` produced nested bold that broke both the rendering and the regex that
+ * lifts that line into page metadata. Square brackets read as a placeholder
+ * without needing emphasis.
+ */
+export function renderTodoPlaceholders(raw: string): string {
   return raw.replace(/\{\{TODO:([^}]+)\}\}/g, (_match, label: string) => {
     const name = label.split('—')[0].trim().replace(/_/g, ' ').toLowerCase();
     return `[${name} — to be confirmed]`;

@@ -1,10 +1,10 @@
 # Terms and Conditions
 
-**Last Updated: {{TODO:EFFECTIVE_DATE}}**
+**Last Updated: 8 September 2026**
 
 ## 1. Introduction and Acceptance
 
-These Terms and Conditions ("**Terms**") constitute a legally binding agreement between you ("**User**", "**you**", "**Guest**" or "**Café Partner**" as the context requires) and {{TODO:PARTNER_NAMES}}, carrying on business together under the trade name "**nextBooq**" ("**nextBooq**", "**we**", "**us**"), having a place of business at {{TODO:BUSINESS_ADDRESS}}, governing your access to and use of the nextBooq website, dashboard, and booking widgets (collectively, the "**Platform**").
+These Terms and Conditions ("**Terms**") constitute a legally binding agreement between you ("**User**", "**you**", "**Guest**" or "**Café Partner**" as the context requires) and Abhijith Shaju, Shashank Singh and Visvatharasan Saravanan, carrying on business together under the trade name "**nextBooq**" ("**nextBooq**", "**we**", "**us**"), having a place of business at Lovely Professional University, Jalandhar-Delhi G.T. Road (NH-1), Phagwara, Punjab 144411, governing your access to and use of the nextBooq website, dashboard, and booking widgets (collectively, the "**Platform**").
 
 By clicking "I Agree", creating an account, confirming a reservation, or otherwise using the Platform, you affirmatively accept these Terms in accordance with Section 10 of the Indian Contract Act, 1872. If you do not agree, do not use the Platform.
 
@@ -27,7 +27,7 @@ You must be at least 18 years of age and competent to contract under the Indian 
 
 ## 5. Account Registration
 
-Café Partners must provide accurate business details (café name, address, GSTIN where applicable) and maintain the confidentiality of their dashboard login credentials. Guests may be required to provide a name, phone number, and email to complete a Reservation. You are responsible for all activity under your account and must notify {{TODO:SUPPORT_EMAIL}} immediately of any unauthorized use.
+Café Partners must provide accurate business details (café name, address, GSTIN where applicable) and maintain the confidentiality of their dashboard login credentials. Guests may be required to provide a name, phone number, and email to complete a Reservation. You are responsible for all activity under your account and must notify nextbooq@gmail.com immediately of any unauthorized use.
 
 ## 6. Reservations, Fees, and Payment
 
@@ -40,7 +40,7 @@ Café Partners must provide accurate business details (café name, address, GSTI
 ## 7. Cancellation, No-Show, and Refund Policy
 
 - **Refundability:** Whether a Reservation Fee is refunded on a timely cancellation is set by each Café Partner and disclosed to the Guest before payment. Where a Café Partner has marked its Reservation Fee non-refundable, no refund arises on cancellation, and this is displayed prominently at checkout.
-- **Guest-initiated cancellation:** The Platform does not currently offer a self-service cancellation option within the booking flow. A Guest who wishes to cancel a Reservation must contact the Café Partner directly (using the contact details shown at the time of booking) or reach nextBooq support at {{TODO:SUPPORT_EMAIL}}, before the Café Partner's stated cancellation cut-off. Once notified, the Café Partner processes the cancellation from its dashboard, which updates the Reservation status and places the Reservation on that Café Partner's refunds-owed queue where its terms provide for a refund. The Café Partner issues the refund from its own payment account to the original payment method; nextBooq does not hold the funds and cannot issue the refund on the Café Partner's behalf. Refunds are typically credited within 5–7 business days of being issued.
+- **Guest-initiated cancellation:** The Platform does not currently offer a self-service cancellation option within the booking flow. A Guest who wishes to cancel a Reservation must contact the Café Partner directly (using the contact details shown at the time of booking) or reach nextBooq support at nextbooq@gmail.com, before the Café Partner's stated cancellation cut-off. Once notified, the Café Partner processes the cancellation from its dashboard, which updates the Reservation status and places the Reservation on that Café Partner's refunds-owed queue where its terms provide for a refund. The Café Partner issues the refund from its own payment account to the original payment method; nextBooq does not hold the funds and cannot issue the refund on the Café Partner's behalf. Refunds are typically credited within 5–7 business days of being issued.
 - **No-show:** If a Guest does not arrive within the grace period stated by the Café Partner at booking, the Reservation Fee may be forfeited to the Café Partner as per that Café Partner's stated policy.
 - **Café Partner–initiated cancellation:** If a Café Partner cancels a confirmed Reservation (e.g., due to closure or an operational issue) from its dashboard, the full Reservation Fee is owed back to the Guest and the Reservation is placed on that Café Partner's refunds-owed queue.
 - **Payment failures/disputes:** Where a payment succeeds but the Reservation could not be honoured due to a technical error, the amount is flagged for manual refund review and processed by the relevant Café Partner within 5–7 business days.
@@ -50,11 +50,11 @@ Café Partners must provide accurate business details (café name, address, GSTI
 
 For every Reservation, the Platform displays: the Café Partner's business name, address, and contact details, in compliance with Rule 5 of the Consumer Protection (E-Commerce) Rules, 2020. nextBooq's own details are:
 
-- Operated by: {{TODO:PARTNER_NAMES}}, trading as "nextBooq" (unregistered partnership — see note below)
-- Business address: {{TODO:BUSINESS_ADDRESS}}
-- Customer support email: {{TODO:SUPPORT_EMAIL}}
-- Customer support phone: {{TODO:SUPPORT_PHONE}} (Mon–Sat, {{TODO:SUPPORT_HOURS}} IST)
-- GSTIN: {{TODO:GSTIN_OR_NOT_APPLICABLE}}
+- Operated by: Abhijith Shaju, Shashank Singh and Visvatharasan Saravanan, trading as "nextBooq" (unregistered partnership — see note below)
+- Business address: Lovely Professional University, Jalandhar-Delhi G.T. Road (NH-1), Phagwara, Punjab 144411
+- Customer support email: nextbooq@gmail.com
+- Customer support phone: +91 96300 23003 (Mon–Sat, 10:00 AM to 6:00 PM IST)
+- GSTIN: Not applicable; turnover is below the GST registration threshold
 
 ## 9. User Obligations and Prohibited Conduct
 
@@ -78,7 +78,7 @@ The Platform integrates with third-party services, including Razorpay for paymen
 
 ## 13. Disclaimers and Limitation of Liability
 
-The Platform is provided on an "as is" and "as available" basis without warranties of any kind, express or implied, to the maximum extent permitted by law. nextBooq does not guarantee the quality of food, beverages, service, or premises at any Café Partner's establishment. To the fullest extent permitted under applicable law, nextBooq's aggregate liability for any claim arising out of or relating to the Platform shall not exceed the platform service fee (if any) paid by the relevant party in the preceding {{TODO:LIABILITY_CAP_MONTHS}} months.
+The Platform is provided on an "as is" and "as available" basis without warranties of any kind, express or implied, to the maximum extent permitted by law. nextBooq does not guarantee the quality of food, beverages, service, or premises at any Café Partner's establishment. To the fullest extent permitted under applicable law, nextBooq's aggregate liability for any claim arising out of or relating to the Platform shall not exceed the platform service fee (if any) paid by the relevant party in the preceding 12 months.
 
 **Carve-out (required):** Nothing in these Terms excludes or limits liability for fraud, gross negligence, wilful misconduct, or death or personal injury caused by negligence, as such exclusions are void and unenforceable under Indian law.
 
@@ -98,11 +98,11 @@ Your personal data (including name, phone number, email, and Reservation history
 
 In accordance with the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021 and the Consumer Protection Act, 2019, the name and contact details of the Grievance Officer are provided below:
 
-- **Grievance Officer:** {{TODO:GRIEVANCE_OFFICER_NAME}}
-- **Designation:** {{TODO:GRIEVANCE_OFFICER_TITLE}}
-- **Email:** {{TODO:GRIEVANCE_OFFICER_EMAIL}}
-- **Phone:** {{TODO:GRIEVANCE_OFFICER_PHONE}}
-- **Address:** {{TODO:GRIEVANCE_OFFICER_ADDRESS}}
+- **Grievance Officer:** Shashank Singh
+- **Designation:** Grievance Officer & Managing Partner
+- **Email:** shashanksingh9048@gmail.com
+- **Phone:** +91 96300 23003
+- **Address:** Lovely Professional University, Jalandhar-Delhi G.T. Road (NH-1), Phagwara, Punjab 144411
 
 The Grievance Officer will acknowledge complaints within 24 hours and resolve them within 15 days of receipt, or within such shorter period as prescribed by law for specific categories of complaints. Complaints specifically about a Reservation experience at a Café Partner's establishment (e.g., food quality, service) should first be raised with that Café Partner; nextBooq will assist in escalating unresolved platform-related disputes.
 
@@ -112,7 +112,7 @@ Neither party shall be liable for delay or failure to perform obligations due to
 
 ## 19. Governing Law and Jurisdiction
 
-These Terms shall be governed by and construed in accordance with the laws of India. The courts at {{TODO:JURISDICTION_CITY}}, {{TODO:JURISDICTION_STATE}} shall have exclusive jurisdiction over any disputes arising out of or in connection with these Terms.
+These Terms shall be governed by and construed in accordance with the laws of India. The courts at Phagwara, Punjab shall have exclusive jurisdiction over any disputes arising out of or in connection with these Terms.
 
 ## 20. Amendment
 
@@ -124,7 +124,7 @@ If any provision of these Terms is held invalid or unenforceable, the remaining 
 
 ## 22. Contact Information
 
-For questions about these Terms, contact: {{TODO:SUPPORT_EMAIL}}, {{TODO:SUPPORT_PHONE}}, {{TODO:BUSINESS_ADDRESS}}.
+For questions about these Terms, contact: nextbooq@gmail.com, +91 96300 23003, Lovely Professional University, Jalandhar-Delhi G.T. Road (NH-1), Phagwara, Punjab 144411.
 
 ---
 

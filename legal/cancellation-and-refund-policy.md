@@ -1,6 +1,6 @@
 # Cancellation and Refund Policy
 
-**Last Updated: {{TODO:EFFECTIVE_DATE}}**
+**Last Updated: 8 September 2026**
 
 This Policy explains what the reservation fee is, when it is refunded, and how to cancel a booking made through nextBooq. It forms part of our [Terms and Conditions](https://www.nextbooq.in/legal/terms) and is published in compliance with the **Consumer Protection (E-Commerce) Rules, 2020**.
 
@@ -37,7 +37,7 @@ When you select a time slot, the table is held for you for a short window (shown
 To cancel a confirmed reservation:
 
 1. **Contact the café directly**, using the phone number shown on its booking page and in your confirmation; **or**
-2. **Email nextBooq support at {{TODO:SUPPORT_EMAIL}}**, quoting your reservation reference.
+2. **Email nextBooq support at nextbooq@gmail.com**, quoting your reservation reference.
 
 Do this **before the café's stated cancellation cut-off**, which is shown to you at the time of booking. The café then cancels the reservation from its dashboard, which releases the table and triggers a refund.
 
@@ -59,7 +59,7 @@ Do this **before the café's stated cancellation cut-off**, which is shown to yo
 
 When a cancellation entitles you to a refund, the Reservation is placed on that café's refunds-owed queue and the café issues the refund from its own Razorpay account. nextBooq never holds your money and cannot issue the refund itself. Once initiated, the amount typically reaches your original payment method within **5–7 business days**, depending on your bank or card issuer. nextBooq does not control this timeline.
 
-If a refund you are owed has not arrived within **10 business days**, contact us at {{TODO:SUPPORT_EMAIL}} and we will follow it up with the café on your behalf.
+If a refund you are owed has not arrived within **10 business days**, contact us at nextbooq@gmail.com and we will follow it up with the café on your behalf.
 
 ---
 
@@ -77,7 +77,7 @@ Deposit forfeiture on a no-show exists so that cafés holding a table for you ar
 ## 6. Failed and duplicate payments
 
 - If your payment fails, **no confirmed booking results and no amount is captured.** The table is held only until the payment window shown at checkout runs out, after which it is released automatically. If your bank shows a pending amount, it is an authorisation hold that is normally released within 5–7 business days.
-- If you are charged twice for the same reservation, contact {{TODO:SUPPORT_EMAIL}} with both payment references and we will arrange the duplicate to be refunded in full.
+- If you are charged twice for the same reservation, contact nextbooq@gmail.com with both payment references and we will arrange the duplicate to be refunded in full.
 
 ---
 
@@ -87,10 +87,10 @@ Complaints about food, service, or the café's own conduct should be raised with
 
 For anything relating to the Platform, a reservation fee, or a refund that the café has not resolved, contact our Grievance Officer:
 
-- **Grievance Officer:** {{TODO:GRIEVANCE_OFFICER_NAME}}
-- **Email:** {{TODO:GRIEVANCE_OFFICER_EMAIL}}
-- **Phone:** {{TODO:GRIEVANCE_OFFICER_PHONE}}
-- **Address:** {{TODO:GRIEVANCE_OFFICER_ADDRESS}}
+- **Grievance Officer:** Shashank Singh
+- **Email:** shashanksingh9048@gmail.com
+- **Phone:** +91 96300 23003
+- **Address:** Lovely Professional University, Jalandhar-Delhi G.T. Road (NH-1), Phagwara, Punjab 144411
 
 We acknowledge complaints within **24 hours** and resolve them within **15 days**. You retain your rights under the Consumer Protection Act, 2019, including recourse to the appropriate Consumer Disputes Redressal Commission.
 
@@ -98,7 +98,7 @@ We acknowledge complaints within **24 hours** and resolve them within **15 days*
 
 ## 8. Contact
 
-{{TODO:SUPPORT_EMAIL}} · {{TODO:SUPPORT_PHONE}} · {{TODO:BUSINESS_ADDRESS}}
+nextbooq@gmail.com · +91 96300 23003 · Lovely Professional University, Jalandhar-Delhi G.T. Road (NH-1), Phagwara, Punjab 144411
 
 ---
 
