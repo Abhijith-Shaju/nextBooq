@@ -3,13 +3,14 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 /**
- * Shared shell for the three legal documents. They are long, dense, and read
- * rather than scanned, so this deliberately favours reading comfort over the
- * marketing pages' visual density: a single measure-constrained column,
- * generous leading, and tables that scroll on their own rather than forcing
- * the page sideways on a phone.
+ * Shared shell for the Markdown documents served from the repo: the legal
+ * texts and the operator help guides. They are long and read rather than
+ * scanned, so this deliberately favours reading comfort over the marketing
+ * pages' visual density: a single measure-constrained column, generous
+ * leading, and tables that scroll on their own rather than forcing the page
+ * sideways on a phone.
  */
-export function LegalDocument({
+export function MarkdownDocument({
   title,
   updated,
   children,
@@ -97,6 +98,23 @@ export function LegalDocument({
                 </td>
               ),
               em: ({ children }) => <em className="text-brand-mocha">{children}</em>,
+              // A help guide asks an operator to copy exact strings — a webhook
+              // URL, an event name — so these must be visually separable from
+              // the prose around them and unambiguous to select. `break-all`
+              // because a webhook URL is longer than a phone is wide.
+              code: ({ children }) => (
+                <code className="rounded bg-brand-tan/60 px-1.5 py-0.5 font-mono text-[13.5px] text-brand-brown break-all">
+                  {children}
+                </code>
+              ),
+              // Fenced blocks arrive as <pre><code>, so the inline treatment
+              // above is neutralised inside them rather than nesting one
+              // background inside another.
+              pre: ({ children }) => (
+                <pre className="my-5 overflow-x-auto rounded-xl border border-brand-brown/15 bg-brand-tan/25 p-4 font-mono text-[13px] leading-relaxed [&>code]:bg-transparent [&>code]:px-0 [&>code]:py-0">
+                  {children}
+                </pre>
+              ),
             }}
           >
             {children}

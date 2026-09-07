@@ -1,10 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import {
-  LEGAL_DOCUMENTS,
-  readLegalDocument,
-  renderTodoPlaceholders,
-  type LegalDocumentSlug,
-} from './legal-documents';
+import { LEGAL_DOCUMENTS, readLegalDocument, type LegalDocumentSlug } from './legal-documents';
+import { renderTodoPlaceholders } from './markdown-documents';
 
 const slugs = Object.keys(LEGAL_DOCUMENTS) as LegalDocumentSlug[];
 

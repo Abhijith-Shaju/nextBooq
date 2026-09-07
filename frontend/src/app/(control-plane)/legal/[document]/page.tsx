@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { LegalDocument } from '@/components/legal/legal-document';
+import { MarkdownDocument } from '@/components/docs/markdown-document';
 import {
   LEGAL_DOCUMENTS,
   readLegalDocument,
@@ -54,8 +54,8 @@ export default async function LegalDocumentPage({
   const body = updatedMatch ? markdown.replace(updatedMatch[0], '') : markdown;
 
   return (
-    <LegalDocument title={LEGAL_DOCUMENTS[document].title} updated={updatedMatch?.[1]}>
+    <MarkdownDocument title={LEGAL_DOCUMENTS[document].title} updated={updatedMatch?.[1]}>
       {body}
-    </LegalDocument>
+    </MarkdownDocument>
   );
 }
