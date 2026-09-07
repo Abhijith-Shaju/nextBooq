@@ -20,33 +20,36 @@ export const metadata: Metadata = {
  * for a reachable Contact URL during onboarding — an in-page anchor 404s the
  * moment anyone links to it directly.
  *
- * Details still marked "to be confirmed" are carried from legal/*.md and must
- * be filled before launch.
+ * The details below are duplicated from legal/*.md rather than read from it,
+ * because this page is a React tree and those are prose. `page.test.tsx`
+ * asserts every value here still appears in the legal documents, so the two
+ * cannot drift apart silently — a contact page naming a different address or
+ * grievance officer than the published terms is worse than one that says
+ * nothing, since a regulator reads both.
  */
 
-// Sourced from legal/terms-and-conditions.md §8, §17 and §22. Keep in step
-// with those documents — they are what a regulator or Razorpay will read.
-const TBC = 'To be confirmed';
-
+// Sourced from legal/terms-and-conditions.md §14 and §19.
 const SUPPORT = {
-  email: TBC,
-  phone: TBC,
-  hours: TBC,
+  email: 'nextbooq@gmail.com',
+  phone: '+91 96300 23003',
+  hours: 'Mon–Sat, 10:00 AM to 6:00 PM IST',
 };
 
 const BUSINESS = {
   name: 'nextBooq',
-  operators: TBC,
-  address: TBC,
-  gstin: TBC,
+  operators: 'Abhijith Shaju, Shashank Singh and Visvatharasan Saravanan',
+  address:
+    'Lovely Professional University, Jalandhar-Delhi G.T. Road (NH-1), Phagwara, Punjab 144411',
+  gstin: 'Not applicable; turnover is below the GST registration threshold',
 };
 
 const GRIEVANCE = {
-  name: TBC,
-  designation: TBC,
-  email: TBC,
-  phone: TBC,
-  address: TBC,
+  name: 'Shashank Singh',
+  designation: 'Grievance Officer & Managing Partner',
+  email: 'shashanksingh9048@gmail.com',
+  phone: '+91 96300 23003',
+  address:
+    'Lovely Professional University, Jalandhar-Delhi G.T. Road (NH-1), Phagwara, Punjab 144411',
 };
 
 function Detail({
@@ -58,19 +61,15 @@ function Detail({
   label: string;
   value: string;
 }) {
-  const pending = value === TBC;
   return (
     <div className="flex items-start gap-3">
       <Icon className="w-4 h-4 mt-1 shrink-0 text-brand-red" />
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-brand-mocha">{label}</p>
-        <p
-          className={
-            pending
-              ? 'text-[15px] italic text-brand-mocha/70'
-              : 'text-[15px] text-brand-brown'
-          }
-        >
+        {/* Tagged so page.test.tsx can collect every published detail and check
+            it against legal/*.md without the test restating the values, which
+            would just be a third copy to keep in step. */}
+        <p data-testid="contact-detail" className="text-[15px] text-brand-brown">
           {value}
         </p>
       </div>
