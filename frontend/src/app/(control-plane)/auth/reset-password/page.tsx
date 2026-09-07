@@ -10,6 +10,15 @@ function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
+  // Where to send the guest afterwards. The server only ever puts a real
+  // cafe's slug here, but this page cannot assume the link it was opened with
+  // came from us -- and interpolating the raw value into `/${slug}` would let
+  // "//evil.com" through, which a browser reads as protocol-relative and
+  // follows off-site. Slugs are lowercase alphanumerics and hyphens, so
+  // anything else is discarded rather than trusted.
+  const cafeParam = searchParams.get('cafe');
+  const cafeSlug = cafeParam && /^[a-z0-9-]+$/.test(cafeParam) ? cafeParam : null;
+
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
@@ -49,9 +58,22 @@ function ResetPasswordForm() {
         <p className="font-sans text-brand-brown text-sm bg-brand-tan/40 rounded-xl p-4">
           Password updated. You can now log in.
         </p>
-        <Link href="/auth/login" className="text-brand-red font-semibold hover:underline text-sm">
-          Go to login
-        </Link>
+        {/* A guest who started this from a cafe's storefront goes back there.
+            Sending them to /auth/login instead is doubly wrong for them: it is
+            the operator login, and it is nowhere near the table they were
+            partway through booking. */}
+        {cafeSlug ? (
+          <Link
+            href={`/${cafeSlug}`}
+            className="inline-flex items-center gap-1 text-brand-red font-semibold hover:underline text-sm"
+          >
+            Back to booking <ArrowRight className="w-4 h-4" />
+          </Link>
+        ) : (
+          <Link href="/auth/login" className="text-brand-red font-semibold hover:underline text-sm">
+            Go to login
+          </Link>
+        )}
       </div>
     );
   }

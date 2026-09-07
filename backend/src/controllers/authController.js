@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const Cafe = require('../models/Cafe');
 const config = require('../config/env');
 const { BadRequestError, UnauthorizedError } = require('../utils/errors');
 const { logAuditEvent } = require('../services/auditService');
@@ -264,14 +265,43 @@ const logoutUser = async (req, res, next) => {
   }
 };
 
+/**
+ * Resolves the cafe a guest should be returned to after resetting, or null.
+ *
+ * Deliberately takes a slug and never a URL. A client-supplied return URL
+ * would let anyone request a reset for someone else's address and have
+ * nextBooq send that person a real email, from our domain, containing the
+ * attacker's link — a phishing message we would have delivered ourselves.
+ * Taking only a slug and checking it against a real cafe means the worst an
+ * attacker can do is send a guest to a genuine cafe's storefront.
+ */
+const resolveResetReturnSlug = async (slug) => {
+  if (typeof slug !== 'string' || !slug.trim()) return null;
+  const cafe = await Cafe.findOne({
+    slug: slug.trim().toLowerCase(),
+    is_deleted: { $ne: true },
+  })
+    .select('slug')
+    .lean();
+  return cafe ? cafe.slug : null;
+};
+
 const forgotPassword = async (req, res, next) => {
   try {
-    const { email } = req.body;
+    const { email, cafe_slug: cafeSlug } = req.body;
     if (!email || typeof email !== 'string') {
       throw new BadRequestError('Email is required');
     }
 
     const cleanEmail = email.trim().toLowerCase();
+
+    // Resolved before the user lookup and regardless of the outcome, so both
+    // the found and not-found branches pay for it. Doing it inside the `if`
+    // below would add a database round-trip to the found-user branch only,
+    // which is exactly the timing signal the comment further down guards
+    // against.
+    const returnSlug = await resolveResetReturnSlug(cafeSlug);
+
     const user = await User.findOne({ email: cleanEmail });
 
     if (user) {
@@ -280,7 +310,9 @@ const forgotPassword = async (req, res, next) => {
       user.password_reset_expires_at = expiresAt;
       await user.save();
 
-      const resetUrl = `${config.FRONTEND_URL}/auth/reset-password?token=${rawToken}`;
+      const resetUrl = returnSlug
+        ? `${config.FRONTEND_URL}/auth/reset-password?token=${rawToken}&cafe=${encodeURIComponent(returnSlug)}`
+        : `${config.FRONTEND_URL}/auth/reset-password?token=${rawToken}`;
       // Fire-and-forget: awaiting this would make the found-user branch take
       // measurably longer than the not-found branch (network round-trip to
       // Resend), letting an attacker use response timing to enumerate valid

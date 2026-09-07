@@ -60,4 +60,47 @@ describe('ResetPasswordPage', () => {
 
     await waitFor(() => expect(screen.getByText(/invalid or has expired/i)).toBeInTheDocument());
   });
+
+  describe('where it sends the guest afterwards', () => {
+    const resetSuccessfully = (query: string) => {
+      searchParamsValue = new URLSearchParams(query);
+      mutateMock.mockImplementation((_payload, { onSuccess }) => onSuccess());
+      render(<ResetPasswordPage />);
+      fireEvent.change(screen.getByPlaceholderText('At least 8 characters'), {
+        target: { value: 'BrandNewPassword1!' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /update password/i }));
+    };
+
+    test('returns a guest to the cafe they were booking at', async () => {
+      resetSuccessfully('token=abc123&cafe=the-black-shores');
+
+      const link = await screen.findByRole('link', { name: /back to booking/i });
+      expect(link).toHaveAttribute('href', '/the-black-shores');
+    });
+
+    test('falls back to the operator login when no cafe is named', async () => {
+      resetSuccessfully('token=abc123');
+
+      const link = await screen.findByRole('link', { name: /go to login/i });
+      expect(link).toHaveAttribute('href', '/auth/login');
+    });
+
+    test('ignores a protocol-relative slug rather than redirecting off-site', async () => {
+      // "//evil.com" interpolated into `/${slug}` yields "//evil.com", which a
+      // browser treats as protocol-relative and follows to another origin. The
+      // server only ever writes a real slug here, but the page is reached by a
+      // link and cannot assume the link came from us.
+      resetSuccessfully('token=abc123&cafe=/evil.com');
+
+      expect(await screen.findByRole('link', { name: /go to login/i })).toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /back to booking/i })).not.toBeInTheDocument();
+    });
+
+    test('ignores a slug carrying a path traversal', async () => {
+      resetSuccessfully('token=abc123&cafe=../admin');
+
+      expect(await screen.findByRole('link', { name: /go to login/i })).toBeInTheDocument();
+    });
+  });
 });

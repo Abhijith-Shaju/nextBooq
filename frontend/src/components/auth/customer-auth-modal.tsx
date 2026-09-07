@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useLogin } from '@/hooks/auth/use-login';
 import { useRegister } from '@/hooks/auth/use-register';
 import { useForgotPassword } from '@/hooks/auth/use-forgot-password';
+import { useTenant } from '@/components/providers/tenant-provider';
 import {
   Coffee,
   Mail,
@@ -44,6 +45,7 @@ export function CustomerAuthModal({
   const [showPassword, setShowPassword] = useState(false);
   const [resetRequested, setResetRequested] = useState(false);
 
+  const { cafe } = useTenant();
   const loginMutation = useLogin();
   const registerMutation = useRegister();
   const forgotPasswordMutation = useForgotPassword();
@@ -62,7 +64,10 @@ export function CustomerAuthModal({
     if (!email) return;
 
     forgotPasswordMutation.mutate(
-      { email },
+      // The slug rides along so the reset email can return the guest to this
+      // cafe rather than to the operator login page, which is both the wrong
+      // place and the wrong audience for someone booking a table.
+      { email, cafe_slug: cafe?.slug },
       {
         // Same outcome either way, deliberately: a different response for an
         // unknown address would turn this form into an account-enumeration

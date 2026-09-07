@@ -2,6 +2,8 @@ const request = require('supertest');
 const bcrypt = require('bcryptjs');
 const app = require('../../src/app');
 const User = require('../../src/models/User');
+const Cafe = require('../../src/models/Cafe');
+const Organization = require('../../src/models/Organization');
 const { setupTestDB } = require('../setup');
 const { hashResetToken } = require('../../src/utils/passwordReset');
 
@@ -224,5 +226,73 @@ describe('Password reset flow', () => {
       .send({ token: rawToken, password: 'short' });
 
     expect(res.status).toBe(400);
+  });
+});
+
+// A guest who resets from a cafe's storefront should land back there. Without
+// the slug the reset email drops them on the operator login page, which is
+// both the wrong place and the wrong audience for someone booking a table.
+describe('forgot-password return destination', () => {
+  const makeGuest = async (email) => {
+    const password_hash = await bcrypt.hash('OriginalPassword1!', 10);
+    return User.create({ name: 'Guest', email, phone: '+15550300099', password_hash });
+  };
+
+  const resetUrlFrom = () => sendPasswordResetEmail.mock.calls[0][0].resetUrl;
+
+  beforeEach(() => {
+    sendPasswordResetEmail.mockClear();
+  });
+
+  test('puts a real cafe slug in the reset link', async () => {
+    const org = await Organization.create({ name: 'Return Destination Org' });
+    await Cafe.create({
+      org_id: org._id,
+      name: 'Return Destination Cafe',
+      slug: 'return-destination-cafe',
+      timezone: 'Asia/Kolkata',
+    });
+    await makeGuest('return-dest@example.com');
+
+    await request(app)
+      .post('/api/v1/auth/forgot-password')
+      .send({ email: 'return-dest@example.com', cafe_slug: 'return-destination-cafe' });
+
+    expect(resetUrlFrom()).toContain('cafe=return-destination-cafe');
+  });
+
+  test('ignores a slug that matches no cafe', async () => {
+    await makeGuest('unknown-slug@example.com');
+
+    await request(app)
+      .post('/api/v1/auth/forgot-password')
+      .send({ email: 'unknown-slug@example.com', cafe_slug: 'no-such-cafe' });
+
+    expect(resetUrlFrom()).not.toContain('cafe=');
+  });
+
+  test('ignores a URL supplied in place of a slug', async () => {
+    // The reason this endpoint takes a slug and not a return URL: anyone can
+    // request a reset for anyone else's address, so a client-controlled URL
+    // here would have nextBooq send that person a real email, from our domain,
+    // carrying an attacker's link.
+    await makeGuest('phish-target@example.com');
+
+    await request(app)
+      .post('/api/v1/auth/forgot-password')
+      .send({ email: 'phish-target@example.com', cafe_slug: 'https://evil.example.com' });
+
+    const url = resetUrlFrom();
+    expect(url).not.toContain('evil.example.com');
+    expect(url).not.toContain('cafe=');
+  });
+
+  test('omits the cafe when none is supplied, leaving the existing link shape', async () => {
+    await makeGuest('no-cafe@example.com');
+
+    await request(app).post('/api/v1/auth/forgot-password').send({ email: 'no-cafe@example.com' });
+
+    expect(resetUrlFrom()).toContain('/auth/reset-password?token=');
+    expect(resetUrlFrom()).not.toContain('cafe=');
   });
 });

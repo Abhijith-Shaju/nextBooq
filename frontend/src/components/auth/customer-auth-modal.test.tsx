@@ -27,6 +27,10 @@ vi.mock('@/hooks/auth/use-forgot-password', () => ({
   useForgotPassword: () => ({ mutate: forgotMutate, isPending: false }),
 }));
 
+vi.mock('@/components/providers/tenant-provider', () => ({
+  useTenant: () => ({ cafe: { id: 'cafe_1', slug: 'the-black-shores', name: 'The Black Shores' } }),
+}));
+
 describe('CustomerAuthModal', () => {
   beforeEach(() => {
     loginMutate.mockReset();
@@ -136,7 +140,9 @@ describe('CustomerAuthModal', () => {
       expect(screen.queryByRole('button', { name: /forgot password/i })).not.toBeInTheDocument();
     });
 
-    test('sends the reset request for the entered email', () => {
+    test('sends the reset request with the cafe the guest is booking at', () => {
+      // Without the slug the reset email lands the guest on the operator login
+      // page, which is both the wrong place and the wrong audience.
       openReset();
       fireEvent.change(screen.getByPlaceholderText('your@email.com'), {
         target: { value: 'guest@example.com' },
@@ -144,7 +150,7 @@ describe('CustomerAuthModal', () => {
       fireEvent.click(screen.getByRole('button', { name: /send reset link/i }));
 
       expect(forgotMutate).toHaveBeenCalledWith(
-        { email: 'guest@example.com' },
+        { email: 'guest@example.com', cafe_slug: 'the-black-shores' },
         expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) })
       );
     });
