@@ -137,11 +137,32 @@ describe('Integration Test: cafe Payments settings (Razorpay credentials)', () =
   test('returns a one-time plaintext webhook URL and secret when payments are saved', async () => {
     const res = await putPayments({ razorpay_key_id: 'rzp_test_valid123', razorpay_key_secret: 'supersecretvalue' });
 
-    expect(res.body.data.payments_webhook.url).toBe(
-      `${config.FRONTEND_URL}/api/v1/webhooks/razorpay/payments-cafe`
+    // Must be this API's own host. This assertion previously read
+    // `${config.FRONTEND_URL}/...` and so passed while the feature was broken:
+    // the dashboard handed every cafe a URL on the Vercel site, which serves no
+    // such route, and Razorpay's deliveries 404'd silently for weeks.
+    expect(res.body.data.payments_webhook.url).toMatch(
+      /^https?:\/\/[^/]+\/api\/v1\/webhooks\/razorpay\/payments-cafe$/
     );
+    expect(res.body.data.payments_webhook.url).not.toContain(config.FRONTEND_URL);
     expect(typeof res.body.data.payments_webhook.secret).toBe('string');
     expect(res.body.data.payments_webhook.secret.length).toBeGreaterThan(0);
+  });
+
+  test('the webhook URL it advertises is a route this API actually serves', async () => {
+    // The bug this guards was invisible from inside: the URL looked plausible,
+    // the save succeeded, and only Razorpay's own dashboard knew the deliveries
+    // were failing. So assert the advertised path resolves here rather than
+    // merely that it is well-formed.
+    const res = await putPayments({ razorpay_key_id: 'rzp_test_valid123', razorpay_key_secret: 'supersecretvalue' });
+    const path = new URL(res.body.data.payments_webhook.url).pathname;
+
+    const probe = await request(app).post(path).send({});
+
+    // 400 (missing signature) proves the route exists; 404 would mean we are
+    // still advertising a path nothing is listening on.
+    expect(probe.status).not.toBe(404);
+    expect(probe.status).toBe(400);
   });
 
   test('a plain settings save (no payments) never touches payments_webhook', async () => {

@@ -7,7 +7,6 @@ const { hashStepUpOtp } = require('../../utils/stepUpAuth');
 const { createRazorpayClient } = require('../../config/razorpay');
 const { logAuditEvent } = require('../../services/auditService');
 const { isValidHttpsUrl, validateAddress } = require('../../utils/cafeInput');
-const config = require('../../config/env');
 
 const POSITIVE_INT_RULES = [
   'default_turn_time_minutes',
@@ -402,9 +401,22 @@ const updateCafePayments = async (req, res, next) => {
       performedByUserId: req.user._id,
     });
 
+    // Built from this request's own origin, never FRONTEND_URL. The webhook is
+    // served by this API; FRONTEND_URL points at the Vercel site, which has no
+    // such route, so every cafe was being handed a URL that 404s. Razorpay
+    // reports those failures only in its own dashboard, so the symptom is
+    // payments that succeed while bookings never reconcile -- and nothing on
+    // our side says a word.
+    //
+    // Derived from the request rather than a new environment variable so it
+    // stays correct in development, on any future staging host, and after a
+    // domain change, with nothing to keep in sync. Safe here: this route is
+    // authenticated and gated on manage_billing, and the value is only ever
+    // echoed back to the caller who asked for it.
+    const apiOrigin = `${req.protocol}://${req.get('host')}`;
     const responseData = cafe.toJSON();
     responseData.payments_webhook = {
-      url: `${config.FRONTEND_URL}/api/v1/webhooks/razorpay/${cafe.slug}`,
+      url: `${apiOrigin}/api/v1/webhooks/razorpay/${cafe.slug}`,
       secret: webhookSecretPlaintext,
     };
 

@@ -43,7 +43,7 @@ describe('PaymentsEditor', () => {
       data: {
         data: {
           payments: { razorpay_key_id: 'rzp_test_new', configured: true },
-          payments_webhook: { url: 'https://nextbooq.in/api/v1/webhooks/razorpay/vtcafe', secret: 'whsec_abc' },
+          payments_webhook: { url: 'https://api.nextbooq.in/api/v1/webhooks/razorpay/vtcafe', secret: 'whsec_abc' },
         },
       },
     });
@@ -66,7 +66,7 @@ describe('PaymentsEditor', () => {
     );
     await waitFor(() =>
       expect(onSaved).toHaveBeenCalledWith({
-        url: 'https://nextbooq.in/api/v1/webhooks/razorpay/vtcafe',
+        url: 'https://api.nextbooq.in/api/v1/webhooks/razorpay/vtcafe',
         secret: 'whsec_abc',
       })
     );
