@@ -239,9 +239,39 @@ const validateOperatingHours = (cafe, startTime, endTime) => {
   }
 };
 
+/**
+ * Formats an instant for a human, in the cafe's own timezone.
+ *
+ * Lives here with the rest of the timezone handling rather than in whichever
+ * module happens to need it: a booking time rendered in UTC would tell a guest
+ * to arrive at the wrong hour, and that is not a mistake worth risking twice
+ * in two different formatters.
+ *
+ * e.g. "Saturday, 20 September 2026 at 7:30 PM"
+ */
+const formatLocalDateTime = (dateObj, timeZone = 'UTC') => {
+  try {
+    return new Intl.DateTimeFormat('en-IN', {
+      timeZone,
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(dateObj);
+  } catch {
+    // An unknown timezone must not cost the caller its message; falling back
+    // to ISO is ugly but unambiguous.
+    return dateObj.toISOString();
+  }
+};
+
 module.exports = {
   validateOperatingHours,
   getLocalTimeDetails,
+  formatLocalDateTime,
   getDaySchedule,
   localTimeToUTC,
   generateSlotTimes,

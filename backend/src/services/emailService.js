@@ -283,6 +283,72 @@ const sendCafeApplicationRejectedEmail = async ({ to, applicationRef, cafeName, 
   }
 };
 
+/**
+ * Confirms a booking to the guest who paid for it.
+ *
+ * Until this existed a guest paid real money and received nothing: the only
+ * record of the reservation was a page they had to remember to log into. The
+ * email is the artefact people actually keep, forward, and search for on the
+ * day.
+ *
+ * `when` arrives pre-formatted in the cafe's timezone. Formatting it here
+ * would mean this module needing to know about timezones, and a booking time
+ * rendered an hour out is worse than no email at all.
+ */
+const sendBookingConfirmationEmail = async ({
+  to,
+  guestName,
+  cafeName,
+  cafeSlug,
+  when,
+  partySize,
+  amount,
+  currency = 'INR',
+}) => {
+  if (!config.RESEND_API_KEY) {
+    console.log(
+      `[emailService] RESEND_API_KEY not set — logging booking confirmation instead of sending. to=${to} cafe=${cafeSlug}`
+    );
+    return { logged: true, data: null, error: null };
+  }
+
+  const resend = new Resend(config.RESEND_API_KEY);
+  const feeLine =
+    amount > 0
+      ? `<p>Reservation fee paid: <strong>${escapeHtml(String(currency))} ${escapeHtml(String(amount))}</strong>. Your cafe's terms for this booking are on the confirmation page.</p>`
+      : '';
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: config.FROM_EMAIL,
+      to,
+      // The cafe and the time carry the whole message, so they belong in the
+      // subject: this is a mail people search for on the day.
+      subject: `Table booked at ${cafeName} — ${when}`,
+      html: `
+        <p>Hi ${escapeHtml(guestName || 'there')},</p>
+        <p>Your table at <strong>${escapeHtml(cafeName)}</strong> is confirmed.</p>
+        <p>
+          <strong>When:</strong> ${escapeHtml(when)}<br>
+          <strong>Party size:</strong> ${escapeHtml(String(partySize))}
+        </p>
+        ${feeLine}
+        <p><a href="${config.FRONTEND_URL}/${escapeHtml(cafeSlug)}/my-reservations">View this booking</a></p>
+        <p>If you can no longer make it, contact the cafe as early as you can — someone else can have the table.</p>
+      `,
+    });
+
+    if (error) {
+      console.error('[emailService] Failed to send booking confirmation email:', error);
+    }
+
+    return { logged: false, data, error };
+  } catch (err) {
+    console.error('[emailService] Failed to send booking confirmation email:', err);
+    return { logged: false, data: null, error: { message: err.message } };
+  }
+};
+
 module.exports = {
   sendPasswordResetEmail,
   sendVerificationEmail,
@@ -291,4 +357,5 @@ module.exports = {
   sendCafeApplicationReviewEmail,
   sendCafeApplicationApprovedEmail,
   sendCafeApplicationRejectedEmail,
+  sendBookingConfirmationEmail,
 };

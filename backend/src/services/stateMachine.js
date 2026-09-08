@@ -1,7 +1,42 @@
 const Reservation = require('../models/Reservation');
 const CafeCustomer = require('../models/CafeCustomer');
+const User = require('../models/User');
+const Cafe = require('../models/Cafe');
 const { ConflictError, UnprocessableEntityError, NotFoundError } = require('../utils/errors');
 const { notifyCafeRoom } = require('./socketService');
+const { sendBookingConfirmationEmail } = require('./emailService');
+const { formatLocalDateTime } = require('../utils/operatingHours');
+
+/**
+ * Emails the guest that their table is confirmed.
+ *
+ * Never awaited by the transition that triggers it. By this point the booking
+ * is committed and the guest has been charged, so a slow or failing email
+ * provider must not turn a paid reservation into a failed request. If the mail
+ * never arrives the booking still exists and is still visible in the guest's
+ * reservations.
+ */
+const sendConfirmationToGuest = async (reservation) => {
+  const [user, cafe] = await Promise.all([
+    User.findById(reservation.user_id).select('email name').lean(),
+    Cafe.findById(reservation.cafe_id).select('name slug timezone').lean(),
+  ]);
+
+  if (!user?.email || !cafe) return;
+
+  await sendBookingConfirmationEmail({
+    to: user.email,
+    guestName: user.name,
+    cafeName: cafe.name,
+    cafeSlug: cafe.slug,
+    // Formatted in the cafe's timezone, not the server's: a guest told to
+    // arrive at the UTC hour would miss the table they paid for.
+    when: formatLocalDateTime(reservation.start_time, cafe.timezone),
+    partySize: reservation.party_size,
+    amount: reservation.payment_data?.amount ?? 0,
+    currency: reservation.payment_data?.currency || 'INR',
+  });
+};
 
 // Keeps the per-cafe customer rolodex (repeat-visit/no-show history) in sync
 // with reservation outcomes. Upserts because a guest's first-ever visit won't
@@ -157,6 +192,16 @@ const transitionState = async ({
     reservationId: updatedReservation._id.toString(),
     status: updatedReservation.status,
   });
+
+  // Sent here rather than at the two call sites that confirm a booking (the
+  // checkout return and the Razorpay webhook) because exactly one of them wins
+  // the OCC update above -- so the guest gets one email however their payment
+  // came back, and neither path can forget to send it.
+  if (targetStatus === 'CONFIRMED') {
+    sendConfirmationToGuest(updatedReservation).catch((err) => {
+      console.error('[stateMachine] Booking confirmation email failed:', err);
+    });
+  }
 
   return updatedReservation;
 };
