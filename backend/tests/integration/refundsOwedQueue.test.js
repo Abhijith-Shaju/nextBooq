@@ -28,8 +28,13 @@ describe('Refunds owed after a cancellation', () => {
       cafe_id: cafe._id,
       user_id: guest._id,
       table_ids: [],
-      start_time: new Date(Date.now() + 5 * 60 * 60 * 1000),
-      end_time: new Date(Date.now() + 6 * 60 * 60 * 1000),
+      // Comfortably outside the 24-hour cutoff below, because this suite is
+      // about what happens to a refund that is owed -- and one is only owed
+      // when the guest cancelled with the notice the cafe's terms asked for.
+      // At five hours' notice, which this was, nothing reaches the queue and
+      // every test here would be asserting against an empty one.
+      start_time: new Date(Date.now() + 48 * 60 * 60 * 1000),
+      end_time: new Date(Date.now() + 49 * 60 * 60 * 1000),
       party_size: 2,
       reservation_timezone: 'UTC',
       status: 'CONFIRMED',
@@ -146,6 +151,22 @@ describe('Refunds owed after a cancellation', () => {
     const saved = await Reservation.findById(reservation._id);
     expect(saved.payment_data.requires_manual_refund).toBe(false);
     expect((await listRefunds()).body.data).toHaveLength(0);
+  });
+
+  test('a cancellation later than the cutoff never reaches the queue', async () => {
+    // The sibling of the fixture note above, asserted rather than assumed: the
+    // cafe asked for 24 hours' notice and got two, so its own terms say the fee
+    // is not owed and the queue should stay empty.
+    const reservation = await makeReservation({
+      start_time: new Date(Date.now() + 2 * 60 * 60 * 1000),
+      end_time: new Date(Date.now() + 3 * 60 * 60 * 1000),
+    });
+
+    await cancel(reservation);
+
+    const stored = await Reservation.findById(reservation._id);
+    expect(stored.status).toBe('CANCELLED');
+    expect(Boolean(stored.payment_data.requires_manual_refund)).toBe(false);
   });
 
   test('a booking taken on non-refundable terms owes nothing when cancelled', async () => {

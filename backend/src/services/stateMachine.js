@@ -163,7 +163,22 @@ const transitionState = async ({
   // taken under non-refundable terms owes nothing back.
   const feeWasCaptured = Boolean(reservation.payment_data?.payment_id);
   const termsPromiseRefund = reservation.fee_policy?.refund_on_cancellation ?? true;
-  if (targetStatus === 'CANCELLED' && feeWasCaptured && termsPromiseRefund) {
+
+  // And only when the guest gave the notice the cafe's terms asked for. The
+  // cutoff is snapshotted onto every booking at the moment it is made, and was
+  // never read by anything: a cafe requiring 24 hours' notice still had a
+  // refund flagged for a cancellation ten minutes before the table, against
+  // its own published terms.
+  //
+  // Note this governs the money, not the permission. Cancelling late is still
+  // allowed and still frees the table, which is better for the cafe than a
+  // guest who simply does not turn up.
+  const cutoffHours = reservation.fee_policy?.cancellation_cutoff_hours ?? 24;
+  const hoursOfNotice =
+    (new Date(reservation.start_time).getTime() - Date.now()) / (60 * 60 * 1000);
+  const cancelledInTime = hoursOfNotice >= cutoffHours;
+
+  if (targetStatus === 'CANCELLED' && feeWasCaptured && termsPromiseRefund && cancelledInTime) {
     updateQuery['payment_data.requires_manual_refund'] = true;
   }
 
