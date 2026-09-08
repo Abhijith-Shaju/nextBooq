@@ -4,19 +4,19 @@ const User = require('../models/User');
 const Cafe = require('../models/Cafe');
 const { ConflictError, UnprocessableEntityError, NotFoundError } = require('../utils/errors');
 const { notifyCafeRoom } = require('./socketService');
-const { sendBookingConfirmationEmail } = require('./emailService');
+const { sendBookingConfirmationEmail, sendBookingCancellationEmail } = require('./emailService');
 const { formatLocalDateTime } = require('../utils/operatingHours');
+const { describeRefundOutcome } = require('./refundOutcome');
 
 /**
- * Emails the guest that their table is confirmed.
+ * Emails the guest about a booking that has just confirmed or been cancelled.
  *
- * Never awaited by the transition that triggers it. By this point the booking
- * is committed and the guest has been charged, so a slow or failing email
- * provider must not turn a paid reservation into a failed request. If the mail
- * never arrives the booking still exists and is still visible in the guest's
- * reservations.
+ * Never awaited by the transition that triggers it. By this point the change
+ * is committed, so a slow or failing email provider must not turn it into a
+ * failed request; the booking is correct either way and still visible in the
+ * guest's reservations.
  */
-const sendConfirmationToGuest = async (reservation) => {
+const notifyGuestOfTransition = async (reservation, targetStatus) => {
   const [user, cafe] = await Promise.all([
     User.findById(reservation.user_id).select('email name').lean(),
     Cafe.findById(reservation.cafe_id).select('name slug timezone').lean(),
@@ -24,7 +24,7 @@ const sendConfirmationToGuest = async (reservation) => {
 
   if (!user?.email || !cafe) return;
 
-  await sendBookingConfirmationEmail({
+  const common = {
     to: user.email,
     guestName: user.name,
     cafeName: cafe.name,
@@ -32,10 +32,24 @@ const sendConfirmationToGuest = async (reservation) => {
     // Formatted in the cafe's timezone, not the server's: a guest told to
     // arrive at the UTC hour would miss the table they paid for.
     when: formatLocalDateTime(reservation.start_time, cafe.timezone),
-    partySize: reservation.party_size,
-    amount: reservation.payment_data?.amount ?? 0,
-    currency: reservation.payment_data?.currency || 'INR',
-  });
+  };
+
+  if (targetStatus === 'CONFIRMED') {
+    await sendBookingConfirmationEmail({
+      ...common,
+      partySize: reservation.party_size,
+      amount: reservation.payment_data?.amount ?? 0,
+      currency: reservation.payment_data?.currency || 'INR',
+    });
+    return;
+  }
+
+  // A guest holding a confirmation email for a table that no longer exists
+  // will search their inbox on the day, find it, and turn up. The
+  // cancellation notice is what corrects that -- and it is the only durable
+  // record of what happens to their fee, since a toast is gone as soon as
+  // they navigate away.
+  await sendBookingCancellationEmail({ ...common, outcome: describeRefundOutcome(reservation) });
 };
 
 // Keeps the per-cafe customer rolodex (repeat-visit/no-show history) in sync
@@ -161,24 +175,15 @@ const transitionState = async ({
   // Only when the fee was captured (payment_id present) and only when the
   // cafe's own terms, as recorded on this booking, promise a refund. A booking
   // taken under non-refundable terms owes nothing back.
-  const feeWasCaptured = Boolean(reservation.payment_data?.payment_id);
-  const termsPromiseRefund = reservation.fee_policy?.refund_on_cancellation ?? true;
-
-  // And only when the guest gave the notice the cafe's terms asked for. The
-  // cutoff is snapshotted onto every booking at the moment it is made, and was
-  // never read by anything: a cafe requiring 24 hours' notice still had a
-  // refund flagged for a cancellation ten minutes before the table, against
-  // its own published terms.
+  // Whether the fee comes back, decided in one place — see refundOutcome.js.
+  // The guest is told this same answer in the cancellation response and in the
+  // cancellation email, and it is what puts the booking on the cafe's
+  // refunds-owed queue, so all of them read the one helper.
   //
-  // Note this governs the money, not the permission. Cancelling late is still
-  // allowed and still frees the table, which is better for the cafe than a
-  // guest who simply does not turn up.
-  const cutoffHours = reservation.fee_policy?.cancellation_cutoff_hours ?? 24;
-  const hoursOfNotice =
-    (new Date(reservation.start_time).getTime() - Date.now()) / (60 * 60 * 1000);
-  const cancelledInTime = hoursOfNotice >= cutoffHours;
-
-  if (targetStatus === 'CANCELLED' && feeWasCaptured && termsPromiseRefund && cancelledInTime) {
+  // Note the cutoff inside it governs the money, not the permission.
+  // Cancelling late is still allowed and still frees the table, which is
+  // better for the cafe than a guest who simply does not turn up.
+  if (targetStatus === 'CANCELLED' && describeRefundOutcome(reservation).refund_due) {
     updateQuery['payment_data.requires_manual_refund'] = true;
   }
 
@@ -208,13 +213,24 @@ const transitionState = async ({
     status: updatedReservation.status,
   });
 
-  // Sent here rather than at the two call sites that confirm a booking (the
-  // checkout return and the Razorpay webhook) because exactly one of them wins
-  // the OCC update above -- so the guest gets one email however their payment
-  // came back, and neither path can forget to send it.
-  if (targetStatus === 'CONFIRMED') {
-    sendConfirmationToGuest(updatedReservation).catch((err) => {
-      console.error('[stateMachine] Booking confirmation email failed:', err);
+  // Sent here rather than at the call sites, because several of them reach the
+  // same transition -- the checkout return and the Razorpay webhook both try
+  // to confirm, and both a guest and a member of staff can cancel -- and
+  // exactly one wins the OCC update above. Hooking the transition means one
+  // email per change, however it was reached, and no path can forget to send
+  // it.
+  //
+  // Cancellation is only worth an email for a booking that actually existed:
+  // `confirmed_at` is set on CONFIRMED, so an abandoned hold or an unpaid
+  // pending-payment row cancels quietly rather than mailing someone about a
+  // table they never held.
+  const worthNotifying =
+    targetStatus === 'CONFIRMED' ||
+    (targetStatus === 'CANCELLED' && Boolean(updatedReservation.confirmed_at));
+
+  if (worthNotifying) {
+    notifyGuestOfTransition(updatedReservation, targetStatus).catch((err) => {
+      console.error(`[stateMachine] Guest ${targetStatus} email failed:`, err);
     });
   }
 

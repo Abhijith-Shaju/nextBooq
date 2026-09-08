@@ -188,6 +188,11 @@ export interface Reservation {
     refund_reference?: string | null;
     refund_settled_at?: string | null;
   };
+  // The fee terms as they stood when this booking was made, snapshotted by the
+  // backend so a later change to the cafe's settings cannot rewrite the deal.
+  // Present on the customer's own reservations, which the cancel dialog reads
+  // to tell a guest the notice required before they decide.
+  fee_policy?: ReservationFeePolicy;
   // This cafe's own history with the guest, attached by the host manifest
   // endpoint. Optional because only that endpoint sends it -- the customer's
   // own reservation list deliberately does not, since these counters are the

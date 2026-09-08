@@ -46,6 +46,28 @@ export function ReservationDetailModal({
 
   const reservationId = String(reservation?._id || reservation?.id || '');
 
+  // Mirrors the server's rule in wording only, never in the decision: this
+  // says what the cafe asks for and whether this cancellation meets it, and
+  // the server still decides what actually happens to the money.
+  const feeNotice = (() => {
+    if (!reservation) return null;
+    const amount = reservation.payment_data?.amount ?? 0;
+    if (!reservation.payment_data?.payment_id || amount <= 0) return null;
+
+    const fee = `₹${Number.isInteger(amount) ? amount : amount.toFixed(2)}`;
+    if (reservation.fee_policy?.refund_on_cancellation === false) {
+      return `Your ${fee} fee is non-refundable on this booking.`;
+    }
+
+    const cutoff = reservation.fee_policy?.cancellation_cutoff_hours ?? 24;
+    const hoursOfNotice =
+      (new Date(reservation.start_time).getTime() - Date.now()) / (60 * 60 * 1000);
+
+    return hoursOfNotice >= cutoff
+      ? `${cafeName} asks for ${cutoff} hours' notice for a refund. You are within that, so your ${fee} fee should come back to you.`
+      : `${cafeName} asks for ${cutoff} hours' notice for a refund. This booking is sooner than that, so your ${fee} fee will not be returned.`;
+  })();
+
   const handleCancel = () => {
     setError(null);
     cancelReservation.mutate(reservationId, {
@@ -152,9 +174,15 @@ export function ReservationDetailModal({
               <div className="rounded-xl border border-red-200 bg-red-50 p-3 space-y-2.5">
                 <p className="text-[12px] leading-relaxed text-red-900">
                   Cancel this booking? The table is released immediately and this cannot be
-                  undone. Whether your reservation fee is refunded depends on {cafeName}&apos;s
-                  cancellation terms and how much notice you are giving.
+                  undone.
                 </p>
+                {/* The cutoff is on the booking already, so the guest can be
+                    told what the rule is and whether they meet it — which is
+                    the one thing worth knowing before deciding, and far more
+                    use than "it depends on the terms". */}
+                {feeNotice ? (
+                  <p className="text-[12px] leading-relaxed text-red-900">{feeNotice}</p>
+                ) : null}
                 {error ? (
                   <p role="alert" className="text-[12px] font-semibold text-red-800">
                     {error}

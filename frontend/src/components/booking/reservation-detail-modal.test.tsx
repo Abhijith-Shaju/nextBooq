@@ -145,11 +145,42 @@ describe('cancelling a booking', () => {
     expect(screen.getByText(/cannot be undone/i)).toBeInTheDocument();
   });
 
-  test('says the refund depends on the cafe terms rather than promising one', () => {
-    // The server decides from the snapshotted terms and the notice given. A
-    // promise here would eventually contradict the cafe's refunds queue.
-    openCancel();
-    expect(screen.getByText(/depends on Demo Cafe/i)).toBeInTheDocument();
+  describe('what it tells the guest about the fee before they decide', () => {
+    const paid = (feePolicy: Record<string, unknown>, hoursAway: number) =>
+      makeReservation({
+        start_time: new Date(Date.now() + hoursAway * 3600000).toISOString(),
+        payment_data: { payment_id: 'pay_x', amount: 250, currency: 'INR' },
+        fee_policy: feePolicy as never,
+      });
+
+    test('says the fee should come back when there is enough notice', () => {
+      openCancel(paid({ refund_on_cancellation: true, cancellation_cutoff_hours: 24 }, 48));
+
+      expect(screen.getByText(/24 hours' notice/i)).toBeInTheDocument();
+      expect(screen.getByText(/should come back to you/i)).toBeInTheDocument();
+    });
+
+    test('warns plainly when the cancellation is inside the cutoff', () => {
+      // The one thing worth knowing at this moment. "It depends on the terms",
+      // which this used to say, makes a guest decide without the answer.
+      openCancel(paid({ refund_on_cancellation: true, cancellation_cutoff_hours: 24 }, 3));
+
+      expect(screen.getByText(/will not be returned/i)).toBeInTheDocument();
+      expect(screen.getByText(/₹250/)).toBeInTheDocument();
+    });
+
+    test('says so when the booking was taken on non-refundable terms', () => {
+      openCancel(paid({ refund_on_cancellation: false, cancellation_cutoff_hours: 24 }, 100));
+
+      expect(screen.getByText(/non-refundable/i)).toBeInTheDocument();
+    });
+
+    test('says nothing about a fee when none was paid', () => {
+      openCancel();
+
+      expect(screen.queryByText(/notice for a refund/i)).not.toBeInTheDocument();
+      expect(screen.getByText(/cannot be undone/i)).toBeInTheDocument();
+    });
   });
 
   test('backing out cancels nothing', () => {

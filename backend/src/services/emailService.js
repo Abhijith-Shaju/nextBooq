@@ -349,6 +349,71 @@ const sendBookingConfirmationEmail = async ({
   }
 };
 
+/**
+ * Tells the guest a booking has been cancelled, and what happens to their fee.
+ *
+ * Two jobs. It corrects the confirmation email still sitting in their inbox
+ * for a table that no longer exists — otherwise they search their mail on the
+ * day, find the confirmation, and turn up. And it is the only durable record
+ * of the refund outcome: the toast on screen is gone the moment they navigate
+ * away, which left a guest who cancelled late having paid a fee and been told
+ * nothing about it.
+ *
+ * `outcome` comes from services/refundOutcome.js. This function only phrases
+ * it — deciding it here as well would give the guest a second answer to
+ * disagree with the cafe's refunds queue.
+ */
+const sendBookingCancellationEmail = async ({ to, guestName, cafeName, cafeSlug, when, outcome }) => {
+  if (!config.RESEND_API_KEY) {
+    console.log(
+      `[emailService] RESEND_API_KEY not set — logging cancellation instead of sending. to=${to} cafe=${cafeSlug}`
+    );
+    return { logged: true, data: null, error: null };
+  }
+
+  const resend = new Resend(config.RESEND_API_KEY);
+  const money = `${escapeHtml(String(outcome.currency))} ${escapeHtml(String(outcome.amount))}`;
+
+  let feeParagraph;
+  if (!outcome.fee_paid) {
+    feeParagraph = '';
+  } else if (outcome.refund_due) {
+    feeParagraph = `<p>Your reservation fee of <strong>${money}</strong> is due back to you. ${escapeHtml(cafeName)} issues the refund from its own payment account — nextBooq never holds your money — and it usually reaches your original payment method within 5–7 business days of being issued.</p>
+        <p>If it has not arrived within 10 business days, reply to this email and we will follow it up with the cafe for you.</p>`;
+  } else if (outcome.reason === 'late') {
+    // The guest paid and is getting nothing back. Saying so plainly, with the
+    // reason, is the difference between a policy they can check and an app
+    // that appears to have kept their money.
+    feeParagraph = `<p>Your reservation fee of <strong>${money}</strong> is not being refunded. ${escapeHtml(cafeName)} asks for at least <strong>${escapeHtml(String(outcome.cutoff_hours))} hours</strong> notice for a refund, and this cancellation came later than that.</p>
+        <p>You can read the full policy at <a href="${config.FRONTEND_URL}/legal/refunds">nextbooq.in/legal/refunds</a>. If you think this is wrong, reply to this email.</p>`;
+  } else {
+    feeParagraph = `<p>Your reservation fee of <strong>${money}</strong> is not being refunded — this booking was taken on non-refundable terms, which were shown to you before you paid. The full policy is at <a href="${config.FRONTEND_URL}/legal/refunds">nextbooq.in/legal/refunds</a>.</p>`;
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: config.FROM_EMAIL,
+      to,
+      subject: `Cancelled: your table at ${cafeName} — ${when}`,
+      html: `
+        <p>Hi ${escapeHtml(guestName || 'there')},</p>
+        <p>Your booking at <strong>${escapeHtml(cafeName)}</strong> for <strong>${escapeHtml(when)}</strong> has been cancelled, and the table released.</p>
+        ${feeParagraph}
+        <p><a href="${config.FRONTEND_URL}/${escapeHtml(cafeSlug)}">Book another table</a></p>
+      `,
+    });
+
+    if (error) {
+      console.error('[emailService] Failed to send booking cancellation email:', error);
+    }
+
+    return { logged: false, data, error };
+  } catch (err) {
+    console.error('[emailService] Failed to send booking cancellation email:', err);
+    return { logged: false, data: null, error: { message: err.message } };
+  }
+};
+
 module.exports = {
   sendPasswordResetEmail,
   sendVerificationEmail,
@@ -358,4 +423,5 @@ module.exports = {
   sendCafeApplicationApprovedEmail,
   sendCafeApplicationRejectedEmail,
   sendBookingConfirmationEmail,
+  sendBookingCancellationEmail,
 };

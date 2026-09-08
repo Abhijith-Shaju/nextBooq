@@ -1,6 +1,7 @@
 const Reservation = require('../../models/Reservation');
 const { BadRequestError, NotFoundError } = require('../../utils/errors');
 const { transitionState } = require('../../services/stateMachine');
+const { describeRefundOutcome } = require('../../services/refundOutcome');
 
 // A guest's own history grows without bound over years of visits, with no
 // limit and two populates per row (L-09). This is a safety cap, not a
@@ -67,15 +68,22 @@ const cancelCustomerReservation = async (req, res, next) => {
       updatedByUserId: req.user._id,
     });
 
+    // The guest is told what happens to their money, and when it is not
+    // coming back, why. Saying only "cancelled" to someone who has paid a fee
+    // and is getting nothing reads as the app having kept it.
+    const outcome = describeRefundOutcome(updated);
+
     res.status(200).json({
       status: 'success',
       data: {
         _id: updated._id,
         status: updated.status,
-        // So the guest is told what happens to their money rather than left to
-        // wonder. Whether a refund is due depends on the cafe's terms and how
-        // much notice was given -- the state machine has already decided.
-        refund_due: Boolean(updated.payment_data?.requires_manual_refund),
+        refund_due: outcome.refund_due,
+        fee_paid: outcome.fee_paid,
+        refund_withheld_reason: outcome.reason,
+        cutoff_hours: outcome.cutoff_hours,
+        amount: outcome.amount,
+        currency: outcome.currency,
       },
     });
   } catch (error) {
