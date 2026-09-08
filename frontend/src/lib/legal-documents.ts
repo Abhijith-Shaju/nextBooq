@@ -25,6 +25,16 @@ export const LEGAL_DOCUMENTS = {
     description:
       'How reservation deposits work, when they are refunded, and how to cancel a booking.',
   },
+  // Nothing ships in a table reservation business, but payment providers and
+  // the E-Commerce Rules both expect a delivery policy to exist. A published
+  // page explaining that the "delivery" is an instantly-confirmed booking is
+  // more useful to a reader, and to a reviewer, than a missing URL.
+  shipping: {
+    file: 'shipping-and-delivery-policy.md',
+    title: 'Shipping and Delivery Policy',
+    description:
+      'What you receive when you book, when it is delivered, and what to do if a booking does not appear.',
+  },
 } as const;
 
 export type LegalDocumentSlug = keyof typeof LEGAL_DOCUMENTS;

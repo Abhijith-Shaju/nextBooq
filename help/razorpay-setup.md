@@ -30,12 +30,48 @@ proprietorships, which covers most independent cafés.
 Sign up at [razorpay.com](https://razorpay.com) and complete the KYC
 verification.
 
-**Start this first, before anything else in this guide.** Verification usually
-takes a day or two, and sometimes longer. Nothing below will work with real
-money until Razorpay has approved your account, so it's the one step worth
-beginning before you need it.
+**Start this first, before anything else in this guide.** Activation takes
+around 3–4 business days. Nothing below will work with real money until
+Razorpay has approved your account, so it's the one step worth beginning
+before you need it.
 
 You can do everything else in test mode while you wait.
+
+### What Razorpay will ask for
+
+Beyond your documents, the activation form asks about your website and the
+policies published on it. You don't need a website of your own — **your
+nextBooq storefront is your website**:
+
+```
+https://www.nextbooq.in/your-cafe
+```
+
+Razorpay checks that certain policy pages exist. nextBooq publishes all of
+them, so you can give these URLs directly:
+
+| What they ask for | URL to give them |
+|---|---|
+| Terms and conditions | `https://www.nextbooq.in/legal/terms` |
+| Privacy policy | `https://www.nextbooq.in/legal/privacy` |
+| Cancellation and refunds | `https://www.nextbooq.in/legal/refunds` |
+| Shipping and delivery | `https://www.nextbooq.in/legal/shipping` |
+| Contact us | `https://www.nextbooq.in/contact` |
+| Pricing | `https://www.nextbooq.in/#pricing` |
+
+### The test account they may ask for
+
+The form asks *"Does your app require login from user to complete payment?"*
+For nextBooq the answer is **yes** — a guest signs in before booking — so
+Razorpay will want test credentials its reviewer can use.
+
+Create a spare account on your storefront for this and give Razorpay those
+details. One thing to get right: **verify that account's email address before
+you submit it.** Booking is blocked until an email is verified, so a reviewer
+using an unverified account will sign in successfully and then be stopped at
+the exact step they are checking — which reads as a broken site.
+
+If you'd rather not create one, email us and we'll provide a demo account.
 
 ---
 

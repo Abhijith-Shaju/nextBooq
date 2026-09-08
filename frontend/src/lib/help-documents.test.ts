@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { HELP_DOCUMENTS, readHelpDocument, type HelpDocumentSlug } from './help-documents';
+import { LEGAL_DOCUMENTS } from './legal-documents';
 
 const slugs = Object.keys(HELP_DOCUMENTS) as HelpDocumentSlug[];
 
@@ -51,6 +52,41 @@ describe('razorpay-setup guide content', () => {
 
     expect(body).toContain('payment.captured');
     expect(body).toContain('payment.failed');
+  });
+
+  test('every nextBooq URL it hands to Razorpay is one we actually publish', async () => {
+    // The guide tells a cafe to paste these into Razorpay's activation form. A
+    // URL that 404s there costs them a rejection and another 3-4 days, and the
+    // guide is exactly the kind of document that keeps naming a page months
+    // after it was renamed. Same failure as the webhook URL, different form.
+    const body = await readHelpDocument('razorpay-setup');
+
+    const known = new Set([
+      '/contact',
+      '/#pricing',
+      '/your-cafe', // the worked example of a storefront URL
+      ...Object.keys(LEGAL_DOCUMENTS).map((slug) => `/legal/${slug}`),
+    ]);
+
+    const paths = [...body.matchAll(/https:\/\/www\.nextbooq\.in(\/[^\s`|)\]]*)/g)].map(
+      (m) => m[1]
+    );
+
+    expect(paths.length).toBeGreaterThan(4);
+    expect(paths.filter((p) => !known.has(p))).toEqual([]);
+  });
+
+  test('names the shipping policy, which Razorpay asks for and a booking service easily forgets', async () => {
+    const body = await readHelpDocument('razorpay-setup');
+    expect(body).toContain('/legal/shipping');
+  });
+
+  test('warns that the demo account must have a verified email', async () => {
+    // Booking is gated on email verification, so an unverified test account
+    // lets a reviewer sign in and then blocks them at the step they came to
+    // check — which reads as a broken site rather than an unverified account.
+    const body = await readHelpDocument('razorpay-setup');
+    expect(body).toMatch(/verify that account's email address/i);
   });
 
   test('tells the operator to verify the delivery log', async () => {
