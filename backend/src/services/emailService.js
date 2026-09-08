@@ -379,13 +379,13 @@ const sendBookingCancellationEmail = async ({ to, guestName, cafeName, cafeSlug,
     feeParagraph = '';
   } else if (outcome.refund_due) {
     feeParagraph = `<p>Your reservation fee of <strong>${money}</strong> is due back to you. ${escapeHtml(cafeName)} issues the refund from its own payment account — nextBooq never holds your money — and it usually reaches your original payment method within 5–7 business days of being issued.</p>
-        <p>If it has not arrived within 10 business days, reply to this email and we will follow it up with the cafe for you.</p>`;
+        <p>If it has not arrived within 10 business days, <a href="${config.FRONTEND_URL}/contact">get in touch</a> and we will follow it up with the cafe for you.</p>`;
   } else if (outcome.reason === 'late') {
     // The guest paid and is getting nothing back. Saying so plainly, with the
     // reason, is the difference between a policy they can check and an app
     // that appears to have kept their money.
     feeParagraph = `<p>Your reservation fee of <strong>${money}</strong> is not being refunded. ${escapeHtml(cafeName)} asks for at least <strong>${escapeHtml(String(outcome.cutoff_hours))} hours</strong> notice for a refund, and this cancellation came later than that.</p>
-        <p>You can read the full policy at <a href="${config.FRONTEND_URL}/legal/refunds">nextbooq.in/legal/refunds</a>. If you think this is wrong, reply to this email.</p>`;
+        <p>You can read the full policy at <a href="${config.FRONTEND_URL}/legal/refunds">nextbooq.in/legal/refunds</a>. If you think this is wrong, <a href="${config.FRONTEND_URL}/contact">get in touch</a>.</p>`;
   } else {
     feeParagraph = `<p>Your reservation fee of <strong>${money}</strong> is not being refunded — this booking was taken on non-refundable terms, which were shown to you before you paid. The full policy is at <a href="${config.FRONTEND_URL}/legal/refunds">nextbooq.in/legal/refunds</a>.</p>`;
   }
