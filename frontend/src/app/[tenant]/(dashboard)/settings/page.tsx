@@ -528,12 +528,18 @@ export default function CafeSettingsPage() {
           </div>
 
           <div className="pt-6 border-t border-brand-brown/10 space-y-4">
-            <h2 className="text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 text-brand-red" /> Address
-            </h2>
-            <p className="text-[11px] text-brand-mochaMid -mt-3">
-              Where guests will find you. Fill in line 1 to save an address.
-            </p>
+            {/* Grouped so the space-y-4 gap does not push between the heading
+                and its description. They were siblings with a negative margin
+                cancelling that gap, which overshot into a negative gap and
+                crowded the description up into the heading. */}
+            <div>
+              <h2 className="text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-brand-red" /> Address
+              </h2>
+              <p className="text-[11px] text-brand-mochaMid">
+                Where guests will find you. Fill in line 1 to save an address.
+              </p>
+            </div>
 
             <div>
               <label htmlFor="address-line1" className="block text-sm font-semibold text-brand-brown mb-1.5">

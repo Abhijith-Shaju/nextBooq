@@ -95,12 +95,19 @@ export function StorefrontEditor({
 
   return (
     <div className="pt-6 border-t border-brand-brown/10 space-y-6">
-      <h2 className="text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
-        <Info className="w-4 h-4 text-brand-red" /> Storefront
-      </h2>
-      <p className="text-[11px] text-brand-mochaMid -mt-4">
-        Shown on your cafe&apos;s public page. Leave blank to keep the default look.
-      </p>
+      {/* Heading and its description are one child of the space-y parent, so
+          the section gap does not push between them. Previously they were
+          siblings with a negative margin cancelling that gap out, which
+          overshot: the description sat 10px above the heading's baseline and
+          crowded into it. */}
+      <div>
+        <h2 className="text-sm font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
+          <Info className="w-4 h-4 text-brand-red" /> Storefront
+        </h2>
+        <p className="text-[11px] text-brand-mochaMid">
+          Shown on your cafe&apos;s public page. Leave blank to keep the default look.
+        </p>
+      </div>
 
       <div>
         <label htmlFor="storefront-description" className="block text-sm font-semibold text-brand-brown mb-1.5">
