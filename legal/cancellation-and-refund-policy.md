@@ -32,14 +32,12 @@ When you select a time slot, the table is held for you for a short window (shown
 
 ## 3. Cancelling a reservation
 
-> **Please note:** nextBooq does not currently offer a self-service cancellation button in the booking flow. Cancellation is handled manually, as described below. We intend to add self-service cancellation to the Platform.
+To cancel a reservation:
 
-To cancel a confirmed reservation:
+1. Open **My Bookings** on the café's page, select the reservation, and choose **Cancel this booking**. You can do this yourself at any time before you check in. The table is released immediately, and the cancellation cannot be undone.
+2. If you have already checked in, or cannot get into your account, **contact the café directly** using the phone number on its booking page — or **email nextBooq support at nextbooq@gmail.com**, quoting your reservation reference.
 
-1. **Contact the café directly**, using the phone number shown on its booking page and in your confirmation; **or**
-2. **Email nextBooq support at nextbooq@gmail.com**, quoting your reservation reference.
-
-Do this **before the café's stated cancellation cut-off**, which is shown to you at the time of booking. The café then cancels the reservation from its dashboard, which releases the table and triggers a refund.
+**Cancel before the café's stated cut-off if you want the fee back.** That cut-off is shown to you before you pay. Cancelling later still frees the table — which we would always rather you did than simply not arrive — but the café is not obliged to return the reservation fee.
 
 ---
 

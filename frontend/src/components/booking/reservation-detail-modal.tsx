@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { Reservation } from '@/lib/types/models';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { useModalDismiss } from '@/hooks/use-modal-dismiss';
+import { useCancelReservation } from '@/hooks/customer/use-cancel-reservation';
 import { getReservationToken } from '@/lib/booking/reservation-token';
 import { getReservationTableNumbers } from '@/lib/dashboard/reservation-tables';
 import { describeReservationStatus } from '@/lib/booking/reservation-status';
@@ -26,6 +28,11 @@ const SPENT_STATUSES: Reservation['status'][] = [
   'LEFT_BEFORE_SEATING',
 ];
 
+// A guest can call off a booking right up until they are at the cafe. Once
+// they have checked in or been seated it is the cafe's to settle, not the
+// app's — the terms say to speak to them, and the endpoint refuses too.
+const CANCELLABLE_STATUSES: Reservation['status'][] = ['HOLD', 'PENDING_PAYMENT', 'CONFIRMED'];
+
 export function ReservationDetailModal({
   reservation,
   cafeName,
@@ -33,6 +40,24 @@ export function ReservationDetailModal({
   onCompletePayment,
 }: ReservationDetailModalProps) {
   const { onBackdropClick } = useModalDismiss(reservation !== null, onClose);
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const cancelReservation = useCancelReservation();
+
+  const reservationId = String(reservation?._id || reservation?.id || '');
+
+  const handleCancel = () => {
+    setError(null);
+    cancelReservation.mutate(reservationId, {
+      onSuccess: onClose,
+      onError: (err: unknown) => {
+        const message =
+          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          'Could not cancel this booking. Please try again, or contact the cafe.';
+        setError(message);
+      },
+    });
+  };
 
   if (!reservation) return null;
 
@@ -110,7 +135,7 @@ export function ReservationDetailModal({
         )}
 
         {reservation.status === 'PENDING_PAYMENT' && onCompletePayment && (
-          <div className="px-5 pb-5">
+          <div className="px-5 pb-3">
             <button
               type="button"
               onClick={() => onCompletePayment(reservation)}
@@ -120,6 +145,53 @@ export function ReservationDetailModal({
             </button>
           </div>
         )}
+
+        {CANCELLABLE_STATUSES.includes(reservation.status) ? (
+          <div className="px-5 pb-5 pt-2">
+            {confirming ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 space-y-2.5">
+                <p className="text-[12px] leading-relaxed text-red-900">
+                  Cancel this booking? The table is released immediately and this cannot be
+                  undone. Whether your reservation fee is refunded depends on {cafeName}&apos;s
+                  cancellation terms and how much notice you are giving.
+                </p>
+                {error ? (
+                  <p role="alert" className="text-[12px] font-semibold text-red-800">
+                    {error}
+                  </p>
+                ) : null}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirming(false);
+                      setError(null);
+                    }}
+                    className="flex-1 rounded-lg border border-brand-brown/20 py-2 text-[12px] font-semibold text-brand-mocha hover:bg-white"
+                  >
+                    Keep booking
+                  </button>
+                  <button
+                    type="button"
+                    disabled={cancelReservation.isPending}
+                    onClick={handleCancel}
+                    className="flex-1 rounded-lg bg-red-600 py-2 text-[12px] font-bold text-white hover:bg-red-700 disabled:opacity-60"
+                  >
+                    {cancelReservation.isPending ? 'Cancelling…' : 'Yes, cancel'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirming(true)}
+                className="w-full rounded-xl border border-brand-brown/20 py-2.5 text-[12px] font-semibold text-brand-mocha hover:border-red-300 hover:text-red-700"
+              >
+                Cancel this booking
+              </button>
+            )}
+          </div>
+        ) : null}
       </div>
     </div>
   );

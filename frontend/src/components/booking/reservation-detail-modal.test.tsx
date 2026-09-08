@@ -1,8 +1,13 @@
-import { describe, test, expect, vi } from 'vitest';
+import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { ReservationDetailModal } from './reservation-detail-modal';
 import { Reservation } from '@/lib/types/models';
+
+const cancelMutate = vi.fn();
+vi.mock('@/hooks/customer/use-cancel-reservation', () => ({
+  useCancelReservation: () => ({ mutate: cancelMutate, isPending: false }),
+}));
 
 const makeReservation = (overrides: Partial<Reservation> = {}): Reservation => ({
   id: 'res_1',
@@ -93,5 +98,87 @@ describe('ReservationDetailModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /close booking details/i }));
     expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe('cancelling a booking', () => {
+  const openCancel = (reservation = makeReservation(), onClose = vi.fn()) => {
+    render(
+      <ReservationDetailModal reservation={reservation} cafeName="Demo Cafe" onClose={onClose} />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /cancel this booking/i }));
+    return { onClose };
+  };
+
+  beforeEach(() => {
+    cancelMutate.mockReset();
+  });
+
+  test('offers cancellation on a booking that has not started', () => {
+    render(
+      <ReservationDetailModal reservation={makeReservation()} cafeName="Demo Cafe" onClose={vi.fn()} />
+    );
+    expect(screen.getByRole('button', { name: /cancel this booking/i })).toBeInTheDocument();
+  });
+
+  test.each(['SEATED', 'CHECKED_IN', 'CANCELLED', 'COMPLETED'] as const)(
+    'does not offer cancellation once %s',
+    (status) => {
+      // Past check-in it is the cafe's to settle, not the app's — the endpoint
+      // refuses too, so offering the button would only produce an error.
+      render(
+        <ReservationDetailModal
+          reservation={makeReservation({ status })}
+          cafeName="Demo Cafe"
+          onClose={vi.fn()}
+        />
+      );
+      expect(screen.queryByRole('button', { name: /cancel this booking/i })).not.toBeInTheDocument();
+    }
+  );
+
+  test('asks for confirmation before calling anything', () => {
+    // Releasing a table cannot be undone, so one stray tap must not do it.
+    openCancel();
+
+    expect(cancelMutate).not.toHaveBeenCalled();
+    expect(screen.getByText(/cannot be undone/i)).toBeInTheDocument();
+  });
+
+  test('says the refund depends on the cafe terms rather than promising one', () => {
+    // The server decides from the snapshotted terms and the notice given. A
+    // promise here would eventually contradict the cafe's refunds queue.
+    openCancel();
+    expect(screen.getByText(/depends on Demo Cafe/i)).toBeInTheDocument();
+  });
+
+  test('backing out cancels nothing', () => {
+    openCancel();
+    fireEvent.click(screen.getByRole('button', { name: /keep booking/i }));
+
+    expect(cancelMutate).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /cancel this booking/i })).toBeInTheDocument();
+  });
+
+  test('confirming sends the reservation id', () => {
+    openCancel();
+    fireEvent.click(screen.getByRole('button', { name: /yes, cancel/i }));
+
+    expect(cancelMutate).toHaveBeenCalledWith(
+      '6a89d0423db5e26083a9afea',
+      expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) })
+    );
+  });
+
+  test('surfaces a server refusal in place rather than losing it', () => {
+    cancelMutate.mockImplementation((_id, { onError }: any) =>
+      onError({ response: { data: { message: 'This booking can no longer be cancelled online.' } } })
+    );
+    openCancel();
+    fireEvent.click(screen.getByRole('button', { name: /yes, cancel/i }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/no longer be cancelled online/i);
+    // Still open, so the guest can read it and contact the cafe.
+    expect(screen.getByRole('button', { name: /keep booking/i })).toBeInTheDocument();
   });
 });

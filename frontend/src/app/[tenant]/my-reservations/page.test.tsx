@@ -44,6 +44,13 @@ const reservation = {
   },
 };
 
+// Reached through the detail modal this page opens. Mocked for the same
+// reason as the query hook below: this page's tests are about the page, and
+// the real mutation needs a QueryClientProvider they have no reason to set up.
+vi.mock('@/hooks/customer/use-cancel-reservation', () => ({
+  useCancelReservation: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+
 vi.mock('@/hooks/customer/use-customer-reservations', () => ({
   useCustomerReservations: () => ({
     data: [reservation],

@@ -12,7 +12,10 @@ const {
 } = require('../../middleware/rateLimiter');
 const { getAvailableSlots } = require('../../controllers/public/availabilityController');
 const { createReservation, verifyPayment } = require('../../controllers/public/bookingController');
-const { getCustomerReservations } = require('../../controllers/public/customerController');
+const {
+  getCustomerReservations,
+  cancelCustomerReservation,
+} = require('../../controllers/public/customerController');
 const { getCafeBySlug } = require('../../controllers/admin/cafeController');
 const { submitContactForm } = require('../../controllers/public/contactController');
 
@@ -35,6 +38,15 @@ router.post('/contact', contactFormLimiterMiddleware, submitContactForm);
 
 // Customer reservation history
 router.get('/customer/reservations', authenticate, getCustomerReservations);
+
+// Guest cancels their own booking. Scoped to the customer rather than to a
+// cafe: the reservation is found by id and owner together, so there is no
+// tenant to resolve and no way to reach someone else's booking.
+router.post(
+  '/customer/reservations/:reservationId/cancel',
+  authenticate,
+  cancelCustomerReservation
+);
 
 // Available slots search (Public)
 router.get('/cafes/:cafeId/available-slots', availabilityLimiterMiddleware, extractTenant, getAvailableSlots);
