@@ -15,6 +15,7 @@ const buildMockCafe = (tenant: string): Cafe => ({
   brand_accent: '#F97316',
   payments: {
     configured: true,
+    razorpay_key_id: 'rzp_test_mockkey',
   },
   reservation_rules: {
     default_turn_time_minutes: 90,
