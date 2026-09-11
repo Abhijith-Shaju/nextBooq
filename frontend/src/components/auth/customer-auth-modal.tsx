@@ -22,6 +22,7 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { isValidPhoneNumber } from '@/lib/auth/phone-number';
 
 export function CustomerAuthModal({
   open,
@@ -100,6 +101,10 @@ export function CustomerAuthModal({
     e.preventDefault();
     if (!name || !email || !phone || !password) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+    if (!isValidPhoneNumber(phone)) {
+      toast.error('Please enter a valid phone number');
       return;
     }
     if (!acceptTerms) {
@@ -315,6 +320,7 @@ export function CustomerAuthModal({
                 <Input
                   type="tel"
                   required
+                  inputMode="tel"
                   placeholder="+91 98765 43210"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}

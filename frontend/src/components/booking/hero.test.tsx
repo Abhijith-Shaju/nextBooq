@@ -91,4 +91,21 @@ describe('Hero', () => {
 
     expect(screen.getByAltText('Demo Cafe')).toHaveClass(expectedClass);
   });
+
+  test('uses the cafe hero tint and text colours when set', () => {
+    vi.mocked(useTenant).mockReturnValue({
+      cafe: {
+        ...baseCafe,
+        hero_image_url: 'https://example.com/hero.jpg',
+        hero_tint_color: '#153A2E',
+        hero_text_color: '#FFF4D8',
+      },
+    } as any);
+    render(<Hero />);
+
+    expect(screen.getByTestId('storefront-hero')).toHaveStyle({
+      backgroundColor: '#153A2E',
+      color: '#FFF4D8',
+    });
+  });
 });

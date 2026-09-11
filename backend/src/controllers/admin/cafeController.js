@@ -152,6 +152,8 @@ const updateCafe = async (req, res, next) => {
       description,
       hero_image_url,
       hero_overlay,
+      hero_tint_color,
+      hero_text_color,
       contact_phone,
       gstin,
       logo_url,
@@ -301,6 +303,8 @@ const updateCafe = async (req, res, next) => {
     for (const [field, value] of [
       ['brand_primary', brand_primary],
       ['brand_accent', brand_accent],
+      ['hero_tint_color', hero_tint_color],
+      ['hero_text_color', hero_text_color],
     ]) {
       if (value === undefined) continue;
       if (typeof value !== 'string') {

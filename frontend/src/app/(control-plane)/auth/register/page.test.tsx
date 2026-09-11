@@ -2,6 +2,7 @@ import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import RegisterPage from './page';
+import { toast } from 'sonner';
 
 const registerMutate = vi.fn();
 const push = vi.fn();
@@ -69,6 +70,19 @@ describe('RegisterPage terms acceptance', () => {
       }),
       expect.any(Object)
     );
+  });
+
+  test('does not submit when the phone number is too short', () => {
+    render(<RegisterPage />);
+    fillForm();
+    fireEvent.change(screen.getByPlaceholderText('+91 98765 43210'), {
+      target: { value: '123' },
+    });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }));
+
+    expect(registerMutate).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('Please enter a valid phone number');
   });
 
   test('links to the documents being accepted', () => {

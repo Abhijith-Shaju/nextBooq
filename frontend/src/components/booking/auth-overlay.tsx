@@ -13,6 +13,7 @@ import { useTenant } from '@/components/providers/tenant-provider';
 import { format } from 'date-fns';
 import { Loader2, ArrowRight, Calendar, User, Mail, Phone, Lock, CheckCircle2, Shield, MailWarning } from 'lucide-react';
 import { toast } from 'sonner';
+import { isValidPhoneNumber } from '@/lib/auth/phone-number';
 
 export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { isAuthenticated, user } = useAuth();
@@ -32,7 +33,6 @@ export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChang
 
   // Validation helpers
   const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
-  const isValidPhone = (p: string) => p.replace(/\D/g, '').length >= 7;
 
   const handleHoldReservation = async () => {
     if (!date || !time) {
@@ -49,7 +49,7 @@ export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChang
         toast.error('Please enter a valid email address');
         return;
       }
-      if (!isValidPhone(guestPhone)) {
+      if (!isValidPhoneNumber(guestPhone)) {
         toast.error('Please enter a valid contact phone number');
         return;
       }
@@ -223,8 +223,8 @@ export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChang
                 <Label className="text-xs font-bold text-brand-brown flex items-center justify-between">
                   <span>Phone Number <span className="text-brand-red">*</span></span>
                   {guestPhone && (
-                    <span className={`text-[10px] ${isValidPhone(guestPhone) ? 'text-emerald-600' : 'text-rose-500'}`}>
-                      {isValidPhone(guestPhone) ? '✓ Valid phone' : 'Enter number'}
+                    <span className={`text-[10px] ${isValidPhoneNumber(guestPhone) ? 'text-emerald-600' : 'text-rose-500'}`}>
+                      {isValidPhoneNumber(guestPhone) ? '✓ Valid phone' : 'Enter number'}
                     </span>
                   )}
                 </Label>
@@ -232,6 +232,7 @@ export function AuthOverlay({ open, onOpenChange }: { open: boolean; onOpenChang
                   <Phone className="w-4 h-4 text-brand-mocha absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <Input
                     type="tel"
+                    inputMode="tel"
                     placeholder="+91 98765 43210"
                     value={guestPhone}
                     onChange={(e) => setGuestPhone(e.target.value)}

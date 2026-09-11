@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { CafeMenuCategory, CafeMenuItem } from '@/lib/types/models';
 import { Image as ImageIcon, Info, Palette, Phone, Plus, RotateCcw, Sparkles, Trash2, TriangleAlert, UtensilsCrossed } from 'lucide-react';
 import { DEFAULT_TENANT_THEME } from '@/lib/theme/resolve-tenant-theme';
+import { DEFAULT_HERO_TEXT_COLOR, DEFAULT_HERO_TINT_COLOR } from '@/lib/theme/hero-colors';
 
 const DESCRIPTION_MAX_LENGTH = 1000;
 const CONTACT_PHONE_MAX_LENGTH = 30;
@@ -20,6 +21,8 @@ interface StorefrontEditorProps {
   description: string;
   heroImageUrl: string;
   heroOverlay: HeroOverlay;
+  heroTintColor?: string;
+  heroTextColor?: string;
   contactPhone: string;
   logoUrl: string;
   brandPrimary: string;
@@ -28,6 +31,8 @@ interface StorefrontEditorProps {
   onDescriptionChange: (value: string) => void;
   onHeroImageUrlChange: (value: string) => void;
   onHeroOverlayChange: (value: HeroOverlay) => void;
+  onHeroTintColorChange?: (value: string) => void;
+  onHeroTextColorChange?: (value: string) => void;
   onContactPhoneChange: (value: string) => void;
   onLogoUrlChange: (value: string) => void;
   onBrandPrimaryChange: (value: string) => void;
@@ -41,6 +46,8 @@ export function StorefrontEditor({
   description,
   heroImageUrl,
   heroOverlay,
+  heroTintColor = '',
+  heroTextColor = '',
   contactPhone,
   logoUrl,
   brandPrimary,
@@ -49,6 +56,8 @@ export function StorefrontEditor({
   onDescriptionChange,
   onHeroImageUrlChange,
   onHeroOverlayChange,
+  onHeroTintColorChange = () => {},
+  onHeroTextColorChange = () => {},
   onContactPhoneChange,
   onLogoUrlChange,
   onBrandPrimaryChange,
@@ -184,6 +193,67 @@ export function StorefrontEditor({
             How much of the photo shows through behind your headline text. Capped at a level that keeps the
             text readable.
           </p>
+        </div>
+
+        <div className="mt-4">
+          <h3 className="text-xs font-semibold text-brand-brown mb-1.5 flex items-center gap-1.5">
+            <Palette className="w-3.5 h-3.5 text-brand-red" /> Hero Colours
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              {
+                id: 'hero-tint-color',
+                label: 'Hero tint',
+                hint: 'Colour blended behind the photo',
+                value: heroTintColor,
+                onChange: onHeroTintColorChange,
+                fallback: DEFAULT_HERO_TINT_COLOR,
+              },
+              {
+                id: 'hero-text-color',
+                label: 'Hero text',
+                hint: 'Headline and hero copy colour',
+                value: heroTextColor,
+                onChange: onHeroTextColorChange,
+                fallback: DEFAULT_HERO_TEXT_COLOR,
+              },
+            ].map((field) => (
+              <div key={field.id}>
+                <label htmlFor={field.id} className="block text-xs font-semibold text-brand-brown mb-1.5">
+                  {field.label}
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    id={field.id}
+                    type="color"
+                    aria-label={`${field.label} colour`}
+                    value={field.value || field.fallback}
+                    onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                    className="h-10 w-12 shrink-0 cursor-pointer rounded-lg border border-brand-brown/20 bg-white p-1"
+                  />
+                  <input
+                    type="text"
+                    aria-label={`${field.label} colour hex`}
+                    value={field.value}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    placeholder={field.fallback}
+                    className="w-full px-3 py-2 rounded-xl border border-brand-brown/20 bg-white focus:ring-2 focus:ring-brand-red focus:outline-none text-sm font-mono uppercase"
+                  />
+                  {field.value && (
+                    <button
+                      type="button"
+                      onClick={() => field.onChange('')}
+                      title={`Reset ${field.label.toLowerCase()} to the default`}
+                      className="p-2 rounded-lg text-brand-mocha hover:bg-brand-tan/40 transition-colors shrink-0"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+                <p className="text-[11px] text-brand-mochaMid mt-1">{field.hint}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

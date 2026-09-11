@@ -67,6 +67,8 @@ export interface Cafe {
   logo_url?: string;
   hero_image_url?: string;
   hero_overlay?: 'subtle' | 'balanced' | 'vivid';
+  hero_tint_color?: string;
+  hero_text_color?: string;
   contact_phone?: string;
   gstin?: string;
   address?: CafeAddress;

@@ -328,6 +328,77 @@ describe('StorefrontEditor hero overlay preset', () => {
   });
 });
 
+describe('StorefrontEditor hero colours', () => {
+  test('shows saved hero tint and text colours', () => {
+    render(
+      <StorefrontEditor
+        description=""
+        heroImageUrl=""
+        heroOverlay="balanced"
+        heroTintColor="#153A2E"
+        heroTextColor="#FFF4D8"
+        onHeroOverlayChange={noop}
+        onHeroTintColorChange={noop}
+        onHeroTextColorChange={noop}
+        contactPhone=""
+        logoUrl=""
+        brandPrimary=""
+        brandAccent=""
+        menu={[]}
+        onDescriptionChange={noop}
+        onHeroImageUrlChange={noop}
+        onContactPhoneChange={noop}
+        onLogoUrlChange={noop}
+        onBrandPrimaryChange={noop}
+        onBrandAccentChange={noop}
+        onMenuChange={noop}
+      />
+    );
+
+    expect(screen.getByLabelText(/hero tint colour hex/i)).toHaveValue('#153A2E');
+    expect(screen.getByLabelText(/hero text colour hex/i)).toHaveValue('#FFF4D8');
+  });
+
+  test('changing hero colours reports the new values upward', () => {
+    const onHeroTintColorChange = vi.fn();
+    const onHeroTextColorChange = vi.fn();
+    render(
+      <StorefrontEditor
+        description=""
+        heroImageUrl=""
+        heroOverlay="balanced"
+        heroTintColor=""
+        heroTextColor=""
+        onHeroOverlayChange={noop}
+        onHeroTintColorChange={onHeroTintColorChange}
+        onHeroTextColorChange={onHeroTextColorChange}
+        contactPhone=""
+        logoUrl=""
+        brandPrimary=""
+        brandAccent=""
+        menu={[]}
+        onDescriptionChange={noop}
+        onHeroImageUrlChange={noop}
+        onContactPhoneChange={noop}
+        onLogoUrlChange={noop}
+        onBrandPrimaryChange={noop}
+        onBrandAccentChange={noop}
+        onMenuChange={noop}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText(/hero tint colour hex/i), {
+      target: { value: '#153A2E' },
+    });
+    fireEvent.change(screen.getByLabelText(/hero text colour hex/i), {
+      target: { value: '#FFF4D8' },
+    });
+
+    expect(onHeroTintColorChange).toHaveBeenCalledWith('#153A2E');
+    expect(onHeroTextColorChange).toHaveBeenCalledWith('#FFF4D8');
+  });
+});
+
 describe('StorefrontEditor branding', () => {
   const renderBranding = (props: Record<string, unknown> = {}) =>
     render(

@@ -86,6 +86,19 @@ const cafeSchema = new mongoose.Schema(
       enum: ['subtle', 'balanced', 'vivid'],
       default: 'balanced',
     },
+    // Optional per-cafe hero colours. Empty means the storefront keeps the
+    // platform defaults; validation happens in cafeController before these
+    // values can be used as CSS colours by the frontend.
+    hero_tint_color: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    hero_text_color: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     contact_phone: {
       type: String,
       trim: true,

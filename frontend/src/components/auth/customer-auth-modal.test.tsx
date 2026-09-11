@@ -2,6 +2,7 @@ import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { CustomerAuthModal } from './customer-auth-modal';
+import { toast } from 'sonner';
 
 const loginMutate = vi.fn();
 const registerMutate = vi.fn();
@@ -10,6 +11,8 @@ const forgotMutate = vi.fn();
 // "Log In" appears both as the tab toggle and as the submit button.
 const getLoginSubmitButton = () =>
   screen.getAllByRole('button', { name: /log in/i }).find((btn) => btn.getAttribute('type') === 'submit')!;
+
+const getPasswordInput = () => document.querySelector('input[type="password"]') as HTMLInputElement;
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -100,6 +103,21 @@ describe('CustomerAuthModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
     fireEvent.click(screen.getByRole('button', { name: /create account/i }));
     expect(registerMutate).not.toHaveBeenCalled();
+  });
+
+  test('does not submit registration when the phone number is too short', () => {
+    render(<CustomerAuthModal open onOpenChange={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
+
+    fireEvent.change(screen.getByPlaceholderText('Jane Doe'), { target: { value: 'Jane Doe' } });
+    fireEvent.change(screen.getByPlaceholderText('jane@example.com'), { target: { value: 'jane@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('+91 98765 43210'), { target: { value: '123' } });
+    fireEvent.change(getPasswordInput(), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }));
+
+    expect(registerMutate).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('Please enter a valid phone number');
   });
 
   describe('showing the password', () => {

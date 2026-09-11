@@ -296,4 +296,46 @@ describe('Integration Test: cafe storefront settings (description, hero image, m
       expect(res.body.message).toMatch(/brand_accent/i);
     });
   });
+
+  describe('hero colours', () => {
+    test('saves hero tint and text colours and serves them from the public storefront endpoint', async () => {
+      const res = await putSettings({ hero_tint_color: '#153A2E', hero_text_color: '#FFF4D8' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.hero_tint_color).toBe('#153A2E');
+      expect(res.body.data.hero_text_color).toBe('#FFF4D8');
+
+      const publicRes = await request(app).get(`/api/v1/cafes/slug/${cafe.slug}`);
+      expect(publicRes.body.data.hero_tint_color).toBe('#153A2E');
+      expect(publicRes.body.data.hero_text_color).toBe('#FFF4D8');
+    });
+
+    test('a cafe that never sets hero colours keeps them empty, so the storefront defaults apply', async () => {
+      const res = await putSettings({ description: 'unrelated' });
+
+      expect(res.body.data.hero_tint_color).toBe('');
+      expect(res.body.data.hero_text_color).toBe('');
+    });
+
+    test('clearing hero colours returns the cafe to the default hero palette', async () => {
+      await putSettings({ hero_tint_color: '#153A2E', hero_text_color: '#FFF4D8' });
+      const cleared = await putSettings({ hero_tint_color: '', hero_text_color: '' });
+
+      expect(cleared.status).toBe(200);
+      expect(cleared.body.data.hero_tint_color).toBe('');
+      expect(cleared.body.data.hero_text_color).toBe('');
+    });
+
+    test.each([
+      ['hero_tint_color', 'navy'],
+      ['hero_text_color', 'rgb(255, 255, 255)'],
+      ['hero_tint_color', '#fff; background: url(https://evil.test)'],
+      ['hero_text_color', 123],
+    ])('rejects an unsafe %s value', async (field, value) => {
+      const res = await putSettings({ [field]: value });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(new RegExp(field));
+    });
+  });
 });

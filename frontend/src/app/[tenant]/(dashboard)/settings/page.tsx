@@ -63,6 +63,8 @@ export default function CafeSettingsPage() {
   const [description, setDescription] = useState(cafe.description || '');
   const [heroImageUrl, setHeroImageUrl] = useState(cafe.hero_image_url || '');
   const [heroOverlay, setHeroOverlay] = useState(cafe.hero_overlay || 'balanced');
+  const [heroTintColor, setHeroTintColor] = useState(cafe.hero_tint_color || '');
+  const [heroTextColor, setHeroTextColor] = useState(cafe.hero_text_color || '');
   const [contactPhone, setContactPhone] = useState(cafe.contact_phone || '');
   const [addressLine1, setAddressLine1] = useState(cafe.address?.line1 || '');
   const [addressLine2, setAddressLine2] = useState(cafe.address?.line2 || '');
@@ -101,6 +103,8 @@ export default function CafeSettingsPage() {
     setDescription(cafe.description || '');
     setHeroImageUrl(cafe.hero_image_url || '');
     setHeroOverlay(cafe.hero_overlay || 'balanced');
+    setHeroTintColor(cafe.hero_tint_color || '');
+    setHeroTextColor(cafe.hero_text_color || '');
     setContactPhone(cafe.contact_phone || '');
     setAddressLine1(cafe.address?.line1 || '');
     setAddressLine2(cafe.address?.line2 || '');
@@ -130,6 +134,8 @@ export default function CafeSettingsPage() {
     cafe.description,
     cafe.hero_image_url,
     cafe.hero_overlay,
+    cafe.hero_tint_color,
+    cafe.hero_text_color,
     cafe.contact_phone,
     cafe.address?.line1,
     cafe.address?.line2,
@@ -184,6 +190,8 @@ export default function CafeSettingsPage() {
         description,
         hero_image_url: heroImageUrl,
         hero_overlay: heroOverlay,
+        hero_tint_color: heroTintColor,
+        hero_text_color: heroTextColor,
         contact_phone: contactPhone,
         // Always send the address key, even when every field is blank —
         // that's how a cafe clears a previously-saved address. The backend
@@ -645,6 +653,8 @@ export default function CafeSettingsPage() {
             description={description}
             heroImageUrl={heroImageUrl}
             heroOverlay={heroOverlay}
+            heroTintColor={heroTintColor}
+            heroTextColor={heroTextColor}
             contactPhone={contactPhone}
             logoUrl={logoUrl}
             brandPrimary={brandPrimary}
@@ -653,6 +663,8 @@ export default function CafeSettingsPage() {
             onDescriptionChange={setDescription}
             onHeroImageUrlChange={setHeroImageUrl}
             onHeroOverlayChange={setHeroOverlay}
+            onHeroTintColorChange={setHeroTintColor}
+            onHeroTextColorChange={setHeroTextColor}
             onContactPhoneChange={setContactPhone}
             onLogoUrlChange={setLogoUrl}
             onBrandPrimaryChange={setBrandPrimary}

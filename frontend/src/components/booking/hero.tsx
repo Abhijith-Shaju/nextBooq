@@ -5,6 +5,7 @@ import { useTenant } from '@/components/providers/tenant-provider';
 import Image from 'next/image';
 import { Coffee, Clock, ShieldCheck, Sparkles, MapPin, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { resolveHeroTextColor, resolveHeroTintColor } from '@/lib/theme/hero-colors';
 
 // Fixed dims, not a free-form value a cafe could set — capped at 60% so the
 // white headline/badges stay legible over any photo (see Cafe.hero_overlay).
@@ -24,9 +25,15 @@ export function Hero() {
   const [heroImageFailed, setHeroImageFailed] = useState(false);
   const showHeroImage = !!cafe.hero_image_url && !heroImageFailed;
   const overlayOpacity = HERO_OVERLAY_OPACITY[cafe.hero_overlay || 'balanced'];
+  const heroTintColor = resolveHeroTintColor(cafe.hero_tint_color);
+  const heroTextColor = resolveHeroTextColor(cafe.hero_text_color);
 
   return (
-    <div className="relative w-full aspect-[8/3] min-h-[360px] max-h-[520px] bg-brand-brown text-white flex items-center justify-center overflow-hidden py-16 px-4">
+    <div
+      data-testid="storefront-hero"
+      style={{ backgroundColor: heroTintColor, color: heroTextColor }}
+      className="relative w-full aspect-[8/3] min-h-[360px] max-h-[520px] flex items-center justify-center overflow-hidden py-16 px-4"
+    >
       {/* Background Hero Image / Ambient Glow */}
       {showHeroImage ? (
         <Image
@@ -40,7 +47,11 @@ export function Hero() {
       ) : (
         <div
           data-testid="hero-gradient-fallback"
-          className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-red/40 via-brand-brown to-brand-brown opacity-90"
+          className="absolute inset-0 opacity-90"
+          style={{
+            background:
+              `radial-gradient(ellipse at top, color-mix(in srgb, ${heroTextColor} 16%, transparent), ${heroTintColor} 58%, ${heroTintColor})`,
+          }}
         />
       )}
 
@@ -53,7 +64,8 @@ export function Hero() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full text-xs font-bold text-brand-cream shadow-sm"
+          className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full text-xs font-bold shadow-sm"
+          style={{ color: heroTextColor }}
         >
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           Accepting Real-Time Table Holds
@@ -66,10 +78,10 @@ export function Hero() {
           transition={{ delay: 0.1 }}
           className="space-y-3"
         >
-          <h1 className="text-4xl sm:text-6xl font-black font-display tracking-tight text-white drop-shadow-md">
+          <h1 className="text-4xl sm:text-6xl font-black font-display tracking-tight drop-shadow-md">
             {cafe.name}
           </h1>
-          <p className="text-base sm:text-lg max-w-2xl mx-auto font-sans font-light text-brand-cream/90 leading-relaxed drop-shadow">
+          <p className="text-base sm:text-lg max-w-2xl mx-auto font-sans font-light leading-relaxed drop-shadow opacity-90">
             {cafe.description || 'Experience handcrafted dining and effortless table reservations with instant confirmation.'}
           </p>
         </motion.div>
@@ -79,7 +91,8 @@ export function Hero() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-brand-tan pt-2"
+          className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold pt-2"
+          style={{ color: heroTextColor }}
         >
           <div className="flex items-center gap-1.5 bg-white/10 px-3.5 py-1.5 rounded-xl border border-white/10">
             <Clock className="w-4 h-4 text-brand-red" />

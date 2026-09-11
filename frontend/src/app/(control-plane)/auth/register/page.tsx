@@ -7,6 +7,7 @@ import { useRegister } from '@/hooks/auth/use-register';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { resolvePostAuthDestination } from '@/lib/auth/post-auth-destination';
+import { isValidPhoneNumber } from '@/lib/auth/phone-number';
 
 function RegisterForm() {
   const router = useRouter();
@@ -26,6 +27,10 @@ function RegisterForm() {
     e.preventDefault();
     if (!name || !email || !phone || !password) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+    if (!isValidPhoneNumber(phone)) {
+      toast.error('Please enter a valid phone number');
       return;
     }
     if (password.length < 8) {
@@ -98,6 +103,7 @@ function RegisterForm() {
                 <input
                   type="tel"
                   required
+                  inputMode="tel"
                   placeholder="+91 98765 43210"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
