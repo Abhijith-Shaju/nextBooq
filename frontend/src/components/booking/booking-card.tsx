@@ -48,7 +48,7 @@ export function BookingCard() {
       >
         <Card className="w-full max-w-4xl mx-auto glass shadow-brand-md rounded-3xl overflow-hidden border border-brand-brown/15 bg-white/95 backdrop-blur-md">
           {/* Card Header & Step Bar */}
-          <div className="p-6 md:p-8 bg-gradient-to-r from-brand-tan/40 via-white to-brand-cream border-b border-brand-brown/10">
+          <div className="p-4 sm:p-6 md:p-8 bg-gradient-to-r from-brand-tan/40 via-white to-brand-cream border-b border-brand-brown/10">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <span className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-red uppercase tracking-wider mb-1" suppressHydrationWarning>
@@ -77,7 +77,7 @@ export function BookingCard() {
           </div>
 
           {/* Card Content Grid */}
-          <CardContent className="p-6 md:p-8 space-y-8">
+          <CardContent className="p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
               {/* Left Column: Party Size & Date */}
               <div className="space-y-6">
@@ -104,7 +104,7 @@ export function BookingCard() {
             </div>
 
             {/* Live Reservation Summary & Call-To-Action Footer */}
-            <div className="pt-6 border-t border-brand-brown/10 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-brand-tan/20 via-white to-brand-cream p-4 rounded-2xl border border-brand-brown/10">
+            <div className="pt-6 border-t border-brand-brown/10 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-brand-tan/20 via-white to-brand-cream p-3.5 sm:p-4 rounded-2xl border border-brand-brown/10">
               <div className="flex items-center gap-3 text-xs text-brand-brown">
                 <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
                 <div>

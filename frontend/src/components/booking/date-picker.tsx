@@ -33,7 +33,7 @@ export function DatePicker() {
   const presets = [
     { label: 'Today', value: today },
     { label: 'Tomorrow', value: tomorrow },
-    { label: 'This Weekend', value: weekendDate },
+    { label: 'Weekend', value: weekendDate },
   ].filter((preset) => preset.value >= disabledBefore);
 
   return (
@@ -74,7 +74,7 @@ export function DatePicker() {
       </div>
 
       {/* Interactive Calendar Card */}
-      <div className="border border-brand-brown/15 rounded-2xl p-2 bg-white/90 shadow-brand-sm">
+      <div className="border border-brand-brown/15 rounded-2xl p-1 sm:p-2 bg-white/90 shadow-brand-sm">
         <Calendar
           mode="single"
           selected={date || undefined}

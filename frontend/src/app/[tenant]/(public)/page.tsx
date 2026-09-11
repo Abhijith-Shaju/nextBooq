@@ -12,7 +12,7 @@ export default function TenantPublicPage() {
       <Hero />
 
       {/* Reservation System Container */}
-      <div className="container mx-auto px-4 py-12 -mt-16 md:-mt-24 relative z-10">
+      <div className="container mx-auto px-4 py-8 sm:py-12 -mt-10 sm:-mt-16 md:-mt-24 relative z-10">
         <BookingCard />
       </div>
 

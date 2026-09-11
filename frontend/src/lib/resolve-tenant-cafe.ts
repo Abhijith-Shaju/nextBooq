@@ -13,12 +13,37 @@ const buildMockCafe = (tenant: string): Cafe => ({
   // `var(--brand-primary)` rather than `hsl(var(--brand-primary))`.
   brand_primary: '#1F6FEB',
   brand_accent: '#F97316',
+  payments: {
+    configured: true,
+  },
   reservation_rules: {
     default_turn_time_minutes: 90,
     max_party_size: 12,
     booking_lead_time_hours: 24,
     hold_duration_minutes: 10,
     reservation_fee: 100,
+  },
+  menu: [
+    {
+      category: 'Signature Brews',
+      items: [
+        { name: 'Cold Brew Reserve', description: 'Steeped for 18 hours with single-origin beans', price: 220 },
+        { name: 'Cardamom Cinnamon Latte', description: 'Velvety espresso with house-spiced oat milk', price: 260 },
+      ],
+    },
+    {
+      category: 'Artisanal Bakery',
+      items: [
+        { name: 'Almond Croissant', description: 'Flaky twice-baked butter croissant with frangipane', price: 190 },
+      ],
+    },
+  ],
+  contact_phone: '+91 98765 43210',
+  address: {
+    line1: '42 Indiranagar 100ft Road',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    postal_code: '560038',
   },
 });
 
