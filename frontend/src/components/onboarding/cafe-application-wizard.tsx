@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Coffee, ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Coffee, Loader2, XCircle } from 'lucide-react';
 import { useSubmitCafeApplication } from '@/hooks/onboarding/use-submit-cafe-application';
 import { useMyCafeApplication } from '@/hooks/onboarding/use-my-cafe-application';
+import { useSlugAvailability } from '@/hooks/onboarding/use-slug-availability';
 import type { CafeApplicationPayload } from '@/lib/types/cafe-application';
 import { apiMessage } from '@/lib/api-message';
 
@@ -101,6 +102,9 @@ export function CafeApplicationWizard() {
 
   const [cafeName, setCafeName] = useState(initialDraft.cafeName ?? '');
   const [slug, setSlug] = useState(initialDraft.slug ?? '');
+  // Debounced copy of slug fed to the availability hook — avoids a request on
+  // every keystroke while the user is still typing.
+  const [debouncedSlug, setDebouncedSlug] = useState(initialDraft.slug ?? '');
   const [timezone, setTimezone] = useState(initialDraft.timezone ?? 'Asia/Kolkata');
 
   const [line1, setLine1] = useState(initialDraft.line1 ?? '');
@@ -130,6 +134,14 @@ export function CafeApplicationWizard() {
     });
   }, [step, organizationName, cafeName, slug, timezone, line1, line2, landmark, city, state, postalCode, mapUrl]);
 
+  // Debounce: update debouncedSlug 400 ms after the user stops typing.
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSlug(slug), 400);
+    return () => clearTimeout(id);
+  }, [slug]);
+
+  const slugAvailability = useSlugAvailability(debouncedSlug);
+
   const pinError =
     postalCode && !INDIAN_PIN_PATTERN.test(postalCode)
       ? 'Enter a valid 6-digit Indian PIN code.'
@@ -139,7 +151,10 @@ export function CafeApplicationWizard() {
     step === 1
       ? !!organizationName.trim()
       : step === 2
-        ? !!cafeName.trim() && !!slug.trim() && !!timezone.trim()
+        ? !!cafeName.trim() &&
+          !!slug.trim() &&
+          !!timezone.trim() &&
+          slugAvailability === 'available'
         : step === 3
           ? !!line1.trim() && !!city.trim() && !!state.trim() && !!postalCode.trim() && !pinError
           : true;
@@ -257,6 +272,26 @@ export function CafeApplicationWizard() {
                   <p className="mt-1.5 text-xs text-brand-mocha font-mono">
                     nextbooq.in/{slug || 'your-cafe'}
                   </p>
+                  {/* Inline availability indicator — only shown once the user
+                      has typed enough characters to be worth checking. */}
+                  {slugAvailability === 'checking' && (
+                    <p className="mt-1 flex items-center gap-1 text-xs text-brand-mocha">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Checking availability…
+                    </p>
+                  )}
+                  {slugAvailability === 'available' && (
+                    <p className="mt-1 flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Available
+                    </p>
+                  )}
+                  {slugAvailability === 'taken' && (
+                    <p className="mt-1 flex items-center gap-1 text-xs text-brand-red font-medium">
+                      <XCircle className="w-3.5 h-3.5" />
+                      Already taken — please choose a different address
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="cafe-timezone" className={labelClass}>

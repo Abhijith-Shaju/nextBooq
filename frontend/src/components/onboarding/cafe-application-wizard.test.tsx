@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { CafeApplicationWizard } from './cafe-application-wizard';
 import { useMyCafeApplication } from '@/hooks/onboarding/use-my-cafe-application';
+import { useSlugAvailability } from '@/hooks/onboarding/use-slug-availability';
 
 const mutate = vi.fn();
 const push = vi.fn();
@@ -15,6 +16,9 @@ vi.mock('@/hooks/onboarding/use-submit-cafe-application', () => ({
 }));
 vi.mock('@/hooks/onboarding/use-my-cafe-application', () => ({
   useMyCafeApplication: vi.fn(),
+}));
+vi.mock('@/hooks/onboarding/use-slug-availability', () => ({
+  useSlugAvailability: vi.fn(),
 }));
 
 const fill = async (label: RegExp, value: string) => {
@@ -41,6 +45,9 @@ describe('CafeApplicationWizard', () => {
     // Default: no existing application, so the wizard is reachable — most
     // tests exercise the form itself, not the precondition guard.
     vi.mocked(useMyCafeApplication).mockReturnValue({ data: null, isLoading: false } as any);
+    // Default: slug is available — most tests aren't testing slug availability
+    // specifically and should not be blocked by it.
+    vi.mocked(useSlugAvailability).mockReturnValue('available');
   });
 
   test('cannot continue past step 1 without an organization name', async () => {
@@ -58,7 +65,45 @@ describe('CafeApplicationWizard', () => {
     expect(screen.getByRole('button', { name: /continue/i })).toBeDisabled();
     await fill(/cafe name/i, 'Filter Kaapi');
     await fill(/cafe address on nextbooq/i, 'filter-kaapi');
+    // useSlugAvailability is mocked to 'available' in beforeEach, so the
+    // button becomes enabled once all three required fields are filled.
     expect(screen.getByRole('button', { name: /continue/i })).toBeEnabled();
+  });
+
+  test('Continue is disabled while the slug availability check is in flight', async () => {
+    vi.mocked(useSlugAvailability).mockReturnValue('checking');
+    render(<CafeApplicationWizard />);
+    await fill(/organization name/i, 'Filter Kaapi Co');
+    await advance();
+    await fill(/cafe name/i, 'Filter Kaapi');
+    await fill(/cafe address on nextbooq/i, 'filter-kaapi');
+
+    expect(screen.getByRole('button', { name: /continue/i })).toBeDisabled();
+    expect(screen.getByText(/checking availability/i)).toBeInTheDocument();
+  });
+
+  test('Continue is disabled and an error shown when the slug is already taken', async () => {
+    vi.mocked(useSlugAvailability).mockReturnValue('taken');
+    render(<CafeApplicationWizard />);
+    await fill(/organization name/i, 'Filter Kaapi Co');
+    await advance();
+    await fill(/cafe name/i, 'Filter Kaapi');
+    await fill(/cafe address on nextbooq/i, 'filter-kaapi');
+
+    expect(screen.getByRole('button', { name: /continue/i })).toBeDisabled();
+    expect(screen.getByText(/already taken/i)).toBeInTheDocument();
+  });
+
+  test('Continue is enabled and a success indicator shown when the slug is available', async () => {
+    vi.mocked(useSlugAvailability).mockReturnValue('available');
+    render(<CafeApplicationWizard />);
+    await fill(/organization name/i, 'Filter Kaapi Co');
+    await advance();
+    await fill(/cafe name/i, 'Filter Kaapi');
+    await fill(/cafe address on nextbooq/i, 'filter-kaapi');
+
+    expect(screen.getByRole('button', { name: /continue/i })).toBeEnabled();
+    expect(screen.getByText(/available/i)).toBeInTheDocument();
   });
 
   test('rejects a PIN with a leading zero before submitting', async () => {
